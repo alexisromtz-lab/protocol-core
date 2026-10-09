@@ -1,0 +1,54 @@
+# protocol-core — Citación canónica (CITATION.cff, esquema CFF 1.2.0).
+#
+# Qué resuelve este archivo. Sin metadatos legibles por máquina, cualquier
+# recolector automático —Zenodo incluido— toma el LOGIN de la cuenta como autor
+# y detecta UNA sola licencia. Este archivo declara la autoría física y la
+# licencia DUAL que `NOTICE` ya publica.
+#
+# La licencia es de DOS objetos distintos, no del repositorio entero:
+#   · `src/protocol/*.py`, `tests/*.py`  -> AGPL-3.0-only  (`LICENSE`)
+#   · `SPEC.md`                          -> CC-BY-4.0      (`LICENSE_SPEC_CC-BY-4.0.txt`)
+#
+# Divergencias respecto del borrador del dueño, aplicadas a la vista y no a
+# hurtadillas:
+#   (1) `license` es LISTA y no cadena: el objeto licencia dos conjuntos, y una
+#       cadena dejaría el DOI naciendo mono-licencia.
+#   (2) `identifiers[].type` = `other`: `description` no es un tipo del esquema
+#       1.2.0 (los válidos son doi, url, swh, other).
+#   (3) Autoría alineada con la identidad atómica que el propio commit ya firma
+#       (`Jose Alexis Roman Martinez`), y no con una forma corta: el objeto y su
+#       citación deben declarar el mismo nombre.
+#   (4) `abstract` escrita con las palabras del objeto (README, `pyproject.toml`
+#       y SPEC §0.2); el término `semirretículo` del borrador no tiene casa aquí
+#       —0 apariciones en SPEC.md, README.md, NOTICE y pyproject.toml— y no se
+#       introduce por autoridad.
+#   (5) `version` y `date-released` entre comillas: el cargador YAML convertiría
+#       sendos valores en fecha y en número, y el esquema los pide como cadena.
+#
+# El signo de dólar no aparece en este archivo, y se lo nombra en vez de
+# citarlo: un dólar es un patrón para quien edite por sustitución y no un
+# carácter. Esta misma línea lo demuestra — la primera versión lo citaba y el
+# gate contó DOLARES=1 sobre un archivo que se declaraba limpio.
+cff-version: 1.2.0
+message: "If you use this software or specification, please cite it as below."
+title: "Protocolo de Custodia Determinista y Reserva de Ranuras — protocol-core 0.1.0 (Materia A)"
+abstract: "Almacenamiento atómico y auditoría determinista: sustitución atómica de archivos, aislamiento de manifiestos por namespace, reserva determinista de ranuras y auditoría criptográfica en frío (sin red, sin credenciales, sin re-sellar nada). Materia A: tipos y primitivas, invariantes de custodia, interfaz abstracta y matriz de pruebas. Cero dependencias de ejecución."
+version: "0.1.0"
+date-released: "2026-10-09"
+authors:
+  - family-names: "Roman Martinez"
+    given-names: "Jose Alexis"
+    alias: "alexisromtz"
+    affiliation: "Platino Labs"
+identifiers:
+  - type: other
+    value: "Materia sellada con RFC 3161 (FreeTSA, Apple, DigiCert, Sectigo) y OpenTimestamps (Sello A y Sello B)"
+license:
+  - AGPL-3.0-only
+  - CC-BY-4.0
+keywords:
+  - "atomic-storage"
+  - "deterministic-audit"
+  - "state-invariants"
+  - "taint-analysis"
+repository-code: "https://github.com/alexisromtz-lab/protocol-core"
