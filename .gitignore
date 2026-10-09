@@ -1,0 +1,14 @@
+# Artefactos de ejecución de Python
+__pycache__/
+*.py[cod]
+*$py.class
+
+# Entornos virtuales y empaquetado
+.venv/
+venv/
+build/
+dist/
+*.egg-info/
+
+# Sistema
+.DS_Store

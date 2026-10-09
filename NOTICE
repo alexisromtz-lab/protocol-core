@@ -1,0 +1,62 @@
+protocol-core 0.1.0 — NOTICE
+============================
+
+Este archivo declara, en un solo lugar y dentro del propio repositorio, quién
+licencia qué y qué material de terceros hay aquí. No es una licencia: las
+licencias completas son los dos archivos citados abajo.
+
+1. LICENCIA DUAL — dos objetos, dos licencias
+---------------------------------------------
+
+El objeto licenciado NO es el repositorio entero: son dos conjuntos distintos.
+
+| objeto | rutas | licencia | archivo de licencia |
+|---|---|---|---|
+| **código** (implementación y pruebas) | `src/protocol/*.py`, `tests/*.py` | **AGPL-3.0** (GNU Affero General Public License, versión 3) | `LICENSE` |
+| **SPEC** (el enunciado normativo) | `SPEC.md` | **CC BY 4.0** (Creative Commons Atribución 4.0 Internacional) | `LICENSE_SPEC_CC-BY-4.0.txt` |
+
+Identidades de esos dos objetos, medidas (sha256, bytes):
+
+- `LICENSE` — 34 523 B —
+  sha256 `0d96a4ff68ad6d4b6f1f30f713b18d5184912ba8dd389f86aa7710db079abcb0`
+- `LICENSE_SPEC_CC-BY-4.0.txt` — 18 657 B —
+  sha256 `9ba9550ad48438d0836ddab3da480b3b69ffa0aac7b7878b5a0039e7ab429411`
+
+`pyproject.toml` y `README.md` **no** son el objeto licenciado: describen y
+empaquetan el objeto (los metadatos del paquete y la puerta de entrada).
+
+El **acta** que declara y razona esta licencia dual vive **fuera** de este
+repositorio, en el expediente de la bóveda:
+
+    platino-labs/empaque-publicacion-defensiva/DECLARACION_DE_LICENCIA_DUAL_20261009.md
+    85 líneas · 3 704 B ·
+    sha256 48252c8b92e17d421a13e8a5a06ab2649250a4ad0c417623ad38ab77f9c17594
+
+Se cita por ruta y por hash, y no se copia aquí, para que la cita sea
+comprobable (el acta es un documento del expediente, no del paquete).
+
+2. TERCEROS
+-----------
+
+- **Dependencias de ejecución: ninguna.** El paquete se apoya sólo en la
+  biblioteca estándar de Python (`>= 3.11`); no hay dependencias obligatorias ni
+  opcionales declaradas en `pyproject.toml`, y por tanto no hay avisos de
+  terceros que reproducir.
+- **Motor de pruebas: `unittest`** (biblioteca estándar). No se usa `pytest`.
+- **No hay código de terceros incorporado**: no se copiaron fuentes, fragmentos
+  ni tablas de otro proyecto dentro de `src/` ni dentro de `SPEC.md`.
+- **Los textos de licencia** (`LICENSE`, `LICENSE_SPEC_CC-BY-4.0.txt`) se
+  incorporan **sin modificación**, tal como los publica cada licenciante; esta
+  nota no altera sus términos.
+- **Las llaves de los sellos de fe pública NO están en este repositorio.** Los
+  certificados de las autoridades de sellado de tiempo y los tokens de
+  OpenTimestamps viven en el expediente externo `sellos-fecha-cierta-20261009/`.
+  Aquí sólo se citan sus huellas, en `README.md`.
+
+3. CÓMO COMPROBAR LO QUE DICE ESTE ARCHIVO
+------------------------------------------
+
+    shasum -a 256 LICENSE LICENSE_SPEC_CC-BY-4.0.txt
+
+Los dos valores deben coincidir con los de la tabla del §1. Un hash que no
+coincide no es una discrepancia de licencia: es que el objeto cambió.

@@ -9,7 +9,10 @@ red, sin credenciales, sin re-sellar nada).
 - **Versión**: `0.1.0` (congelada `2026-10-09T18:39:38Z`)
 - **Python**: `>= 3.11` · **dependencias de ejecución**: ninguna
 - **Licencia dual**: el **código** bajo **AGPL-3.0** (`LICENSE`); el **SPEC** bajo
-  **CC BY 4.0** (`LICENSE_SPEC_CC-BY-4.0.txt`). Véase `DECLARACION_DE_LICENCIA_DUAL_20261009.md`.
+  **CC BY 4.0** (`LICENSE_SPEC_CC-BY-4.0.txt`). Resumen y terceros: `NOTICE`, en este repositorio.
+  El acta de la declaración dual vive **fuera** del repositorio, en el expediente de la bóveda:
+  `platino-labs/empaque-publicacion-defensiva/DECLARACION_DE_LICENCIA_DUAL_20261009.md`
+  (85 líneas · 3 704 B · sha256 `48252c8b92e17d421a13e8a5a06ab2649250a4ad0c417623ad38ab77f9c17594`).
 
 ## Las 10 piezas
 
@@ -29,10 +32,16 @@ acoplada) · y las extensiones declaradas `INV-6` (ficha fuera de banda), `INV-7
 
 ## Uso
 
+Los comandos se corren **desde la raíz de este repositorio**:
+
 ```
-python3 -m pytest -q                                              # 26 pruebas
+python3 -B -m unittest discover -s tests -v                      # 26 pruebas (motor único: stdlib unittest)
 PYTHONPATH=src python3 -B -c "import protocol; print(protocol.__version__)"   # 0.1.0
 ```
+
+**Motor único: `unittest` de la biblioteca estándar.** `pytest` **no** es dependencia y no se invoca.
+El veredicto (`Ran 26 tests` · `OK`) sale por **stderr**; las líneas `MEDICION |` de cada prueba salen
+por **stdout**.
 
 ## Sellos de fe pública
 
