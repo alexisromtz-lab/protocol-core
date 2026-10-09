@@ -1,0 +1,40 @@
+# protocol-core — Materia A: Protocolo de Custodia Determinista y Reserva de
+# Ranuras. Metadatos de empaquetado (§6.3: la versión del árbol se declara; la
+# del documento, en la cabecera de `SPEC.md`).
+#
+# Agnosticismo estricto (§0.4) aplicado al empaquetado:
+#   · CERO dependencias de ejecución      -> `dependencies = []`
+#   · CERO dependencias locales           -> nada de `../`, nada del prototipo
+#   · CERO rutas absolutas                -> el paquete se busca SÓLO bajo `src/`
+#   · CERO directorios ajenos             -> `where = ["src"]` y `include = ["protocol*"]`
+#     (ni `tests/`, ni la raíz plana de actas, ni bitácora alguna: §6.1 dice que
+#      el subárbol no contiene bitácora, y el empaquetado no la introduce)
+#
+# Motor de pruebas — UNO SOLO, y es el de la biblioteca estándar: `unittest`.
+# Sin extensiones de terceros, sin complementos y sin un segundo descubridor.
+# Corrida declarada, desde la raíz que contiene `protocol-core/`:
+#
+#     python3 -B -m unittest discover -s protocol-core/tests -v
+#
+# Dos motores para la misma suite miden dos veces el mismo objeto: una salida
+# que no puede diferir no es evidencia.
+
+[build-system]
+requires = ["setuptools>=61"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "protocol-core"
+version = "0.1.0"
+description = "Ficha, partición y manifiesto medidos fuera de banda, y los invariantes de custodia (Materia A)"
+# Piso declarado, NO medido: el árbol se corre con el intérprete del sistema
+# (3.14.7). El piso es una declaración de empaquetado, no una cifra del objeto.
+requires-python = ">=3.11"
+dependencies = []
+
+[tool.setuptools]
+package-dir = { "" = "src" }
+
+[tool.setuptools.packages.find]
+where = ["src"]
+include = ["protocol*"]
