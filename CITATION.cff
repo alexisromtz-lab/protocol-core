@@ -11,8 +11,13 @@
 #
 # Divergencias respecto del borrador del dueño, aplicadas a la vista y no a
 # hurtadillas:
-#   (1) `license` es LISTA y no cadena: el objeto licencia dos conjuntos, y una
-#       cadena dejaría el DOI naciendo mono-licencia.
+#   (1) RESTITUCIÓN, no divergencia: `license` vuelve a ser ESCALAR, como el
+#       borrador. La versión anterior de este archivo lo puso en LISTA para que
+#       el DOI naciera dual; el lector de Zenodo lee ese campo como cadena
+#       escalar y rechazó el paquete entero con `Not a valid string.` ⇒ la lista
+#       queda falsada por el consumidor. La dualidad por objeto sigue viva en
+#       `LICENSE`, `LICENSE_SPEC_CC-BY-4.0.txt` y `NOTICE`, y se narra en prosa:
+#       el metadato de Zenodo admite UNA sola licencia.
 #   (2) `identifiers[].type` = `other`: `description` no es un tipo del esquema
 #       1.2.0 (los válidos son doi, url, swh, other).
 #   (3) Autoría alineada con la identidad atómica que el propio commit ya firma
@@ -43,9 +48,7 @@ authors:
 identifiers:
   - type: other
     value: "Materia sellada con RFC 3161 (FreeTSA, Apple, DigiCert, Sectigo) y OpenTimestamps (Sello A y Sello B)"
-license:
-  - AGPL-3.0-only
-  - CC-BY-4.0
+license: AGPL-3.0-only
 keywords:
   - "atomic-storage"
   - "deterministic-audit"
