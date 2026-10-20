@@ -1,5 +1,8 @@
-# HUELLA-APPARATUS-protocol-core-20261020
+# HUELLA-CI-PYTHON-V5-PROHIBICION-EVAL-20261020
+# Contrato v5: comando: + mide: (+ evidencia: si mide es manifiesto o banco).
+# La plantilla de este repo ya no firma verde con un comando que no mide.
 # Aparato declarado: pytest (3 archivos — tests/test_audit.py, tests/test_atomic.py,
 # tests/test_metrics.py). Se declara aunque el template lo detectaría por nombre:
 # declarar gana a detectar, y una convención de nombre no es una declaración.
-pytest
+comando: pytest
+mide: tests
