@@ -492,3 +492,9 @@ simular `⊥`, y no reabre la errata 36: el N3 de aquel acto estaba en la prueba
 ESTADO MEDIDO: `SPEC.md` 464 → 494 líneas · blob `7fa27226` → post-escritura (se reporta en el cierre del acto, no aquí) · pre-vuelo RC 0 sobre
 `7fa27226f689e72b0b23a7270c78af468bac9959` · árbol limpio, `HEAD 00361f3` == `origin/main`.
 HUELLA-DEUDA-STATX-BTIME-20261020
+· **Adenda 8.7.1 — el verde citado, con su blob.** El verde `39506772823` pertenece al workflow `87fc3dfb` (plantilla
+anterior). Después el repo adoptó la plantilla v4 —aparato declarado en `44725bb`, workflow alineado en `7773919`, blob
+`a35b68d6eb2a4ca421d142b0080b428f7c63df35`— y este acto fue rebasado sobre ella. Medido en la corrida `39508360960`
+sobre `befcf72`: **1 job**, 9 pasos, success; log con `APPARATUS_DECLARED: pytest`, `26 passed, 11 subtests passed` y
+`APPARATUS_RC=0`. La prueba de `t0` mide bajo las dos plantillas; ninguna de las dos citas es un `skipped` disfrazado.
+HUELLA-DEUDA-STATX-BTIME-20261020.1
