@@ -462,3 +462,33 @@ absolutas, directorio temporal, `st_birthtime`, reloj local, colación local y c
 quedan **fuera**.
 **8.6** Materia B y Materia C tienen dueño de estado y licencia propios; este documento **no las contiene** y no
 las sustituye.
+
+**8.7** `statx(STATX_BTIME)` **NO IMPLEMENTADO** — deuda de portabilidad de `T₀` (INV-7), declarada el 20-Oct-2026
+con huella `HUELLA-DEUDA-STATX-BTIME-20261020`. Sustituye la mención escueta de 8.3 para el peldaño de nacimiento;
+8.3 sigue vigente para `NAME_MAX` y para la condición de parámetro de namespace.
+· **Hecho medido.** `_t0_de_stat` (`src/protocol/atomic.py:170`) lee **solo** `getattr(st, "st_birthtime", None)` y
+devuelve `T0.nulo()` si el campo falta. El peldaño se declara NO IMPLEMENTADO en `atomic.py:35` y `metrics.py:50-51`,
+y la declaración se repite en `tests/test_atomic.py:45` y `tests/test_metrics.py:69`. No se simula.
+· **Causa.** El módulo `os` de la biblioteca estándar no expone `statx`: medido sobre CPython 3.14.7,
+`[n for n in dir(os) if 'statx' in n.lower()] == []`. Donde la plataforma da nacimiento (`os.stat_result` con
+`st_birthtime`, medido presente en macOS) la escalera lo lee; donde no lo da, la escalera cae a `⊥`.
+· **Consecuencia.** En Linux, `T₀ = ⊥`. **No es defecto**: §2.3.7 declara `⊥` valor válido e INV-7 lee la escalera
+sin exigirla. Lo que sí queda medido es el costo: el único campo no portable de la ficha queda vacío en el SO donde
+corre el CI.
+· **Mitigación vigente.** La prueba de `t0` **mide** en ambas plataformas desde `00361f3` (blob `d7ab4469`, 649 l.):
+corrompe el recibo contra el valor **medido** (`T0.nulo() if not sellado.t0.es_nulo else T0_SINTETICO`) en lugar de
+saltarse el caso. Verificado: linux-sim `11 ok · skipped 0` (el log imprime la divergencia de `t0`), control ciego
+`FAILED 1`, macOS 26 OK, CI real `39506772823` (workflow `87fc3dfb`, 1 job) verde.
+· **Vía de resolución, si se requiere.** Símbolo `statx()` de libc vía `ctypes` (glibc ≥ 2.28 lo exporta; evita
+depender del número de syscall por arquitectura) o dependencia externa tipo `py-statx`, con el mismo control
+negativo y la misma matriz de verificación que la errata 37 del corpus (registro externo, repo `platino-labs`).
+· **Decisión del 20-Oct-2026: NO se implementa hoy.** Introduce FFI de bajo nivel (riesgo de fallo duro y de
+divergencia por arquitectura) en el camino de producción para satisfacer un campo que §2.3.7 declara opcional y que
+la prueba ya mide como `⊥`. Reabrir esta deuda exige acto propio con su propio pre-vuelo y su propio falsador; no se
+adjudica por arrastre dentro de otra sección.
+· **Lo que esta deuda NO adjudica.** No cambia `δ`, no toca la cadena F1, no declara ciego el CI, no autoriza
+simular `⊥`, y no reabre la errata 36: el N3 de aquel acto estaba en la prueba, no en el verificador.
+
+ESTADO MEDIDO: `SPEC.md` 464 → 494 líneas · blob `7fa27226` → post-escritura (se reporta en el cierre del acto, no aquí) · pre-vuelo RC 0 sobre
+`7fa27226f689e72b0b23a7270c78af468bac9959` · árbol limpio, `HEAD 00361f3` == `origin/main`.
+HUELLA-DEUDA-STATX-BTIME-20261020
