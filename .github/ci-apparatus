@@ -1,8 +1,9 @@
 # HUELLA-CI-PYTHON-V5-PROHIBICION-EVAL-20261020
-# Contrato v5: comando: + mide: (+ evidencia: si mide es manifiesto o banco).
-# La plantilla de este repo ya no firma verde con un comando que no mide.
+# HUELLA-CI-PYTHON-V5-ERRATA-2-ALIAS-PYTEST-20261020
 # Aparato declarado: pytest (3 archivos — tests/test_audit.py, tests/test_atomic.py,
 # tests/test_metrics.py). Se declara aunque el template lo detectaría por nombre:
 # declarar gana a detectar, y una convención de nombre no es una declaración.
-comando: pytest
+# `python -m pytest`, no `pytest`: la plantilla v4 tenía un alias interno que
+# convertía el literal en `python -m pytest -q`; v5 no reescribe comandos.
+comando: python -m pytest -q
 mide: tests
