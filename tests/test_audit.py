@@ -40,6 +40,13 @@ Lecturas declaradas. Ninguna se hace pasar por el texto de SPEC.md:
      comparación es del contrato, no del sistema de archivos, y con un objeto
      realmente cambiado el primer campo que diverge es siempre `H`. El caso del
      recibo corrompido declara que está corrompido.
+     `T0` es opcional y NO portable (§2.3.7) y `⊥` es valor válido: donde el
+     volumen no declara nacimiento (sin `st_birthtime`, Linux/overlayfs) la
+     escalera INV-7 devuelve `⊥` y anular el campo no corrompe nada —el recibo
+     "corrupto" sería idéntico al sellado—. Por eso la corrupción de `t0` se
+     dirige contra el valor MEDIDO: `⊥` → `T0` sintético si el sellado es nulo,
+     y `T0` sintético → `⊥` si no lo es. El caso mide la divergencia, no una
+     suposición sobre la plataforma. `HUELLA-PROTOCOL-CORE-T0-NULO-20261020`
   7. Tocar el `mtime` de un objeto NO produce divergencia: se mide como caso
      positivo del alcance declarado de `verify` (no adjudica la cadena ni el
      certificado, §lectura 13 de `audit.py`).
@@ -124,6 +131,11 @@ CORTE = _datetime.datetime(2026, 10, 9, 12, 0, 0, tzinfo=_datetime.timezone.utc)
 #: (2033-05-18T03:33:20Z).
 EPOCA_QUIETA = 1600000000.0
 EPOCA_POSTERIOR = 2000000000.0
+
+#: `T0` sintético para el volumen que no declara nacimiento. La etiqueta es
+#: EPOCA_POSTERIOR en UTC, escrita a mano como las demás expectativas
+#: (§lectura 2): no se deriva del reloj ni del `stat` que se está probando.
+T0_SINTETICO = T0(FuenteT0.BIRTHTIME, "2033-05-18T03:33:20Z", redondeo_us=1)
 
 #: Ventana declarada de la suite, y la ventana imposible del caso de exceso.
 VENTANA = _datetime.timedelta(seconds=5)
@@ -574,12 +586,16 @@ class TestVerificacion(_BaseNamespace):
 
         # Divergencias de campo POSTERIOR: el orden es del contrato, no del
         # sistema de archivos (§lectura 6). El recibo corrompido lo declara.
+        # `t0` se corrompe contra el valor medido, no contra `⊥` supuesto: sin
+        # `st_birthtime` el sellado ya es `⊥` y anularlo no cambiaría nada.
         corruptos = {
             "b": _dataclasses.replace(sellado, b=sellado.b + 1),
             "i": _dataclasses.replace(
                 sellado, i=Inodo(dev=sellado.i.dev, ino=sellado.i.ino + 1)
             ),
-            "t0": _dataclasses.replace(sellado, t0=T0.nulo()),
+            "t0": _dataclasses.replace(
+                sellado, t0=T0.nulo() if not sellado.t0.es_nulo else T0_SINTETICO
+            ),
         }
         for campo, ficha_corrupta in corruptos.items():
             with self.subTest(campo=campo):
