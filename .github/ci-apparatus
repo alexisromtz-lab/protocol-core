@@ -8,10 +8,9 @@
 # HUELLA-CANARIO-OPERADORES-PROTOCOL-CORE-REVERT-20261020 — canario cerrado: el veto
 # v9 mordió en el runner real ('|' en 'comando:' → APPARATUS_INVALIDO, run 39545017840).
 # El '|| true' del canario se retira; el comando vuelve a ser el original.
-# HUELLA-CANARIO-CONSTRUCTOS-PROTOCOL-CORE-20261020 — canario TEMPORAL del veto v11:
-# el '|| true' va DENTRO de un subshell, que es justo lo que el veto de operadores
-# de la v9 no veía. Se espera CONSTRUCTO_PROHIBIDO: '('. Se revierte en el commit
-# siguiente.
-comando: (python -m pytest -q --junitxml=/tmp/junit.xml || true)
+# HUELLA-CANARIO-CONSTRUCTOS-PROTOCOL-CORE-REVERT-20261020 — canario cerrado: el veto
+# v11 mordió en el runner real (subshell con '|| true' → CONSTRUCTO_PROHIBIDO: '(',
+# run 39549639958). El subshell se retira; el comando vuelve a ser el original.
+comando: python -m pytest -q --junitxml=/tmp/junit.xml
 mide: tests
 evidencia: junitxml
