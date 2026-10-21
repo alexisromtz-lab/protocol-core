@@ -39,10 +39,16 @@ comprobable (el acta es un documento del expediente, no del paquete).
 -----------
 
 - **Dependencias de ejecución: ninguna.** El paquete se apoya sólo en la
-  biblioteca estándar de Python (`>= 3.11`); no hay dependencias obligatorias ni
-  opcionales declaradas en `pyproject.toml`, y por tanto no hay avisos de
-  terceros que reproducir.
-- **Motor de pruebas: `unittest`** (biblioteca estándar). No se usa `pytest`.
+  biblioteca estándar de Python (`>= 3.11`); `dependencies = []` en
+  `pyproject.toml`, y por tanto no hay avisos de terceros que reproducir. Hay
+  una sola extra, `dev = ["pytest>=8,<10"]`, que NO se distribuye con el
+  paquete y no se instala como dependencia de ejecución.
+- **Motor de pruebas: `unittest`** (biblioteca estándar). Los 3 archivos de
+  `tests/` hacen `import unittest` y 0 de los 8 `.py` rastreados hacen
+  `import pytest`. El aparato de CI corre esa misma suite con
+  `python -m pytest -q --junitxml=/tmp/junit.xml`: `pytest` es el colector y el
+  productor del junitxml, no un segundo motor de aserciones. Lo instala el
+  runner del CI, no este paquete.
 - **No hay código de terceros incorporado**: no se copiaron fuentes, fragmentos
   ni tablas de otro proyecto dentro de `src/` ni dentro de `SPEC.md`.
 - **Los textos de licencia** (`LICENSE`, `LICENSE_SPEC_CC-BY-4.0.txt`) se
@@ -60,3 +66,5 @@ comprobable (el acta es un documento del expediente, no del paquete).
 
 Los dos valores deben coincidir con los de la tabla del §1. Un hash que no
 coincide no es una discrepancia de licencia: es que el objeto cambió.
+
+HUELLA-PROTOCOL-CORE-PYTEST-DEPENDENCIA-DECLARADA-20261020

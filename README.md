@@ -35,13 +35,20 @@ acoplada) · y las extensiones declaradas `INV-6` (ficha fuera de banda), `INV-7
 Los comandos se corren **desde la raíz de este repositorio**:
 
 ```
-python3 -B -m unittest discover -s tests -v                      # 26 pruebas (motor único: stdlib unittest)
+python3 -B -m unittest discover -s tests -v                      # 26 pruebas (corrida local: stdlib unittest)
 PYTHONPATH=src python3 -B -c "import protocol; print(protocol.__version__)"   # 0.1.0
 ```
 
-**Motor único: `unittest` de la biblioteca estándar.** `pytest` **no** es dependencia y no se invoca.
+**Motor único: `unittest` de la biblioteca estándar.** Los 3 archivos de `tests/` hacen
+`import unittest`; 0 de los 8 `.py` rastreados hacen `import pytest`. Lo que el aparato de CI corre es
+esa misma suite con `python -m pytest -q --junitxml=/tmp/junit.xml`, donde `pytest` es el **colector**
+y el productor del junitxml, no un segundo motor de aserciones. `pytest` lo instala el runner y este
+repositorio lo declara como **extra de desarrollo** (`pip install -e .[dev]`), nunca como dependencia
+de ejecución.
 El veredicto (`Ran 26 tests` · `OK`) sale por **stderr**; las líneas `MEDICION |` de cada prueba salen
 por **stdout**.
+
+<!-- HUELLA-PROTOCOL-CORE-PYTEST-DEPENDENCIA-DECLARADA-20261020 -->
 
 ## Sellos de fe pública
 

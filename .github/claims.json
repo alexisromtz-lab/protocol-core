@@ -1,7 +1,8 @@
 {
   "huella": "HUELLA-PC-CLAIMS-JSON-SIN-PORTADOR-20261020",
   "repo": "protocol-core",
+  "acto": "HUELLA-PROTOCOL-CORE-PYTEST-DEPENDENCIA-DECLARADA-20261020",
   "clase": null,
   "estado": "SIN_DATO_MECANIZABLE",
-  "motivo": "SIN_PORTADOR, no README_SIN_CIFRAS: el README declara cifras con origen propio (L17 «Las 10 piezas», L38 «26 pruebas», README blob 190fc089) y las 10 rutas que enumera existen 10/10, pero 0 de los 8 .py rastreados las recomputa. Un claims.json clase A aqui seria un claim sin portador, es decir, prosa con formato. Declarar SIN_DATO_MECANIZABLE significa exactamente esto: no mecanizable HOY por falta de portador, no README sin cifras. Medido en sim/PREREGISTRO_CLAIMS_RG_PC_20261020.md §9.1 (censo congelado f9f3632, resultado 384e844)."
+  "motivo": "SIN_PORTADOR, no README_SIN_CIFRAS: el README declara cifras con origen propio (L17 «Las 10 piezas», L38 «26 pruebas», README blob 3fead947) y las 10 rutas que enumera existen 10/10, pero 0 de los 8 .py rastreados las recomputa. Un claims.json clase A aqui seria un claim sin portador, es decir, prosa con formato. Declarar SIN_DATO_MECANIZABLE significa exactamente esto: no mecanizable HOY por falta de portador, no README sin cifras. Medido en sim/PREREGISTRO_CLAIMS_RG_PC_20261020.md §9.1 (censo congelado f9f3632, resultado 384e844)."
 }

@@ -11,13 +11,23 @@
 #      el subárbol no contiene bitácora, y el empaquetado no la introduce)
 #
 # Motor de pruebas — UNO SOLO, y es el de la biblioteca estándar: `unittest`.
-# Sin extensiones de terceros, sin complementos y sin un segundo descubridor.
-# Corrida declarada, desde la raíz que contiene `protocol-core/`:
+# Los 3 archivos de `tests/` hacen `import unittest`; 0 de los 8 `.py`
+# rastreados hacen `import pytest`. Corrida declarada, desde la raíz que
+# contiene `protocol-core/`:
 #
 #     python3 -B -m unittest discover -s protocol-core/tests -v
 #
-# Dos motores para la misma suite miden dos veces el mismo objeto: una salida
-# que no puede diferir no es evidencia.
+# Lo que el aparato invoca es ese mismo motor bajo otro descubridor: el
+# aparato (`.github/ci-apparatus`) corre
+#
+#     python -m pytest -q --junitxml=/tmp/junit.xml
+#
+# sobre esta misma suite, donde `pytest` es el COLECTOR y el productor del
+# junitxml, no un segundo motor de aserciones. Un motor, un colector: no hay
+# dos salidas que puedan diferir. `pytest` lo instala el runner
+# (`.github/workflows/ci.yml`: `python -m pip install pytest`), no este
+# manifiesto — de ahí la extra `dev` de abajo, que declara la instalación sin
+# convertirla en dependencia de ejecución.
 
 [build-system]
 requires = ["setuptools>=61"]
@@ -32,9 +42,18 @@ description = "Ficha, partición y manifiesto medidos fuera de banda, y los inva
 requires-python = ">=3.11"
 dependencies = []
 
+# Extra de DESARROLLO, no de ejecución: NO se distribuye con el paquete y no
+# contradice `dependencies = []` (§0.4). Declara lo que el aparato ya instala
+# a ciegas, para que la instalación tenga un portador en el manifiesto y no
+# quede sólo en el template del runner. Se activa con `pip install -e .[dev]`.
+[project.optional-dependencies]
+dev = ["pytest>=8,<10"]
+
 [tool.setuptools]
 package-dir = { "" = "src" }
 
 [tool.setuptools.packages.find]
 where = ["src"]
 include = ["protocol*"]
+
+# HUELLA-PROTOCOL-CORE-PYTEST-DEPENDENCIA-DECLARADA-20261020
