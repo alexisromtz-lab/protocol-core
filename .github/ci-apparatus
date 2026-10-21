@@ -5,10 +5,9 @@
 # declarar gana a detectar, y una convención de nombre no es una declaración.
 # `python -m pytest`, no `pytest`: la plantilla v4 tenía un alias interno que
 # convertía el literal en `python -m pytest -q`; v5 no reescribe comandos.
-# HUELLA-CANARIO-OPERADORES-PROTOCOL-CORE-20261020 — canario TEMPORAL: el operador
-# vive en el VALOR del comando (el parser descarta las líneas '#' antes de leer
-# 'comando:'), para medir si el veto v9 muerde en el runner real y no solo en el
-# falsador. Se revierte en el commit siguiente.
-comando: python -m pytest -q --junitxml=/tmp/junit.xml || true
+# HUELLA-CANARIO-OPERADORES-PROTOCOL-CORE-REVERT-20261020 — canario cerrado: el veto
+# v9 mordió en el runner real ('|' en 'comando:' → APPARATUS_INVALIDO, run 39545017840).
+# El '|| true' del canario se retira; el comando vuelve a ser el original.
+comando: python -m pytest -q --junitxml=/tmp/junit.xml
 mide: tests
 evidencia: junitxml
