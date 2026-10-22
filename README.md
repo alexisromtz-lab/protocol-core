@@ -11,7 +11,7 @@ red, sin credenciales, sin re-sellar nada).
 - **Licencia dual**: el **código** bajo **AGPL-3.0** (`LICENSE`); el **SPEC** bajo
   **CC BY 4.0** (`LICENSE_SPEC_CC-BY-4.0.txt`). Resumen y terceros: `NOTICE`, en este repositorio.
   El acta de la declaración dual vive **fuera** del repositorio, en el expediente de la bóveda:
-  `platino-labs/empaque-publicacion-defensiva/DECLARACION_DE_LICENCIA_DUAL_20261009.md`
+  `<expediente-de-custodia>/DECLARACION_DE_LICENCIA_DUAL_20261009.md`
   (85 líneas · 3 704 B · sha256 `48252c8b92e17d421a13e8a5a06ab2649250a4ad0c417623ad38ab77f9c17594`).
 
 ## Las 10 piezas
@@ -62,8 +62,8 @@ Los dos sellos son **externos a este repositorio** y se verifican **en frío**:
 Llaves de verificación (bóveda canónica de custodia):
 
 ```
-sellos-fecha-cierta-20261009/VERIFICAR_SELLO_A.sh
-sellos-fecha-cierta-20261009/VERIFICAR_SELLO_B.sh
+<expediente-de-sellos>/VERIFICAR_SELLO_A.sh
+<expediente-de-sellos>/VERIFICAR_SELLO_B.sh
 ```
 
 Ninguna de las dos usa internet (salvo la mitad Bitcoin del `.ots`), credenciales ni este archivo:

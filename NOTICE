@@ -28,12 +28,13 @@ empaquetan el objeto (los metadatos del paquete y la puerta de entrada).
 El **acta** que declara y razona esta licencia dual vive **fuera** de este
 repositorio, en el expediente de la bóveda:
 
-    platino-labs/empaque-publicacion-defensiva/DECLARACION_DE_LICENCIA_DUAL_20261009.md
+    <expediente-de-custodia>/DECLARACION_DE_LICENCIA_DUAL_20261009.md
     85 líneas · 3 704 B ·
     sha256 48252c8b92e17d421a13e8a5a06ab2649250a4ad0c417623ad38ab77f9c17594
 
-Se cita por ruta y por hash, y no se copia aquí, para que la cita sea
-comprobable (el acta es un documento del expediente, no del paquete).
+Se cita por nombre, tamano y hash, y no se copia aquí, para que la cita sea
+comprobable (el acta es un documento del expediente, no del paquete). La
+ubicacion del expediente no se publica: el sha256 es el ancla, no la ruta.
 
 2. TERCEROS
 -----------
@@ -56,7 +57,7 @@ comprobable (el acta es un documento del expediente, no del paquete).
   nota no altera sus términos.
 - **Las llaves de los sellos de fe pública NO están en este repositorio.** Los
   certificados de las autoridades de sellado de tiempo y los tokens de
-  OpenTimestamps viven en el expediente externo `sellos-fecha-cierta-20261009/`.
+  OpenTimestamps viven en el expediente externo de sellos de fe publica.
   Aquí sólo se citan sus huellas, en `README.md`.
 
 3. CÓMO COMPROBAR LO QUE DICE ESTE ARCHIVO

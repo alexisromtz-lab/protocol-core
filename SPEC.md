@@ -481,7 +481,7 @@ saltarse el caso. Verificado: linux-sim `11 ok · skipped 0` (el log imprime la 
 `FAILED 1`, macOS 26 OK, CI real `39506772823` (workflow `87fc3dfb`, 1 job) verde.
 · **Vía de resolución, si se requiere.** Símbolo `statx()` de libc vía `ctypes` (glibc ≥ 2.28 lo exporta; evita
 depender del número de syscall por arquitectura) o dependencia externa tipo `py-statx`, con el mismo control
-negativo y la misma matriz de verificación que la errata 37 del corpus (registro externo, repo `platino-labs`).
+negativo y la misma matriz de verificación que la errata 37 del corpus (registro externo de custodia).
 · **Decisión del 20-Oct-2026: NO se implementa hoy.** Introduce FFI de bajo nivel (riesgo de fallo duro y de
 divergencia por arquitectura) en el camino de producción para satisfacer un campo que §2.3.7 declara opcional y que
 la prueba ya mide como `⊥`. Reabrir esta deuda exige acto propio con su propio pre-vuelo y su propio falsador; no se
