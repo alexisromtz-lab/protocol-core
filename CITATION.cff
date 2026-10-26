@@ -43,6 +43,7 @@ date-released: "2026-10-09"
 authors:
   - family-names: "Roman Martinez"
     given-names: "Jose Alexis"
+    orcid: "https://orcid.org/0009-0001-9116-075X"
     alias: "alexisromtz"
     affiliation: "Platino Labs"
 identifiers:
