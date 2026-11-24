@@ -90,14 +90,47 @@ Sea `S: ruta ↦ digest` el índice del universo, y `(p, h)` una fila declarada.
 |---|---|---|
 | `CONFORME` | `p ∈ dom(S)` y `S(p) = h` | la fila declarada, con `k = │{r : S(r) = h}│` |
 | `REUBICADO` | `S(p) ≠ h` y existe `r ≠ p` con `S(r) = h` | `p -> r`, `k`, y si `p` quedó **vacía** |
-| `DIVERGE` | ningún `r` del universo tiene `h` | `h` contra `S(p)` (o `ausente`) |
-| `OPACO` | la ruta está redactada, o existe en disco fuera del universo | el motivo, en texto |
+| `DIVERGE` | `h` no está en el universo, o sólo consta en rutas que el manifiesto ya declaraba y `p` quedó sin bytes | `h` contra `S(p)` (o `ausente`), y el motivo |
+| `OPACO` | la ruta está redactada, o existe en disco fuera del universo, o su lectura no cerró estable | el motivo, en texto |
 
 Los cuatro son exhaustivos y mutuamente excluyentes sobre `(p, h, S)`.
 
 **Multiplicidad.** `k = │{r : S(r) = h}│` se publica siempre. El recibo no puede
 decir *cuál* copia es la buena; puede decir que hay `k`. Ocultar `k` convierte
 una ambigüedad en una afirmación.
+
+**La fibra declarada.** Un manifiesto puede declarar `k ≥ 2` rutas distintas con
+el mismo digest —medido: jq 1.7.1 trae tres pares de binarios byte-idénticos—.
+Ese conjunto es parte de lo declarado, y se conserva sólo si **cada** miembro
+sigue midiendo `h`: un adjudicador que sólo compare multiconjuntos de hashes
+llama limpio a la fibra que perdió un miembro, porque el digest sigue existiendo
+en otro sitio. `INTACTA` exige entonces `∀ p declarada : S(p) = h`, y el recibo
+publica la fibra con sus `k` rutas nombradas (`fibra | <digest> | k declaradas |
+m conformes | p₁, …, p_k`).
+
+Si un miembro de la fibra queda sin bytes y el digest no aparece en ninguna ruta
+nueva, **nadie recibió nada**: no hay reubicación que declarar. La fila es
+`DIVERGE` con el motivo `la ruta quedó sin bytes y el digest sólo consta en rutas
+ya declaradas`, y el acto va a RC 1. Llamarlo `REUBICADA` afirmaría un movimiento
+que no ocurrió y dejaría en verde un manifiesto con una copia declarada menos.
+La relación es de **subconjunto**, no de igualdad: las copias que el manifiesto
+no declara (`k_obs > k_decl`) no se acusan — no estaban declaradas.
+
+**La lectura inestable no es una divergencia.** Un digest calculado mientras otro
+proceso escribía no es el digest de ningún estado del archivo: es un híbrido que
+nunca existió entero en disco. Se mide `fstat` antes y después de leer y, si
+cambia el tamaño, la fecha, el inodo o el dispositivo —o si los bytes leídos no
+son los que el archivo declara tener—, la ruta va a `inestables` y la fila sale
+`OPACO` con motivo `la lectura del archivo no cerró estable`. Emitir ese digest
+acusaría al artefacto de una alteración ocurrida en el instrumento.
+
+**El motivo del `OPACO` dice qué corregir**, y por eso la comprobación de la
+laguna va **antes** de buscar candidatas: si la ruta no se midió, que su digest
+aparezca o no en otro sitio no cambia que aquí no hay medición. Tres motivos, tres
+arreglos distintos: `la ruta existe en disco y el universo declarado no la indexa`
+(versionar, o cambiar de universo) · `la ruta es un enlace o un directorio: el
+manifiesto mide bytes de archivo` (indexar el destino, no el enlace) · `la lectura
+del archivo no cerró estable` (quiescencia del sujeto, no del lector).
 
 ### 3.1 Redacción
 
@@ -172,6 +205,16 @@ que existe.
 - **No resuelve rutas redactadas** fuera de banda.
 - **No sigue enlaces simbólicos ni lee directorios**: sus bytes no son los bytes
   del manifiesto. Se publican en `omitidas`.
+- **No distingue un archivo que nunca existió de uno que desapareció entre
+  `isfile` y la lectura.** Los dos son `OPACO` con motivo de instrumento: el
+  lector no vio bytes, y afirmar cuál de los dos fue sería inventar.
+- **No acusa las copias que el manifiesto no declara.** `INTACTA` es una
+  relación de subconjunto (`∀ p declarada`), no de igualdad de multiconjuntos.
+  Detectar una duplicación posterior es otro acto.
+- **No decide entre `RANCIO` y `REFUTA` con el código de salida.** El acto de
+  contrafirma (`contrafirmar_censo.py`) devuelve `VeredictoDeAncla` —`vigente`,
+  `rancio`, `refuta`, `no_medida`— en su propia línea; RC 1 agrupa los tres que
+  no están vigentes.
 
 ## 6. Reproducción
 

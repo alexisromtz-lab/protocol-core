@@ -38,6 +38,7 @@ import subprocess as _subprocess
 import sys as _sys
 import tempfile as _tempfile
 import unittest as _unittest
+import unittest.mock as _mock
 
 _RAIZ = _os.path.dirname(_os.path.dirname(_os.path.abspath(__file__)))
 _SRC = _os.path.join(_RAIZ, "src")
@@ -49,6 +50,7 @@ from protocol.types import (  # noqa: E402
     ContratoViolado,
     Hash,
 )
+from protocol import ubicacion as _ubicacion  # noqa: E402
 from protocol.ubicacion import (  # noqa: E402
     DIALECTO_ADMITIDO,
     Adjudicacion,
@@ -184,7 +186,7 @@ class TestMultiplicidad(_unittest.TestCase):
         juicio = acto.juicios[0]
         self.assertEqual(("nueva/a.md", "nueva/copia/a.md"), juicio.observadas)
         self.assertEqual(
-            ("reubicado actas/a.md -> 2 caminos: nueva/a.md, nueva/copia/a.md",),
+            ("reubicado actas/a.md -> 2 caminos: nueva/a.md, nueva/copia/a.md (ruta vaciada)",),
             acto.testigos(),
         )
 
@@ -535,6 +537,220 @@ class TestActoDeSello(_unittest.TestCase):
         _medicion("P-32 RC del acto", corrida.returncode)
         self.assertEqual(0, corrida.returncode, crudo)
         self.assertIn("REPRODUCE", crudo)
+
+
+class TestLagunaYNoPerdida(_unittest.TestCase):
+    """P-34 · la ruta que el universo no miró no se acusa de perdida.
+
+    El orden de las comprobaciones en `adjudicar` **es** la regla: mientras la
+    guarda de `fuera_del_universo` vivió dentro de la rama de candidatas, una
+    ruta que existía en disco y que el índice no tenía daba `DIVERGE` con
+    `medido=None` —"ausente"—, que es acusar al artefacto de una pérdida que el
+    instrumento nunca midió. `DEFAULT NO_MEDIDO`: no haberlo leído no es un cero.
+    """
+
+    def setUp(self) -> None:
+        self.tmp = _tempfile.TemporaryDirectory()
+        self.addCleanup(self.tmp.cleanup)
+        self.raiz = self.tmp.name
+
+    def _escribir(self, ruta: str, contenido: bytes) -> str:
+        completa = _os.path.join(self.raiz, *ruta.split("/"))
+        carpeta = _os.path.dirname(completa)
+        if carpeta and not _os.path.isdir(carpeta):
+            _os.makedirs(carpeta)
+        with open(completa, "wb") as flujo:
+            flujo.write(contenido)
+        return _sha256(contenido)
+
+    def test_p34_sin_sonda_la_ruta_no_indexada_se_lee_como_ausente(self) -> None:
+        """El discriminador: sin `sondear`, el mismo árbol sí produce la acusación."""
+
+        digest = self._escribir("acta.md", b"acta")
+        indice = indice_por_contenido(self.raiz, ())
+        acto = adjudicar((_fila("acta.md", digest),), indice)
+        _medicion("P-34 sin sonda", (acto.resumen(), indice.fuera_del_universo))
+        self.assertEqual(EstadoDeEntrada.DIVERGE, acto.juicios[0].estado)
+        self.assertEqual(VeredictoDeUbicacion.DIVERGENTE, acto.veredicto)
+
+    def test_p34_con_sonda_la_laguna_del_universo_es_opaca(self) -> None:
+        digest = self._escribir("acta.md", b"acta")
+        indice = indice_por_contenido(self.raiz, (), sondear=("acta.md",))
+        acto = adjudicar((_fila("acta.md", digest),), indice)
+        juicio = acto.juicios[0]
+        _medicion("P-34 con sonda", (juicio.estado.value, juicio.motivo))
+        self.assertEqual(EstadoDeEntrada.OPACO, juicio.estado)
+        self.assertIn("no la indexa", juicio.motivo)
+        self.assertEqual(0, acto.cuenta(EstadoDeEntrada.DIVERGE))
+        self.assertEqual(VeredictoDeUbicacion.NO_MEDIDA, acto.veredicto)
+
+    def test_p34_la_laguna_manda_aunque_el_digest_este_en_otra_ruta(self) -> None:
+        """Que los bytes aparezcan en otro sitio no convierte una no-medición en reubicación."""
+
+        digest = self._escribir("acta.md", b"acta")
+        self._escribir("copia/acta.md", b"acta")
+        indice = indice_por_contenido(self.raiz, ("copia/acta.md",), sondear=("acta.md",))
+        acto = adjudicar((_fila("acta.md", digest),), indice)
+        juicio = acto.juicios[0]
+        _medicion("P-34 laguna con copia", (juicio.estado.value, juicio.multiplicidad, acto.veredicto.value))
+        self.assertEqual(EstadoDeEntrada.OPACO, juicio.estado)
+        self.assertEqual(1, juicio.multiplicidad)
+        self.assertEqual(0, acto.cuenta(EstadoDeEntrada.REUBICADO))
+        self.assertEqual(VeredictoDeUbicacion.NO_MEDIDA, acto.veredicto)
+
+
+class TestLecturaInestable(_unittest.TestCase):
+    """P-35 · un archivo que cambia mientras se lee no produce veredicto sobre sus bytes.
+
+    El digest de una lectura que atraviesa una escritura no es el digest de
+    ningún estado del archivo: es un híbrido que nunca existió entero. Emitirlo
+    acusaría al artefacto de una alteración ocurrida en el instrumento, y
+    callarlo lo haría pasar por conforme.
+    """
+
+    def setUp(self) -> None:
+        self.tmp = _tempfile.TemporaryDirectory()
+        self.addCleanup(self.tmp.cleanup)
+        self.raiz = self.tmp.name
+        with open(_os.path.join(self.raiz, "acta.md"), "wb") as flujo:
+            flujo.write(b"acta")
+
+    def _fstat_que_crece(self):
+        real = _os.fstat
+        vistas = []
+
+        def falso(descriptor):
+            actual = real(descriptor)
+            vistas.append(actual)
+            if len(vistas) == 1:
+                return actual
+            return _os.stat_result(
+                (
+                    actual.st_mode,
+                    actual.st_ino,
+                    actual.st_dev,
+                    1,
+                    0,
+                    0,
+                    actual.st_size + 1,
+                    0,
+                    0,
+                    0,
+                )
+            )
+
+        return falso
+
+    def test_p35_la_medicion_inestable_no_devuelve_digest(self) -> None:
+        completa = _os.path.join(self.raiz, "acta.md")
+        falso = self._fstat_que_crece()
+        with _mock.patch.object(_ubicacion.os, "fstat", falso):
+            leido = _ubicacion._digest_de_archivo(completa)
+        _medicion("P-35 lectura inestable", leido)
+        self.assertIsNone(leido)
+
+    def test_p35_el_indice_publica_la_ruta_inestable(self) -> None:
+        digest = _sha256(b"acta")
+        falso = self._fstat_que_crece()
+        with _mock.patch.object(_ubicacion.os, "fstat", falso):
+            indice = indice_por_contenido(self.raiz, ("acta.md",), sondear=("acta.md",))
+        _medicion("P-35 indice", (indice.inestables, dict(indice.por_ruta)))
+        self.assertEqual(("acta.md",), indice.inestables)
+        self.assertEqual({}, dict(indice.por_ruta))
+        acto = adjudicar((_fila("acta.md", digest),), indice)
+        juicio = acto.juicios[0]
+        # El motivo del instrumento manda sobre el del universo: la ruta está
+        # en los dos conjuntos y lo que hay que publicar es por qué no se midió.
+        self.assertEqual(EstadoDeEntrada.OPACO, juicio.estado)
+        self.assertIn("no cerró estable", juicio.motivo)
+        self.assertEqual(VeredictoDeUbicacion.NO_MEDIDA, acto.veredicto)
+
+    def test_p35_una_lectura_estable_sigue_dando_digest(self) -> None:
+        """Sin la mutación, el mismo camino mide: el falsador no puede pasar por accidente."""
+
+        completa = _os.path.join(self.raiz, "acta.md")
+        _medicion("P-35 lectura estable", _ubicacion._digest_de_archivo(completa))
+        self.assertEqual(_sha256(b"acta"), _ubicacion._digest_de_archivo(completa))
+
+
+class TestMotivoDelUniverso(_unittest.TestCase):
+    """P-36 · el motivo distingue un enlace de una laguna del universo.
+
+    Los dos estados son `OPACO` —en ninguno hay bytes de archivo que medir—,
+    pero el motivo es lo que el tercero necesita para saber qué corregir: un
+    enlace no se arregla indexándolo, y una ruta no versionada sí.
+    """
+
+    def setUp(self) -> None:
+        self.tmp = _tempfile.TemporaryDirectory()
+        self.addCleanup(self.tmp.cleanup)
+        self.raiz = self.tmp.name
+        with open(_os.path.join(self.raiz, "real.md"), "wb") as flujo:
+            flujo.write(b"real")
+        _os.symlink("real.md", _os.path.join(self.raiz, "enlace.md"))
+
+    def test_p36_el_enlace_declarado_se_nombra_como_enlace(self) -> None:
+        digest = _sha256(b"real")
+        indice = indice_por_contenido(self.raiz, ("enlace.md",), sondear=("enlace.md",))
+        acto = adjudicar((_fila("enlace.md", digest),), indice)
+        juicio = acto.juicios[0]
+        _medicion("P-36 enlace", (juicio.estado.value, juicio.motivo))
+        self.assertEqual(("enlace.md",), indice.omitidas)
+        self.assertEqual(EstadoDeEntrada.OPACO, juicio.estado)
+        self.assertIn("enlace o un directorio", juicio.motivo)
+        self.assertEqual(VeredictoDeUbicacion.NO_MEDIDA, acto.veredicto)
+
+
+class TestFibraDeclarada(_unittest.TestCase):
+    """P-37/38/39 · el manifiesto puede declarar `k >= 2` rutas con el mismo digest.
+
+    Esa fibra es parte de lo declarado: se conserva sólo si **cada** miembro
+    sigue midiendo `h`. Un adjudicador que sólo compare multiconjuntos de hashes
+    llama limpio a la fibra que perdió un miembro —el digest sigue existiendo en
+    otro sitio— y ese es el falso verde que estas pruebas cierran.
+    """
+
+    def test_p37_fibra_intacta_con_k_dos(self) -> None:
+        indice = Indice.desde_mapa({"a.md": _A, "b.md": _A})
+        acto = adjudicar((_fila("a.md", _A), _fila("b.md", _A)), indice)
+        _medicion("P-37 fibra", (acto.resumen(), acto.fibras()))
+        self.assertEqual(2, acto.cuenta(EstadoDeEntrada.CONFORME))
+        self.assertEqual(2, acto.juicios[0].multiplicidad)
+        self.assertEqual(VeredictoDeUbicacion.INTACTA, acto.veredicto)
+        self.assertEqual(
+            ("fibra | %s | 2 declaradas | 2 conformes | a.md, b.md" % _A,),
+            acto.fibras(),
+        )
+
+    def test_p38_fibra_con_un_miembro_vaciado_no_es_una_reubicacion(self) -> None:
+        """Nadie recibió nada: los bytes siguen donde ya estaban declarados.
+
+        Llamarlo `reubicada` afirmaría un movimiento que no ocurrió y dejaría el
+        acto en verde con una copia declarada menos.
+        """
+
+        indice = Indice.desde_mapa({"b.md": _A})
+        acto = adjudicar((_fila("a.md", _A), _fila("b.md", _A)), indice)
+        juicio = acto.juicios[0]
+        _medicion("P-38 fibra vaciada", (juicio.estado.value, juicio.motivo, acto.veredicto.value))
+        self.assertEqual(EstadoDeEntrada.DIVERGE, juicio.estado)
+        self.assertIn("ya declaradas", juicio.motivo)
+        self.assertEqual(0, acto.cuenta(EstadoDeEntrada.REUBICADO))
+        self.assertFalse(acto.conforme)
+        self.assertEqual(VeredictoDeUbicacion.DIVERGENTE, acto.veredicto)
+        self.assertEqual(("diverge a.md (la ruta quedó sin bytes y el digest sólo consta en rutas ya declaradas)",), acto.testigos())
+
+    def test_p39_una_gemela_suplantada_no_es_un_canje(self) -> None:
+        """Caso real (jq 1.7.1): la ruta sellada la ocupan bytes ajenos y la otra gemela conserva `h`."""
+
+        indice = Indice.desde_mapa({"a.md": _A, "b.md": _C})
+        acto = adjudicar((_fila("a.md", _A), _fila("b.md", _A)), indice)
+        juicio = acto.juicios[1]
+        _medicion("P-39 gemela", (juicio.estado.value, juicio.suplantada, acto.veredicto.value))
+        self.assertEqual(EstadoDeEntrada.REUBICADO, juicio.estado)
+        self.assertTrue(juicio.suplantada)
+        self.assertFalse(juicio.canje)
+        self.assertEqual(VeredictoDeUbicacion.SUPLANTADA, acto.veredicto)
 
 
 if __name__ == "__main__":

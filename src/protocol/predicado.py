@@ -198,6 +198,36 @@ class VeredictoAdjudicado(str, Enum):
     NO_MEDIDO = "no_medido"
 
 
+class VeredictoDeAncla(str, Enum):
+    """¿El ancla publicada sigue nombrando el acto que dice nombrar?
+
+    Es una pregunta distinta de la que responde `VeredictoAdjudicado`, y por eso
+    tiene su propio tipo: `VeredictoAdjudicado` adjudica **el acto** —¿se
+    sostiene lo que la página afirma?—; `VeredictoDeAncla` adjudica **la
+    frontera** —¿el punto fijo externo sigue sujetando este acto?—. Un acto
+    puede sostenerse contra un ancla rancio, y un ancla vigente puede cubrir un
+    acto que ya no se reproduce.
+
+    Los cuatro valores no son grados del mismo eje, y el cliente de un servicio
+    necesita distinguirlos para saber qué hacer:
+
+    - `VIGENTE`: el ancla existe, es la declarada, y cubre exactamente el acto
+      que tenemos delante. No hay nada que re-emitir.
+    - `RANCIO`: el ancla existe y está publicada, pero describe **otro árbol**.
+      No es un defecto de nadie: el mundo se movió y el acto se re-emite. Es
+      reparable sin auditar nada.
+    - `REFUTA`: el ancla no cubre este acto. Hay algo mal emitido, y re-anclar
+      a ciegas propagaría el defecto a un ancla nueva.
+    - `NO_MEDIDA`: no se pudo leer el ancla. No saber no es ninguno de los tres
+      anteriores, y tampoco es cero.
+    """
+
+    VIGENTE = "vigente"
+    RANCIO = "rancio"
+    REFUTA = "refuta"
+    NO_MEDIDA = "no_medida"
+
+
 # ---------------------------------------------------------------------------
 # §2.5.3 predicado — siete campos, una página
 # ---------------------------------------------------------------------------

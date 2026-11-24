@@ -322,6 +322,13 @@ class Indice:
     #: sello A da 14 reubicados con universo `git ls-files` y 10 conformes +
     #: 4 reubicados con universo de disco, sobre el mismo árbol.
     fuera_del_universo: Tuple[str, ...] = field(default_factory=tuple)
+    #: Rutas que el universo **sí** trajo y que no se pudieron medir de forma
+    #: estable: el archivo cambió, o desapareció, entre `isfile` y la lectura.
+    #: No entran en `por_ruta` —no hay digest que publicar— pero tampoco son
+    #: `omitidas`: no es que sus bytes no sean del manifiesto, es que nadie los
+    #: llegó a leer. Se publican aquí para que la fila declarada salga `OPACO`
+    #: con el motivo del instrumento y no `DIVERGE` con una acusación falsa.
+    inestables: Tuple[str, ...] = field(default_factory=tuple)
 
     @classmethod
     def desde_mapa(cls, por_ruta: Mapping[str, str]) -> "Indice":
@@ -351,11 +358,41 @@ class Indice:
         return len(self.rutas_con(digest))
 
 
-def _digest_de_archivo(completa: str) -> str:
-    h = hashlib.sha256()
-    with open(completa, "rb") as f:
-        for bloque in iter(lambda: f.read(1 << 16), b""):
-            h.update(bloque)
+def _digest_de_archivo(completa: str) -> Optional[str]:
+    """El digest de los bytes, o `None` si el archivo no se pudo medir estable.
+
+    Un digest calculado mientras otro proceso escribe no es el digest de nada:
+    es una mezcla de dos estados que nunca existió entera en disco. Publicarlo
+    acusaría al artefacto de una alteración que ocurrió en el instrumento. Se
+    mide antes y después de leer y, si el tamaño, la fecha, el inodo o el
+    dispositivo cambiaron —o si los bytes leídos no son los que el archivo
+    declara tener—, no se emite digest: `None` es `no medido`, no `distinto`.
+
+    `mtime_ns` puede repetirse en un reemplazo rápido; por eso también se
+    comparan el inodo y el tamaño leído. Ninguno de los cuatro es suficiente
+    solo, y los cuatro juntos no son una garantía: son la parte del intervalo
+    que se puede medir con `fstat`.
+    """
+
+    try:
+        with open(completa, "rb") as f:
+            antes = os.fstat(f.fileno())
+            h = hashlib.sha256()
+            leidos = 0
+            for bloque in iter(lambda: f.read(1 << 16), b""):
+                leidos += len(bloque)
+                h.update(bloque)
+            despues = os.fstat(f.fileno())
+    except OSError:
+        return None
+    estable = (antes.st_size, antes.st_mtime_ns, antes.st_ino, antes.st_dev) == (
+        despues.st_size,
+        despues.st_mtime_ns,
+        despues.st_ino,
+        despues.st_dev,
+    )
+    if not estable or leidos != despues.st_size:
+        return None
     return h.hexdigest()
 
 
@@ -366,7 +403,9 @@ def indice_por_contenido(
 
     Un enlace simbólico no se sigue y un directorio no se lee: sus bytes no son
     los bytes del manifiesto, y seguirlos haría que el índice dependiera de algo
-    que el manifiesto no declara. Ambos se publican en `omitidas`.
+    que el manifiesto no declara. Ambos se publican en `omitidas`. Una lectura
+    que no se puede cerrar de forma estable se publica en `inestables`, y por
+    eso el índice no afirma el digest de esa ruta.
 
     `sondear` son las rutas declaradas que hay que comprobar **en disco**
     aunque el universo no las traiga. Un universo barato (`git ls-files`) no ve
@@ -381,6 +420,7 @@ def indice_por_contenido(
     por_ruta: Dict[str, str] = {}
     acumulado: Dict[str, List[str]] = {}
     omitidas: List[str] = []
+    inestables: List[str] = []
     for ruta in rutas:
         if not isinstance(ruta, str) or ruta == "":
             raise ContratoViolado("ruta de universo no textual", valor=ruta)
@@ -392,6 +432,9 @@ def indice_por_contenido(
             omitidas.append(ruta)
             continue
         digest = _digest_de_archivo(completa)
+        if digest is None:
+            inestables.append(ruta)
+            continue
         por_ruta[ruta] = digest
         acumulado.setdefault(digest, []).append(ruta)
     por_digest = {d: tuple(sorted(rs)) for d, rs in acumulado.items()}
@@ -406,6 +449,7 @@ def indice_por_contenido(
         leidas=len(por_ruta),
         omitidas=tuple(sorted(omitidas)),
         fuera_del_universo=tuple(sorted(fuera)),
+        inestables=tuple(sorted(inestables)),
     )
 
 
@@ -566,16 +610,46 @@ class Adjudicacion:
                         destino,
                         " (ruta ocupada por bytes no declarados)"
                         if j.suplantada
-                        else (" (ruta ocupada)" if j.canje else ""),
+                        else (" (ruta ocupada)" if j.canje else (" (ruta vaciada)" if j.vaciada else "")),
                     )
                 )
             elif j.estado is EstadoDeEntrada.DIVERGE:
                 lineas.append(
                     "%s %s (%s)"
-                    % (j.estado.value, j.declarada, "ausente" if j.medido is None else "bytes alterados")
+                    % (
+                        j.estado.value,
+                        j.declarada,
+                        j.motivo or ("ausente" if j.medido is None else "bytes alterados"),
+                    )
                 )
             elif j.estado is EstadoDeEntrada.OPACO:
                 lineas.append("%s %s (%s)" % (j.estado.value, j.declarada, j.motivo))
+        return tuple(lineas)
+
+    def fibras(self) -> Tuple[str, ...]:
+        """Las fibras declaradas con más de una ruta, y cuántas se conservaron.
+
+        Un manifiesto puede declarar `k >= 2` rutas distintas con el mismo
+        digest. Ese conjunto —la fibra de contenido → rutas, restringida a lo
+        declarado— también está declarado: se conserva sólo si **cada** una de
+        sus rutas sigue midiendo `h`, y publicar una sola de ellas afirmaría más
+        de lo medido. Se emite una línea por fibra, con las k rutas nombradas.
+        """
+
+        declaradas_por_digest: Dict[str, List[str]] = {}
+        for j in self.juicios:
+            if j.estado is not EstadoDeEntrada.OPACO:
+                declaradas_por_digest.setdefault(j.h.digest, []).append(j.declarada)
+        lineas: List[str] = []
+        for digest in sorted(declaradas_por_digest):
+            rutas = sorted(declaradas_por_digest[digest])
+            if len(rutas) < 2:
+                continue
+            conformes = sum(1 for j in self.conformes if j.h.digest == digest)
+            lineas.append(
+                "fibra | %s | %d declaradas | %d conformes | %s"
+                % (digest, len(rutas), conformes, ", ".join(rutas))
+            )
         return tuple(lineas)
 
     def resumen(self) -> str:
@@ -594,6 +668,7 @@ def adjudicar(entradas: Sequence[EntradaDeclarada], indice: Indice) -> Adjudicac
     if not isinstance(indice, Indice):
         raise ContratoViolado("se adjudica contra un Indice, no contra un mapa suelto")
     declarados = {e.h.digest for e in entradas}
+    rutas_declaradas = {e.ruta for e in entradas if not e.opaca}
     juicios: List[Juicio] = []
     for entrada in entradas:
         if entrada.opaca:
@@ -619,19 +694,57 @@ def adjudicar(entradas: Sequence[EntradaDeclarada], indice: Indice) -> Adjudicac
                 )
             )
             continue
+        # Una ruta que existe en disco y que el universo no indexó no es una
+        # reubicación: es un universo que no miró. Decir "se movió" afirmaría
+        # algo que el índice no midió. El motivo distingue **por qué** el
+        # universo no la tiene —un enlace o un directorio no son bytes de
+        # archivo; una ruta ausente del índice es una laguna del universo— y
+        # esta comprobación va antes de buscar candidatas: si la ruta no se
+        # midió, el hecho de que su digest aparezca o no en otro sitio no
+        # cambia que aquí no hay medición.
+        if medido is None and entrada.ruta in indice.inestables:
+            juicios.append(
+                Juicio(
+                    declarada=entrada.ruta,
+                    h=entrada.h,
+                    estado=EstadoDeEntrada.OPACO,
+                    multiplicidad=indice.multiplicidad(entrada.h.digest),
+                    motivo="la lectura del archivo no cerró estable: no hay digest que publicar",
+                )
+            )
+            continue
+        if medido is None and entrada.ruta in indice.fuera_del_universo:
+            juicios.append(
+                Juicio(
+                    declarada=entrada.ruta,
+                    h=entrada.h,
+                    estado=EstadoDeEntrada.OPACO,
+                    multiplicidad=indice.multiplicidad(entrada.h.digest),
+                    motivo=(
+                        "la ruta es un enlace o un directorio: el manifiesto mide bytes de archivo"
+                        if entrada.ruta in indice.omitidas
+                        else "la ruta existe en disco y el universo declarado no la indexa"
+                    ),
+                )
+            )
+            continue
         candidatas = [r for r in indice.rutas_con(entrada.h.digest) if r != entrada.ruta]
         if candidatas:
-            # Una ruta que existe en disco y que el universo no indexó no es
-            # una reubicación: es un universo que no miró. Decir "se movió"
-            # afirmaría algo que el índice no midió.
-            if medido is None and entrada.ruta in indice.fuera_del_universo:
+            # La ruta declarada quedó sin bytes y el digest sólo aparece en
+            # rutas que el manifiesto **ya declaraba**: nadie recibió nada, así
+            # que no hay reubicación. Es una fibra declarada que perdió un
+            # miembro, y se acusa como pérdida, no como movimiento.
+            if medido is None and all(r in rutas_declaradas for r in candidatas):
                 juicios.append(
                     Juicio(
                         declarada=entrada.ruta,
                         h=entrada.h,
-                        estado=EstadoDeEntrada.OPACO,
+                        estado=EstadoDeEntrada.DIVERGE,
+                        observada=None,
                         multiplicidad=len(candidatas),
-                        motivo="la ruta existe en disco y el universo declarado no la indexa",
+                        observadas=tuple(sorted(candidatas)),
+                        medido=None,
+                        motivo="la ruta quedó sin bytes y el digest sólo consta en rutas ya declaradas",
                     )
                 )
                 continue

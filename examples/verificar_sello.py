@@ -154,6 +154,7 @@ def _salida(adjudicacion, indice, fuente: str) -> bytes:
         adjudicacion.resumen(),
     ]
     lineas.extend(adjudicacion.testigos())
+    lineas.extend(adjudicacion.fibras())
     return ("\n".join(lineas) + "\n").encode("utf-8")
 
 

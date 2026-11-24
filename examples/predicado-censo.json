@@ -19,7 +19,7 @@
     },
     {
       "ruta": "src/protocol/predicado.py",
-      "sha256": "a6f1048bce754c204f22000c03b6bb0a8d51c274f2baad3ad8ea9d8f5298fc71"
+      "sha256": "389b0485f0df6219590ae67ec863dabbe301723c1889925e4fdef5a47308f651"
     },
     {
       "ruta": "src/protocol/types.py",
@@ -27,7 +27,7 @@
     },
     {
       "ruta": "src/protocol/ubicacion.py",
-      "sha256": "17a021a3868af02b0bc0ea2d90478dec073b133126cc232f5d4f3e85185cc9cb"
+      "sha256": "f304c1797bbd4a88b936645735ef09d1c07c502966533d187cef143afee6616c"
     }
   ],
   "codigo": [
@@ -41,7 +41,7 @@
     },
     {
       "ruta": "src/protocol/predicado.py",
-      "sha256": "a6f1048bce754c204f22000c03b6bb0a8d51c274f2baad3ad8ea9d8f5298fc71"
+      "sha256": "389b0485f0df6219590ae67ec863dabbe301723c1889925e4fdef5a47308f651"
     },
     {
       "ruta": "src/protocol/types.py",

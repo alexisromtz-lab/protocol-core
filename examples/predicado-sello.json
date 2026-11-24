@@ -25,11 +25,11 @@
   "codigo": [
     {
       "ruta": "examples/verificar_sello.py",
-      "sha256": "c5e43c91109311527c5751c2c6091e43a48e80008ca142fc03e207b93c8e85f8"
+      "sha256": "e34b9e01d53028a2d75f04a06694b0e51449bc75a8c271ee6f9120323e25d87c"
     },
     {
       "ruta": "src/protocol/predicado.py",
-      "sha256": "a6f1048bce754c204f22000c03b6bb0a8d51c274f2baad3ad8ea9d8f5298fc71"
+      "sha256": "389b0485f0df6219590ae67ec863dabbe301723c1889925e4fdef5a47308f651"
     },
     {
       "ruta": "src/protocol/types.py",
@@ -37,7 +37,7 @@
     },
     {
       "ruta": "src/protocol/ubicacion.py",
-      "sha256": "17a021a3868af02b0bc0ea2d90478dec073b133126cc232f5d4f3e85185cc9cb"
+      "sha256": "f304c1797bbd4a88b936645735ef09d1c07c502966533d187cef143afee6616c"
     }
   ],
   "entorno": {
@@ -52,7 +52,7 @@
   },
   "salida": {
     "ruta": "examples/veredicto-sello.txt",
-    "sha256": "f50b8254e963e6cfc644820d17817dd029895cc51e9e6ccb40c63f742103f51a"
+    "sha256": "898af24b8bc1efce982ee307b7ea979051193359cb9826d7329254aeb00a5679"
   },
   "veredicto": "no_conforme",
   "h_prev": null

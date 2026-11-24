@@ -13,9 +13,12 @@ Lo que este acto **no** mide, y por eso lo declara:
   · El verificador es el mismo árbol que emitió la página. Es una
     auto-contrafirma: prueba que el acto es verificable por quien no lo emitió,
     no que un tercero independiente lo haya verificado. El nombre lo dice.
+  · `RANCIO` y `REFUTA` comparten RC 1. El código de salida dice si la ancla
+    está vigente; el valor tipado dice **qué** hacer con ella.
 
 Uso:  contrafirmar_censo.py [--check]
-RC:   0 emite o reproduce · 1 diverge · 2 contrato
+RC:   0 ancla vigente · 1 rancio, refuta o no medida (la línea `VEREDICTO DE ANCLA`
+      dice cuál) · 2 contrato
 """
 
 from __future__ import annotations
@@ -32,11 +35,12 @@ if str(RAIZ / "src") not in _sys.path:
 from protocol.predicado import (  # noqa: E402
     Contrafirma,
     VeredictoAdjudicado,
+    VeredictoDeAncla,
     contrafirmar,
     desde_cuerpo,
     verificar_contrafirma,
 )
-from protocol.types import ContratoViolado, Divergencia  # noqa: E402
+from protocol.types import ContratoViolado, Divergencia, RutaRelativa  # noqa: E402
 
 DECLARACION = RAIZ / "examples" / "ancla-declarada.txt"
 CONJUNTO = RAIZ / "examples" / "contrafirma-censo.json"
@@ -101,18 +105,49 @@ def _acto(decl):
     return contrafirmar(alli, VERIFICADOR, VeredictoAdjudicado.CONFIRMA, ancla)
 
 
+def _bytes_de_enfrente(decl):
+    """Los bytes de la página que está en la mesa, o `None` si no se puede leer dentro de la raíz.
+
+    La declaración la edita una persona, así que `ruta` es **entrada**, no una
+    constante: una ruta que sale de la raíz (`..`, absoluta) o un enlace que
+    apunta fuera haría que el verificador leyera archivos del host del
+    evaluador. Lo que no está dentro no se lee —se adjudica `NO_MEDIDA` con su
+    motivo—, porque un verificador que se deja sacar de su árbol confirma
+    objetos que no son el suyo.
+    """
+
+    try:
+        confinada = RutaRelativa(decl["ruta"])
+    except ContratoViolado as exc:
+        print("OPACO | %s | la ruta declarada no es del namespace: %s" % (decl["ruta"], exc))
+        return None
+    alli = (RAIZ / confinada.texto).resolve()
+    try:
+        alli.relative_to(RAIZ)
+    except ValueError:
+        print("OPACO | %s | la ruta declarada sale de la raiz" % decl["ruta"])
+        return None
+    if not alli.is_file():
+        print("OPACO | %s | la ruta declarada no es un archivo de este arbol" % decl["ruta"])
+        return None
+    return alli.read_bytes()
+
+
 def _mismo_acto(decl, contrafirma):
     """¿El archivo de la mesa es el acto que la contrafirma cubre?"""
 
-    enfrente = desde_cuerpo((RAIZ / decl["ruta"]).read_bytes())
+    datos = _bytes_de_enfrente(decl)
+    if datos is None:
+        return VeredictoDeAncla.NO_MEDIDA
+    enfrente = desde_cuerpo(datos)
     if enfrente.digest() != contrafirma.digest_del_predicado:
         print(
             "RANCIO | el ancla describe otro arbol: la pagina de enfrente no es la "
             "del ancla | enfrente %s ancla %s"
             % (enfrente.digest().digest, contrafirma.digest_del_predicado.digest)
         )
-        return False
-    return True
+        return VeredictoDeAncla.RANCIO
+    return VeredictoDeAncla.VIGENTE
 
 
 def _entorno():
@@ -143,19 +178,34 @@ def _pagina(cuerpo):
 def _adjudicar(contrafirma, decl):
     """La verificación en frío: ¿la contrafirma cubre la página que tengo delante?"""
 
-    enfrente = desde_cuerpo((RAIZ / decl["ruta"]).read_bytes())
+    datos = _bytes_de_enfrente(decl)
+    if datos is None:
+        return VeredictoDeAncla.NO_MEDIDA
+    enfrente = desde_cuerpo(datos)
     resultado = verificar_contrafirma(enfrente, contrafirma)
     if isinstance(resultado, Divergencia):
         print(
-            "DIVERGE | %s | esperado %s medido %s"
+            "REFUTA | %s | esperado %s medido %s"
             % (resultado.campo, resultado.esperado, resultado.medido)
         )
-        return 1
+        return VeredictoDeAncla.REFUTA
     print(
         "CONFIRMA | la contrafirma cubre la pagina de enfrente | %s"
         % contrafirma.digest_del_predicado.digest
     )
-    return 0
+    return VeredictoDeAncla.VIGENTE
+
+
+def _cierre(veredicto, detalle):
+    """Publica el veredicto de ancla y lo traduce a RC.
+
+    Los cuatro valores salen por la línea `VEREDICTO DE ANCLA`, no por el código
+    de salida: `RANCIO` y `REFUTA` comparten RC 1 porque los dos son "no está
+    vigente", y quien tenga que decidir entre re-emitir y auditar lee la línea.
+    """
+
+    print("VEREDICTO DE ANCLA | %s | %s" % (veredicto.value, detalle))
+    return 0 if veredicto is VeredictoDeAncla.VIGENTE else 1
 
 
 def main(argumentos):
@@ -169,20 +219,21 @@ def main(argumentos):
     if comprobar:
         if not CONJUNTO.exists():
             print("FALTA | la contrafirma emitida no existe | %s" % CONJUNTO.name)
-            return 1
+            return _cierre(VeredictoDeAncla.NO_MEDIDA, "no hay contrafirma emitida que comparar")
         if CONJUNTO.read_text(encoding="utf-8") != pagina + "\n":
             print("DIVERGE | la contrafirma emitida no es la de este acto | %s" % CONJUNTO.name)
-            return 1
+            return _cierre(VeredictoDeAncla.REFUTA, "el archivo emitido no declara este acto")
         print("REPRODUCE | contrafirma-censo.json | %s" % contrafirma.digest_del_predicado.digest)
-        if not _mismo_acto(decl, contrafirma):
-            return 1
-        return _adjudicar(contrafirma, decl)
-    CONJUNTO.write_text(pagina + "\n", encoding="utf-8")
-    print(
-        "EMITE | contrafirma-censo.json | %d lineas / %d B"
-        % (pagina.count("\n") + 1, len(pagina.encode("utf-8")) + 1)
-    )
-    return _adjudicar(contrafirma, decl)
+    else:
+        CONJUNTO.write_text(pagina + "\n", encoding="utf-8")
+        print(
+            "EMITE | contrafirma-censo.json | %d lineas / %d B"
+            % (pagina.count("\n") + 1, len(pagina.encode("utf-8")) + 1)
+        )
+    veredicto = _mismo_acto(decl, contrafirma)
+    if veredicto is VeredictoDeAncla.VIGENTE:
+        veredicto = _adjudicar(contrafirma, decl)
+    return _cierre(veredicto, "ancla %s sobre %s" % (decl["ancla"][:12], decl["ruta"]))
 
 
 if __name__ == "__main__":

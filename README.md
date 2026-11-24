@@ -47,14 +47,14 @@ acoplada) · y las extensiones declaradas `INV-6` (ficha fuera de banda), `INV-7
 Los comandos se corren **desde la raíz de este repositorio**:
 
 ```
-python3 -B -m unittest discover -s tests -v                      # 88 pruebas (corrida local: stdlib unittest)
+python3 -B -m unittest discover -s tests -v                      # 100 pruebas (corrida local: stdlib unittest)
 python3 -B examples/emitir_predicado.py                          # emite el recibo del acto: veredicto + página
 python3 -B examples/emitir_censo.py                               # el censo: declarado vs observado
 python3 -B examples/verificar_sello.py --manifiesto RUTA --raiz DIR --universo disco   # los seis veredictos
 python3 -B examples/emitir_predicado.py --check                   # REPRODUCE (RC 0) o DIVERGE (RC 1)
-python3 -B examples/emitir_censo.py --check                       # REPRODUCE (RC 0) o RANCIO (RC 1)
-python3 -B examples/verificar_sello.py --check                    # REPRODUCE (RC 0) o RANCIO (RC 1)
-python3 -B examples/contrafirmar_censo.py --check                 # CONFIRMA (RC 0) o RANCIO (RC 1)
+python3 -B examples/emitir_censo.py --check                       # REPRODUCE (RC 0) o DIVERGE (RC 1)
+python3 -B examples/verificar_sello.py --check                    # REPRODUCE (RC 0) o DIVERGE (RC 1)
+python3 -B examples/contrafirmar_censo.py --check                 # REPRODUCE (RC 0) o DIVERGE (RC 1)
 PYTHONPATH=src python3 -B -c "import protocol; print(protocol.__version__)"   # 0.1.0
 ```
 
@@ -64,7 +64,7 @@ esa misma suite con `python -m pytest -q --junitxml=/tmp/junit.xml`, donde `pyte
 y el productor del junitxml, no un segundo motor de aserciones. `pytest` lo instala el runner y este
 repositorio lo declara como **extra de desarrollo** (`pip install -e .[dev]`), nunca como dependencia
 de ejecución.
-El veredicto (`Ran 88 tests` · `OK`) sale por **stderr**; las líneas `MEDICION |` de cada prueba salen
+El veredicto (`Ran 100 tests` · `OK`) sale por **stderr**; las líneas `MEDICION |` de cada prueba salen
 por **stdout**.
 
 **Plataformas certificadas de la suite:** linux (CI) y darwin. Medido el 2026-11-24: `os.mkfifo` no
@@ -158,7 +158,7 @@ internamente consistente y sin autoría.
 
 ```
 python3 -B examples/contrafirmar_censo.py           # adjudica y emite contrafirma-censo.json
-python3 -B examples/contrafirmar_censo.py --check   # CONFIRMA (RC 0) · RANCIO (RC 1)
+python3 -B examples/contrafirmar_censo.py --check   # REPRODUCE (RC 0) · DIVERGE (RC 1)
 ```
 
 La frontera es un solo archivo que **edita una persona**:
@@ -181,7 +181,25 @@ Cuatro reglas que el acto cumple, y el falsador de cada una:
    (hay que re-anclar). `REFUTA` = la contrafirma no cubre este acto (hay que
    investigar). Falsador medido el 2026-11-24: un byte movido en
    `predicado-censo.json` (`conforme` → `no_conforme`) y `--check` devuelve
-   `RANCIO` con RC 1 mientras el digest anclado sigue siendo el anterior.
+   `VEREDICTO DE ANCLA | rancio` con RC 1 mientras el digest anclado sigue siendo
+   el anterior.
+
+**El veredicto de ancla, tipado.** El acto imprime una línea propia
+—`VEREDICTO DE ANCLA | <v> | <detalle>`— con uno de cuatro valores:
+
+| veredicto | condición | qué hacer |
+|---|---|---|
+| `VIGENTE` | la contrafirma cubre la página de enfrente y el ancla nombra el commit que la introdujo | nada |
+| `RANCIO` | el ancla nombra otro árbol, o la página de enfrente cambió de digest | re-anclar |
+| `REFUTA` | el ancla existe y la contrafirma no cubre este acto | investigar |
+| `NO_MEDIDA` | falta la página, el ancla o el commit al que apunta | reunir el objeto |
+
+RC 0 sólo para `VIGENTE`. El código de salida dice *si* el acto se sostiene; la
+línea dice *por qué*, y sin ella «no está vigente» junta tres arreglos distintos
+bajo el mismo 1. Es un eje propio —**¿el ancla sigue atando este acto?**— y no un
+grado del veredicto de ubicación (**¿siguen juntos los bytes?**): un acto puede
+estar `VIGENTE` sobre un sujeto `REUBICADO`, y ese es justamente el caso que el
+ancla fue a buscar.
 
 **El clon tiene que traer historia.** La contrafirma se adjudica contra el
 commit que nombra el ancla, así que un clon superficial (`--depth 1`) no puede
@@ -207,7 +225,7 @@ sellos con fecha cierta.
 ```
 python3 -B examples/verificar_sello.py                    # la fixture; escribe su página
 python3 -B examples/verificar_sello.py --manifiesto M --raiz D --universo disco
-python3 -B examples/verificar_sello.py --check            # REPRODUCE (RC 0) · RANCIO (RC 1)
+python3 -B examples/verificar_sello.py --check            # REPRODUCE (RC 0) · DIVERGE (RC 1)
 ```
 
 Cuatro estados por fila —`CONFORME`, `REUBICADO`, `DIVERGE`, `OPACO`— y seis

@@ -195,7 +195,10 @@ es el falsador de que la proyección no pierde información.
 6. Nombrar por separado las dos divergencias que no son la misma: `RANCIO`, la
    página de la mesa no es la del ancla —el ancla describe otro árbol— y
    `REFUTA`, la contrafirma no cubre el acto de enfrente. Mezclarlas deja al
-   auditor sin saber si re-ancorar o investigar.
+   auditor sin saber si re-ancorar o investigar. El vocabulario es
+   `VeredictoDeAncla` = `VIGENTE` · `RANCIO` · `REFUTA` · `NO_MEDIDA` (falta el
+   ancla, la página o el commit al que apunta); los tres últimos comparten RC 1,
+   así que la diferencia tiene que viajar en texto, no en el código de salida.
 
 Un verificador que acepte cualquiera de (2) con un `warning` y siga no ha
 verificado: ha saludado.

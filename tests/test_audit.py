@@ -65,11 +65,14 @@ en el árbol colgaría la suite si algo lo abriera por error.
 
 from __future__ import annotations
 
+import contextlib as _contextlib
 import dataclasses as _dataclasses
 import datetime as _datetime
 import errno as _errno
 import importlib.util as _importlib_util
+import io as _io
 import os as _os
+import pathlib as _pathlib
 import shutil as _shutil
 import sys as _sys
 import tempfile as _tempfile
@@ -651,6 +654,16 @@ class TestVerificacion(_BaseNamespace):
         _medicion("verify anchura declarada del recibo", 16)
 
 
+def _cargar_contrafirma():
+    """Carga `examples/contrafirmar_censo.py` como módulo, sin ejecutar su `main`."""
+
+    ruta = _os.path.join(_RAIZ, "examples", "contrafirmar_censo.py")
+    especificacion = _importlib_util.spec_from_file_location("contrafirmar_bajo_prueba", ruta)
+    modulo = _importlib_util.module_from_spec(especificacion)
+    especificacion.loader.exec_module(modulo)
+    return modulo
+
+
 def _cargar_acto():
     """Carga `examples/emitir_censo.py` como módulo, sin ejecutar su `main`.
 
@@ -746,6 +759,58 @@ class TestActoDeCenso(_BaseNamespace):
             acto._exigir_universo_limpio(limpio)
         self.assertTrue(_os.path.isdir(_os.path.join(limpio, "__pycache__")))
         _medicion("acto de censo | bytecode presente", "se para y no borra")
+
+
+class TestAnclaContenida(_unittest.TestCase):
+    """P-40 — la ruta de la declaración es **entrada**, no una constante.
+
+    `ancla-declarada.txt` lo edita una persona y nombra la página que el acto
+    lee. Medido el 2026-11-24 sobre el código anterior: `RAIZ / decl["ruta"]`
+    sin confinar aceptaba `../../etc/hosts`, una ruta absoluta, un directorio y
+    un enlace que apunta fuera del árbol. Leerlos haría que el verificador
+    confirmara objetos que no son suyos; el acto tiene que decir `NO_MEDIDA`.
+    """
+
+    def setUp(self) -> None:
+        self.acto = _cargar_contrafirma()
+        self.tmp = _tempfile.mkdtemp()
+        self.addCleanup(_shutil.rmtree, self.tmp, True)
+        self.raiz = _pathlib.Path(_os.path.realpath(self.tmp))
+        previa = self.acto.RAIZ
+        self.addCleanup(setattr, self.acto, "RAIZ", previa)
+        self.acto.RAIZ = self.raiz
+        (self.raiz / "dentro.json").write_text("ok", encoding="utf-8")
+        _os.mkdir(_os.path.join(self.raiz, "carpeta"))
+        _os.symlink("/etc/hosts", _os.path.join(self.raiz, "fuga.json"))
+
+    def _leer(self, ruta):
+        with _contextlib.redirect_stdout(_io.StringIO()) as salida:
+            datos = self.acto._bytes_de_enfrente({"ruta": ruta})
+        return datos, salida.getvalue()
+
+    def test_p40_la_ruta_declarada_se_lee_dentro_de_la_raiz(self) -> None:
+        datos, salida = self._leer("dentro.json")
+
+        self.assertEqual(datos, b"ok")
+        self.assertEqual(salida, "")
+        _medicion("P-40 ancla | ruta declarada legible", "dentro.json")
+
+    def test_p40_ninguna_ruta_hostil_se_lee_y_el_motivo_lo_dice(self) -> None:
+        casos = (
+            ("../fuera.json", "namespace"),
+            ("/etc/hosts", "namespace"),
+            ("carpeta", "no es un archivo"),
+            ("fuga.json", "sale de la raiz"),
+            ("no-existe.json", "no es un archivo"),
+        )
+        for ruta, motivo in casos:
+            with self.subTest(ruta=ruta):
+                datos, salida = self._leer(ruta)
+
+                self.assertIsNone(datos)
+                self.assertIn("OPACO", salida)
+                self.assertIn(motivo, salida)
+        _medicion("P-40 ancla | rutas hostiles rechazadas", len(casos))
 
 
 if __name__ == "__main__":  # pragma: no cover
