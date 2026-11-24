@@ -25,7 +25,7 @@
   "codigo": [
     {
       "ruta": "examples/verificar_sello.py",
-      "sha256": "28bb6857cca7873e4dfbbc71e3a8304ffc9d613f0429d517ba685505269eeba0"
+      "sha256": "c5e43c91109311527c5751c2c6091e43a48e80008ca142fc03e207b93c8e85f8"
     },
     {
       "ruta": "src/protocol/predicado.py",
@@ -37,7 +37,7 @@
     },
     {
       "ruta": "src/protocol/ubicacion.py",
-      "sha256": "b82f00475e6a1b1bff00e825c79322b7696656e8a6cce766c513791e67023ecc"
+      "sha256": "a49944de4b22ed90a5fbcdcdce282bc7b62fda47732aec1d376fcf1b9af6c550"
     }
   ],
   "entorno": {
@@ -46,7 +46,8 @@
     "no_medido": [
       "sin firma de tiempo externa: este acto mide un sello ya emitido, no lo emite",
       "1 rutas redactadas no viajan en entradas",
-      "universo por caminata: 6 exclusiones declaradas"
+      "universo por caminata: 6 exclusiones declaradas",
+      "dialecto del manifiesto: sha256sum; BSD, SRI y un solo espacio no admitidos"
     ]
   },
   "salida": {

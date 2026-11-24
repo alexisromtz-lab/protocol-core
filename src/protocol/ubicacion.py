@@ -31,6 +31,14 @@ entregan, y devuelve cuántas leyó y cuáles omitió para que el acto las publi
 `node_modules` en el denominador y hace que el mismo acto dé cifras distintas en
 cada máquina.
 
+EL DIALECTO ES UNA ENTRADA. Un manifiesto no es texto abstracto: es una
+gramática. Medido el 2026-11-24 contra cinco manifiestos públicos reales, este
+lector admite uno (jq 1.7.1, `sha256sum`), normaliza el prefijo `./` de otro
+(el instalador de Debian) y **nombra** los que no lee (OpenBSD, npm) en vez de
+describir el síntoma. Si el dialecto no viaja en el recibo, dos verificadores
+honestos firman veredictos incomparables sobre el mismo árbol: la dependencia de
+observador entrando por la puerta de la evidencia y no por la de la máquina.
+
 LO QUE NO HACE. No firma, no fecha y no decide autoría: dice dónde están los
 bytes. La fecha cierta la aporta el ancla y la adjudicación de esa ancla es la
 contrafirma, que es otro objeto.
@@ -54,12 +62,16 @@ from .types import (
 
 __all__ = [
     "MARCAS_DE_REDACCION",
+    "PREFIJO_EXPLICITO",
+    "DIALECTO_ADMITIDO",
     "EstadoDeEntrada",
     "VeredictoDeUbicacion",
     "EntradaDeclarada",
+    "Manifiesto",
     "Juicio",
     "Adjudicacion",
     "Indice",
+    "leer_manifiesto",
     "leer_manifiesto_hash",
     "indice_por_contenido",
     "adjudicar",
@@ -69,6 +81,23 @@ __all__ = [
 # (§2.1), así que un segmento entre ellos no puede nombrar un archivo de este
 # protocolo. Marca una redacción, y una redacción no se lee como pérdida.
 MARCAS_DE_REDACCION: Tuple[str, ...] = ("<", ">")
+
+#: Un prefijo `./` no elige otro archivo: elige el mismo, escrito con el
+#: directorio actual delante. `sha256sum x` y `sha256sum ./x` emiten la misma
+#: fila con distinta ortografía, y el manifiesto del instalador de Debian es
+#: exactamente eso —640 filas `./MANIFEST`, `./cdrom/...`— que este lector
+#: rechazaba antes de medir contra el manifiesto real (2026-11-24). Normalizarlo
+#: no es adivinar: no hay dos sujetos. Pero **se cuenta y se publica**, porque
+#: una normalización que no se mide es una huella del lector convertida en dato
+#: del objeto.
+PREFIJO_EXPLICITO = "./"
+
+#: El dialecto que este lector admite, con nombre y no por omisión. El dialecto
+#: del manifiesto es una **entrada**, y una entrada no declarada reintroduce la
+#: dependencia de observador por la puerta de adelante: dos verificadores
+#: honestos que leen dialectos distintos firman recibos incomparables sobre el
+#: mismo árbol. Falsador: P-33.
+DIALECTO_ADMITIDO = "sha256sum: digest + dos espacios + ruta (marcador de modo «*» admitido)"
 
 
 class EstadoDeEntrada(str, Enum):
@@ -129,10 +158,62 @@ def _es_redactada(ruta: str) -> bool:
     return any(marca in ruta for marca in MARCAS_DE_REDACCION)
 
 
-def leer_manifiesto_hash(texto: str, origen: str = "manifiesto") -> Tuple[EntradaDeclarada, ...]:
+def _dialecto(limpia: str) -> str:
+    """Nombre del dialecto ajeno que la línea usa, o `""` si no se reconoce.
+
+    Sólo se nombran los tres que se midieron contra manifiestos públicos reales
+    (2026-11-24): OpenBSD 7.7, el registro de npm y cualquier `sha256sum` escrito
+    con un solo espacio. Nombrar el dialecto **no lo admite**: convierte «falta
+    el separador» —un síntoma— en el nombre de lo que hay que convertir antes de
+    que el recibo pueda firmarse.
+    """
+
+    if limpia.startswith(("SHA256 (", "SHA512 (", "SHA1 (")):
+        return "BSD tradicional «SHA256 (ruta) = hex»"
+    cabecera, _, resto = limpia.partition("-")
+    if cabecera in ("sha1", "sha256", "sha384", "sha512") and resto.endswith("="):
+        return "SRI base64 «%s-…»" % cabecera
+    if (
+        len(limpia) > ANCHURA_COMPLETA + 1
+        and limpia[ANCHURA_COMPLETA] == " "
+        and limpia[ANCHURA_COMPLETA + 1] not in (" ", "*")
+        and all(c in "0123456789abcdef" for c in limpia[:ANCHURA_COMPLETA])
+    ):
+        return "sha256sum con un solo espacio (se exige «digest__ruta» o «digest *ruta»)"
+    return ""
+
+
+@dataclass(frozen=True)
+class Manifiesto:
+    """El manifiesto leído, con la huella del lector publicada junto a las filas.
+
+    Sin `dialecto` el recibo describe el árbol pero no la lectura, y la lectura
+    es la mitad del resultado: misma evidencia, dos lectores, dos veredictos.
+    `prefijadas` cuenta las filas que traían `./` explícito y se normalizaron;
+    `0` es una medición, no un hueco.
+    """
+
+    filas: Tuple[EntradaDeclarada, ...]
+    dialecto: str
+    prefijadas: int
+
+    def __post_init__(self) -> None:
+        if not isinstance(self.dialecto, str) or self.dialecto.strip() == "":
+            raise ContratoViolado("el manifiesto no declara dialecto")
+        if not isinstance(self.prefijadas, int) or isinstance(self.prefijadas, bool):
+            raise ContratoViolado("la cuenta de prefijos no es entera", valor=self.prefijadas)
+        if self.prefijadas < 0 or self.prefijadas > len(self.filas):
+            raise ContratoViolado(
+                "la cuenta de prefijos excede las filas",
+                prefijadas=self.prefijadas,
+                filas=len(self.filas),
+            )
+
+
+def leer_manifiesto(texto: str, origen: str = "manifiesto") -> Manifiesto:
     """Lee el formato de `sha256sum`: `digest  ruta`, ordenado o no.
 
-    Tres decisiones que el formato no trae y aquí se declaran:
+    Cuatro decisiones que el formato no trae y aquí se declaran:
 
     - Una ruta con `<` o `>` es **opaca**: no se convierte en `RutaRelativa` ni
       se busca, porque buscar un marcador de redacción y no encontrarlo no es
@@ -144,25 +225,49 @@ def leer_manifiesto_hash(texto: str, origen: str = "manifiesto") -> Tuple[Entrad
     - El digest debe ser de 64 hexadecimales en minúsculas. Una anchura truncada
       no se acepta aquí: para eso está `Hash(anchura=...)`, y el manifiesto
       sellado no la usa.
+    - Un prefijo `./` explícito se normaliza y **se cuenta** (`prefijadas`):
+      denota el mismo archivo. Un dialecto ajeno no se normaliza y **se
+      nombra** al rechazarlo: denota otra gramática.
     """
 
     if not isinstance(texto, str):
         raise ContratoViolado("el manifiesto no es texto", origen=origen)
     entradas: List[EntradaDeclarada] = []
     vistas = set()
+    prefijadas = 0
     for numero, linea in enumerate(texto.splitlines(), start=1):
         limpia = linea.strip()
         if limpia == "" or limpia.startswith("#"):
             continue
         if len(limpia) < ANCHURA_COMPLETA + 2:
+            ajeno = _dialecto(limpia)
+            if ajeno:
+                raise ContratoViolado(
+                    "dialecto no admitido: %s" % ajeno, origen=origen, linea=numero
+                )
             raise ContratoViolado("línea de manifiesto demasiado corta", origen=origen, linea=numero)
         digest = limpia[:ANCHURA_COMPLETA]
         separador = limpia[ANCHURA_COMPLETA : ANCHURA_COMPLETA + 2]
-        ruta = limpia[ANCHURA_COMPLETA + 2 :]
+        cruda = limpia[ANCHURA_COMPLETA + 2 :]
         if separador[0] != " ":
+            ajeno = _dialecto(limpia)
+            if ajeno:
+                raise ContratoViolado(
+                    "dialecto no admitido: %s" % ajeno, origen=origen, linea=numero
+                )
             raise ContratoViolado("falta el separador del manifiesto", origen=origen, linea=numero)
         if separador[1] not in (" ", "*"):
+            ajeno = _dialecto(limpia)
+            if ajeno:
+                raise ContratoViolado(
+                    "dialecto no admitido: %s" % ajeno, origen=origen, linea=numero
+                )
             raise ContratoViolado("marcador de modo no declarado", origen=origen, linea=numero)
+        ruta = cruda
+        while ruta.startswith(PREFIJO_EXPLICITO):
+            ruta = ruta[len(PREFIJO_EXPLICITO) :]
+        if ruta != cruda:
+            prefijadas += 1
         if ruta == "":
             raise ContratoViolado("fila sin ruta", origen=origen, linea=numero)
         h = Hash(algoritmo=ALGORITMO, digest=digest)
@@ -182,7 +287,13 @@ def leer_manifiesto_hash(texto: str, origen: str = "manifiesto") -> Tuple[Entrad
         entradas.append(EntradaDeclarada(ruta=ruta, h=h))
     if not entradas:
         raise ContratoViolado("el manifiesto no declara ninguna fila", origen=origen)
-    return tuple(entradas)
+    return Manifiesto(tuple(entradas), DIALECTO_ADMITIDO, prefijadas)
+
+
+def leer_manifiesto_hash(texto: str, origen: str = "manifiesto") -> Tuple[EntradaDeclarada, ...]:
+    """Sólo las filas. Se conserva para no romper §3; el dialecto viaja en `leer_manifiesto`."""
+
+    return leer_manifiesto(texto, origen).filas
 
 
 # ---------------------------------------------------------------------------

@@ -50,14 +50,17 @@ from protocol.types import (  # noqa: E402
     Hash,
 )
 from protocol.ubicacion import (  # noqa: E402
+    DIALECTO_ADMITIDO,
     Adjudicacion,
     EntradaDeclarada,
     EstadoDeEntrada,
     Indice,
     Juicio,
+    Manifiesto,
     VeredictoDeUbicacion,
     adjudicar,
     indice_por_contenido,
+    leer_manifiesto,
     leer_manifiesto_hash,
 )
 
@@ -272,6 +275,70 @@ class TestLectorDelManifiesto(_unittest.TestCase):
             leer_manifiesto_hash("# solo cabecera\n")
 
 
+class TestDialectoDelManifiesto(_unittest.TestCase):
+    """P-33 · el dialecto del manifiesto es una entrada, y se declara.
+
+    Medido el 2026-11-24 contra cinco manifiestos públicos reales: el lector
+    admitía uno (jq 1.7.1), rechazaba el instalador de Debian con el síntoma
+    «componente no admisible como slug» y nombraba OpenBSD y npm como si fueran
+    líneas rotas. Un manifiesto no es texto abstracto — es una gramática, y una
+    gramática no declarada reabre la dependencia de observador por la puerta de
+    la evidencia: mismo árbol, dos lectores, dos veredictos, los dos honestos.
+    """
+
+    #: Dos filas transcritas del `SHA256SUMS` del instalador de Debian
+    #: (espejo estable, 2026-11-24). No se descargan en la corrida: la prueba
+    #: mide el lector, no la red.
+    DEBIAN = (
+        "3a9f1b529229024126b1a025a66262d5af28212bac4d5fe4ec15b664e442b646  ./MANIFEST\n"
+        "38e90781622290b5606aeb34dcf89c1dad60f09ccec161754afcf6f0d51fc3f2  ./cdrom/debian-cd_info.tar.gz\n"
+    )
+
+    def test_p33_el_prefijo_explicito_se_normaliza_y_se_cuenta(self) -> None:
+        manifiesto = leer_manifiesto(self.DEBIAN, "debian")
+        _medicion("P-33 Debian", (len(manifiesto.filas), manifiesto.prefijadas))
+        self.assertEqual(
+            ("MANIFEST", "cdrom/debian-cd_info.tar.gz"), tuple(f.ruta for f in manifiesto.filas)
+        )
+        self.assertEqual(2, manifiesto.prefijadas)
+        self.assertEqual(DIALECTO_ADMITIDO, manifiesto.dialecto)
+
+    def test_p33_el_prefijo_no_blanquea_una_huida(self) -> None:
+        """`./../etc/passwd` no es otra ortografía: sigue saliendo del árbol."""
+
+        with self.assertRaises(ContratoViolado):
+            leer_manifiesto("%s  ./../etc/passwd\n" % _A)
+
+    def test_p33_un_dialecto_ajeno_se_nombra_al_rechazarlo(self) -> None:
+        casos = (
+            ("SHA256 (BOOTX64.EFI) = " + _A, "BSD tradicional"),
+            ("sha512-" + "A" * 86 + "==", "SRI base64"),
+            ("%s actas/a.md" % _A, "un solo espacio"),
+        )
+        for linea, nombre in casos:
+            with self.subTest(dialecto=nombre):
+                with self.assertRaises(ContratoViolado) as caja:
+                    leer_manifiesto(linea, nombre)
+                _medicion("P-33 rechazo", str(caja.exception))
+                self.assertIn("dialecto no admitido", str(caja.exception))
+                self.assertIn(nombre, str(caja.exception))
+
+    def test_p33_sin_prefijos_se_declara_cero(self) -> None:
+        """`0` prefijadas es una medición; el contrato de `leer_manifiesto_hash` no cambia."""
+
+        self.assertEqual(0, leer_manifiesto("%s *actas/a.md\n" % _A).prefijadas)
+        self.assertEqual(
+            (("actas/a.md", _A),),
+            tuple((f.ruta, f.h.digest) for f in leer_manifiesto_hash("%s *actas/a.md\n" % _A)),
+        )
+
+    def test_p33_la_cuenta_de_prefijos_no_excede_las_filas(self) -> None:
+        with self.assertRaises(ContratoViolado):
+            Manifiesto((_fila("a.md", _A),), DIALECTO_ADMITIDO, 2)
+        with self.assertRaises(ContratoViolado):
+            Manifiesto((_fila("a.md", _A),), "", 0)
+
+
 class TestIndice(_unittest.TestCase):
     """P-30 · el universo se declara: lo que no se indexa se publica."""
 
@@ -342,10 +409,11 @@ class TestLagunaDelUniverso(_unittest.TestCase):
 
 
 #: Cota de la página del acto de sello, medida sobre el acto real del
-#: 2026-11-24: 58 líneas y 1 825 bytes con 6 filas declaradas (5 en `entradas`
-#: y una redactada) y 4 referencias de código. Es más ancha que las otras dos
-#: porque cada fila del manifiesto cuesta 4 líneas; se declara aparte para que
-#: una cota no mida el acto que la escribió.
+#: 2026-11-24: 59 líneas y 1 911 bytes con 6 filas declaradas (5 en `entradas`
+#: y una redactada) y 4 referencias de código. Creció una línea desde 58/1 825
+#: porque el recibo pasó a declarar el dialecto del manifiesto (P-33): es más
+#: ancha que las otras dos porque cada fila cuesta 4 líneas, y se declara aparte
+#: para que una cota no mida el acto que la escribió.
 COPTA_SELLO_LINEAS = 62
 COPTA_SELLO_BYTES = 2000
 
@@ -389,6 +457,9 @@ class TestActoDeSello(_unittest.TestCase):
         self.assertEqual(5, len(cuerpo["entradas"]))
         lagunas = cuerpo["entorno"]["no_medido"]
         self.assertTrue(any("redactada" in laguna for laguna in lagunas), lagunas)
+        # El dialecto del manifiesto es una entrada, y el recibo la declara:
+        # sin esta fila, dos lectores honestos firman veredictos incomparables.
+        self.assertTrue(any("dialecto del manifiesto" in laguna for laguna in lagunas), lagunas)
 
         # El veredicto se deriva de la adjudicación que la salida publica.
         ultima = lineas_salida[1]

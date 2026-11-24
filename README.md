@@ -47,7 +47,7 @@ acoplada) · y las extensiones declaradas `INV-6` (ficha fuera de banda), `INV-7
 Los comandos se corren **desde la raíz de este repositorio**:
 
 ```
-python3 -B -m unittest discover -s tests -v                      # 80 pruebas (corrida local: stdlib unittest)
+python3 -B -m unittest discover -s tests -v                      # 85 pruebas (corrida local: stdlib unittest)
 python3 -B examples/emitir_predicado.py                          # emite el recibo del acto: veredicto + página
 python3 -B examples/emitir_censo.py                               # el censo: declarado vs observado
 python3 -B examples/verificar_sello.py --manifiesto RUTA --raiz DIR --universo disco   # los cuatro estados
@@ -64,7 +64,7 @@ esa misma suite con `python -m pytest -q --junitxml=/tmp/junit.xml`, donde `pyte
 y el productor del junitxml, no un segundo motor de aserciones. `pytest` lo instala el runner y este
 repositorio lo declara como **extra de desarrollo** (`pip install -e .[dev]`), nunca como dependencia
 de ejecución.
-El veredicto (`Ran 80 tests` · `OK`) sale por **stderr**; las líneas `MEDICION |` de cada prueba salen
+El veredicto (`Ran 85 tests` · `OK`) sale por **stderr**; las líneas `MEDICION |` de cada prueba salen
 por **stdout**.
 
 **Plataformas certificadas de la suite:** linux (CI) y darwin. Medido el 2026-11-24: `os.mkfifo` no
@@ -240,6 +240,15 @@ Dos reglas que costaron una medición cada una:
    verde que el acto existe para impedir. El caso real, medido el 2026-11-24
    sobre `SHA256SUMS_SELLO_A` con `--universo disco` (83 654 rutas, 36 omitidas):
    `10 conforme / 4 reubicado / 0 divergente / 0 opaco -> reubicada`.
+
+3. **El dialecto del manifiesto es una entrada, no un detalle de lectura.** Un
+   manifiesto sellado es una gramática: si el recibo no declara cuál se leyó, dos
+   verificadores honestos firman veredictos incomparables sobre el mismo árbol.
+   Medidos cinco manifiestos públicos el 2026-11-24: jq 1.7.1 se lee tal cual (26
+   filas); el instalador de Debian trae `./` explícito en sus 640 filas — se
+   normaliza y se **cuenta** (`prefijadas`); OpenBSD (BSD tradicional), el registro
+   de npm (SRI base64) y un `sha256sum` con un solo espacio se **rechazan nombrando
+   el dialecto**. Publica `UBICACION.md` §2.1. Falsador: P-33.
 
 ## Sellos de fe pública
 

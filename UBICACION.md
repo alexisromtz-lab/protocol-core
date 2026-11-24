@@ -48,6 +48,40 @@ traiga. Si existe y el universo no la indexó, la fila es `OPACO` con motivo
 `la ruta existe en disco y el universo declarado no la indexa` — nunca
 `REUBICADO`. "Se movió" que sólo significa "no lo busqué" es un hallazgo falso.
 
+### 2.1 El dialecto del manifiesto: una entrada, no un detalle de lectura
+
+Un manifiesto sellado no es texto abstracto: es una gramática. Si el recibo no
+declara cuál se leyó, dos verificadores honestos firman veredictos incomparables
+sobre el mismo árbol — el mismo defecto que `GIT_INDEX_FILE` mete por el lado del
+entorno, reintroducido por el lado de la evidencia.
+
+Medido el 2026-11-24 contra cinco manifiestos públicos reales:
+
+| manifiesto | dialecto | qué hace el lector |
+|---|---|---|
+| jq 1.7.1 `sha256sum.txt` | `sha256sum`, dos espacios | acepta 26 filas, `prefijadas = 0` |
+| instalador de Debian `SHA256SUMS` | `sha256sum` con `./` explícito | acepta 640 filas, `prefijadas = 640` |
+| OpenBSD 7.7 `SHA256` | BSD tradicional `SHA256 (ruta) = hex` | **rechaza** nombrando el dialecto |
+| registro de npm | SRI base64 `sha512-…` | **rechaza** nombrando el dialecto |
+| `digest ruta` con un solo espacio | `sha256sum` mal escrito | **rechaza** nombrando el dialecto |
+
+Tres reglas, y cada una se publica:
+
+1. **Un prefijo `./` explícito se normaliza y se cuenta.** `./x` y `x` denotan el
+   mismo archivo: no hay dos sujetos que elegir. El recibo publica cuántas filas
+   lo traían (`prefijadas`), porque una normalización que no se mide es una
+   huella del lector convertida en dato del objeto.
+2. **Un dialecto ajeno se nombra y se rechaza.** El nombre viaja en el error —
+   `dialecto no admitido: BSD tradicional «SHA256 (ruta) = hex»` — para que el
+   rechazo sea el mismo en cualquier implementación y diga qué convertir.
+   Nombrar no es admitir: convertir el dialecto es un acto de quien aporta la
+   evidencia, no del verificador.
+3. **`./` no blanquea una salida del árbol.** `./../etc/passwd` sigue siendo
+   `..` y se rechaza: la normalización es de ortografía, no de significado.
+
+El dialecto leído y el borde de los no leídos viajan en `entorno.no_medido`.
+Falsador: P-33.
+
 ## 3. Los cuatro estados
 
 Sea `S: ruta ↦ digest` el índice del universo, y `(p, h)` una fila declarada.

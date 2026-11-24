@@ -59,7 +59,7 @@ from protocol.ubicacion import (  # noqa: E402
     VeredictoDeUbicacion,
     adjudicar,
     indice_por_contenido,
-    leer_manifiesto_hash,
+    leer_manifiesto,
 )
 
 #: Exclusiones del universo por caminata, enumeradas y no deducidas: una lista
@@ -223,7 +223,8 @@ def main(argv: tuple) -> int:
     modo = _argumento(argv, "--universo", "auto")
 
     with open(ruta_manifiesto, "r", encoding="utf-8") as flujo:
-        declaradas = leer_manifiesto_hash(flujo.read(), _os.path.basename(ruta_manifiesto))
+        manifiesto = leer_manifiesto(flujo.read(), _os.path.basename(ruta_manifiesto))
+    declaradas = manifiesto.filas
     rutas, fuente = _universo(raiz, modo)
     # Las rutas declaradas se sondean en disco: un universo barato no ve lo no
     # versionado, y esa ceguera tiene que salir como laguna, no como ausencia.
@@ -252,6 +253,12 @@ def main(argv: tuple) -> int:
         lagunas.append("archivos no versionados no indexados")
     else:
         lagunas.append("universo por caminata: %d exclusiones declaradas" % len(EXCLUSIONES))
+    # El dialecto del manifiesto es una entrada: el recibo nombra el que leyó y
+    # el borde de los que no lee. Sin esto, dos verificadores honestos firman
+    # veredictos incomparables sobre el mismo árbol.
+    lagunas.append("dialecto del manifiesto: sha256sum; BSD, SRI y un solo espacio no admitidos")
+    if manifiesto.prefijadas:
+        lagunas.append("%d rutas con prefijo ./ normalizadas" % manifiesto.prefijadas)
     predicado = _predicado(entradas, salida, tuple(lagunas), _reclamado(adjudicacion))
     pagina = predicado.pagina()
     digest = predicado.digest()
@@ -289,6 +296,8 @@ def main(argv: tuple) -> int:
         _medicion("pagina", PAGINA)
     _medicion("manifiesto", ruta_manifiesto)
     _medicion("raiz", raiz)
+    _medicion("dialecto del manifiesto", manifiesto.dialecto)
+    _medicion("rutas con prefijo ./ normalizadas", manifiesto.prefijadas)
     _medicion("universo", (indice.leidas, fuente))
     _medicion("omitidas", len(indice.omitidas))
     _medicion("fuera del universo", indice.fuera_del_universo)
