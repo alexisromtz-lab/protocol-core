@@ -818,6 +818,73 @@ class TestRcDelActo(_unittest.TestCase):
         self.assertEqual(1, corrida.returncode)
         _medicion("P-41 RC | divergente", corrida.returncode)
 
+    def test_p41_no_medida_no_sale_en_cero(self) -> None:
+        with open(_os.path.join(self.raiz, "a.md"), "wb") as flujo:
+            flujo.write(b"uno\n")
+        with open(self.manifiesto, "w", encoding="utf-8") as flujo:
+            flujo.write("%s  <redactada>.md\n" % ("0" * 64))
+
+        corrida = self._correr()
+
+        self.assertEqual("no_medida", self._veredicto(corrida))
+        self.assertEqual(1, corrida.returncode)
+        _medicion("P-41 RC | no_medida", corrida.returncode)
+
+    def _correr_crudo(self, manifiesto: str, raiz: str):
+        return _subprocess.run(
+            [
+                _sys.executable,
+                "-B",
+                _os.path.join(_RAIZ, "examples", "verificar_sello.py"),
+                "--manifiesto",
+                manifiesto,
+                "--raiz",
+                raiz,
+                "--universo",
+                "disco",
+            ],
+            cwd=_RAIZ,
+            stdout=_subprocess.PIPE,
+            stderr=_subprocess.STDOUT,
+            check=False,
+        )
+
+    def test_p42_entrada_invalida_sale_en_dos(self) -> None:
+        """P-42 — un manifiesto que no se puede leer no es un veredicto.
+
+        Compartir el `1` de un sello partido confundiría dos arreglos distintos:
+        el cliente que recibe 1 sobre un manifiesto ilegible busca un artefacto
+        alterado que no existe. Y una traza de Python es el contrato de nadie.
+        """
+
+        self._escribir(b"uno\n")
+        casos = {
+            "manifiesto ausente": _os.path.join(self.raiz, "NOHAY.txt"),
+            "raiz ausente": self.manifiesto,
+        }
+        for nombre, manifiesto in casos.items():
+            raiz = self.raiz if nombre == "manifiesto ausente" else _os.path.join(self.raiz, "NOHAY")
+            corrida = self._correr_crudo(manifiesto, raiz)
+            salida = corrida.stdout.decode("utf-8", "replace")
+            self.assertEqual(2, corrida.returncode, nombre)
+            self.assertIn("ENTRADA INVALIDA", salida, nombre)
+            self.assertNotIn("Traceback", salida, nombre)
+        _medicion("P-42 RC | entrada invalida", 2)
+
+    def test_p42_dialecto_ajeno_sale_en_dos_y_nombra_el_dialecto(self) -> None:
+        self._escribir(b"uno\n")
+        with open(self.manifiesto, "w", encoding="utf-8") as flujo:
+            # BSD tradicional: `SHA256 (a.md) = <hex>`. No es un veredicto sobre
+            # el árbol, es una gramática que este acto no lee.
+            flujo.write("SHA256 (a.md) = %s\n" % _hashlib.sha256(b"uno\n").hexdigest())
+
+        corrida = self._correr()
+
+        salida = corrida.stdout.decode("utf-8", "replace")
+        self.assertEqual(2, corrida.returncode)
+        self.assertIn("dialecto no admitido", salida)
+        _medicion("P-42 RC | dialecto ajeno", corrida.returncode)
+
 
 if __name__ == "__main__":
     _unittest.main(verbosity=2)

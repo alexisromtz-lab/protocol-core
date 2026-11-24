@@ -29,10 +29,12 @@ manifiesto. Se elige así y se publica siempre en la salida:
 
 Código de salida, y por qué no es decorativo: `0` la afirmación se sostiene
 (`intacta` o `reubicada`), `1` no se sostiene (`divergente`, `suplantada`,
-`intercambiada`) **o** no se pudo medir (`no_medida`), `2` no hay página o
-contrato roto. Un verificador que sale en cero con el sello roto es el falso
-verde que este acto existe para nombrar; la línea `veredicto` dice cuál de los
-dos unos es.
+`intercambiada`) **o** no se pudo medir (`no_medida`), `2` la entrada no se puede
+usar (no hay página, el manifiesto falta o está en un dialecto que no se admite,
+la raíz no es un directorio). Un verificador que sale en cero con el sello roto
+es el falso verde que este acto existe para nombrar; la línea `veredicto` dice
+cuál de los dos unos es. Un manifiesto ilegible no es un veredicto: es una
+entrada inválida, y por eso no comparte el `1` de un sello partido.
 
 Lo que este script **no** hace: no re-sella. Re-sellar es un acto externo con su
 propio pre-vuelo y su propia fecha cierta; este acto sólo mide lo que un sello
@@ -58,6 +60,7 @@ _sys.path.insert(0, _os.path.join(RAIZ, "src"))
 from protocol.predicado import Entorno, Predicado, VeredictoReclamado  # noqa: E402
 from protocol.types import (  # noqa: E402
     ALGORITMO,
+    ContratoViolado,
     EntradaManifiesto,
     Hash,
     RutaRelativa,
@@ -230,8 +233,22 @@ def main(argv: tuple) -> int:
     raiz = _argumento(argv, "--raiz", MUESTRA)
     modo = _argumento(argv, "--universo", "auto")
 
-    with open(ruta_manifiesto, "r", encoding="utf-8") as flujo:
-        manifiesto = leer_manifiesto(flujo.read(), _os.path.basename(ruta_manifiesto))
+    # La entrada es de quien pide el acto, así que un manifiesto ilegible o en un
+    # dialecto que no se admite sale 2 con su motivo, no con una traza: un acto
+    # que se vende por acto no puede contestar al cliente con un `Traceback`.
+    try:
+        with open(ruta_manifiesto, "r", encoding="utf-8") as flujo:
+            manifiesto = leer_manifiesto(flujo.read(), _os.path.basename(ruta_manifiesto))
+    except (OSError, UnicodeDecodeError) as fallo:
+        print("ENTRADA INVALIDA | %s | no se puede leer" % ruta_manifiesto)
+        _medicion("motivo", type(fallo).__name__)
+        return 2
+    except ContratoViolado as fallo:
+        print("ENTRADA INVALIDA | %s | %s" % (_os.path.basename(ruta_manifiesto), fallo))
+        return 2
+    if not _os.path.isdir(raiz):
+        print("ENTRADA INVALIDA | %s | la raiz del universo no es un directorio" % raiz)
+        return 2
     declaradas = manifiesto.filas
     rutas, fuente = _universo(raiz, modo)
     # Las rutas declaradas se sondean en disco: un universo barato no ve lo no
