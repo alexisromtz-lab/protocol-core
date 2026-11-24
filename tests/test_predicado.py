@@ -73,12 +73,19 @@ from protocol.types import (  # noqa: E402
 )
 
 #: Cotas de la página, fijadas sobre la medición del 2026-11-24 del **acto
-#: real** (`examples/emitir_predicado.py`, que es el que emite el recibo):
-#: 61 líneas y 1 881 bytes con 4 entradas y 6 referencias de código.
+#: real** (`examples/emitir_predicado.py`, que es el que emite el recibo).
 #: Se mide el acto, no una fixture: una cota sobre una fixture es una cota
 #: sobre la fixture. La holgura admite una referencia más y nada más.
-COPTA_LINEAS = 65
-COPTA_BYTES = 2000
+#:
+#: Re-declarada el mismo día al crecer el acto de 4 a 5 entradas y de 6 a 7
+#: referencias de código: 69 líneas y 2 158 bytes. La subida **nombra sus
+#: artefactos** (`src/protocol/ubicacion.py` y `tests/test_ubicacion.py`,
+#: ambos dentro del acto porque la suite los ejecuta); una subida que no
+#: pueda nombrar el artefacto que la causa no se hace, se parte el acto. El
+#: formato cuesta 4 líneas por artefacto: un campo nuevo en cada entrada
+#: rompe esta cota, y eso es lo que la cota vigila.
+COPTA_LINEAS = 73
+COPTA_BYTES = 2300
 #: Cota del acto de censo. Es más ancha que la de la suite porque lleva 12
 #: referencias vivas en vez de 10; se declara aparte para que una cota no mida
 #: el acto que la escribió (§medición con unidad: cada acto, su número).
@@ -528,7 +535,11 @@ class TestVerificacionDesdeLaPagina(_unittest.TestCase):
     una promesa con formato, no una prueba.
     """
 
-    PAGINAS = ("examples/predicado-suite.json", "examples/predicado-censo.json")
+    PAGINAS = (
+        "examples/predicado-suite.json",
+        "examples/predicado-censo.json",
+        "examples/predicado-sello.json",
+    )
 
     def _texto(self, relativa: str) -> str:
         with open(_os.path.join(_RAIZ, relativa), "r", encoding="utf-8") as flujo:

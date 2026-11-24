@@ -14,23 +14,26 @@ red, sin credenciales, sin re-sellar nada).
   `<expediente-de-custodia>/DECLARACION_DE_LICENCIA_DUAL_20261009.md`
   (85 líneas · 3 704 B · sha256 `48252c8b92e17d421a13e8a5a06ab2649250a4ad0c417623ad38ab77f9c17594`).
 
-## Las 16 piezas
+## Las 17 piezas
 
 ```
 SPEC.md                  PREDICADO.md             pyproject.toml
 src/protocol/__init__.py src/protocol/atomic.py   src/protocol/audit.py
 src/protocol/metrics.py  src/protocol/types.py    src/protocol/predicado.py
+src/protocol/ubicacion.py
 tests/test_atomic.py     tests/test_audit.py      tests/test_metrics.py
-tests/test_predicado.py
+tests/test_predicado.py  tests/test_ubicacion.py
 examples/emitir_predicado.py + los dos artefactos que emite
 examples/emitir_censo.py + censo-declarado.txt y los dos que emite
 examples/contrafirmar_censo.py + ancla-declarada.txt y contrafirma-censo.json
+examples/verificar_sello.py + sello-de-muestra/ y los dos que emite
 ```
 
 `PREDICADO.md` es la especificación del Anillo 0 y existe para que un tercero
-reimplemente la verificación **sin leer el código**. Si el documento y el módulo
-discrepan, manda el documento. `SPEC.md` no se toca: está sellado con fecha
-cierta y una sección nueva invalidaría el sello.
+reimplemente la verificación **sin leer el código**. `UBICACION.md` hace lo mismo
+con los cuatro estados de ubicación. Si el documento y el módulo discrepan, manda
+el documento. `SPEC.md` no se toca: está sellado con fecha cierta y una sección
+nueva invalidaría el sello.
 
 ## Invariantes (SPEC §3)
 
@@ -44,20 +47,24 @@ acoplada) · y las extensiones declaradas `INV-6` (ficha fuera de banda), `INV-7
 Los comandos se corren **desde la raíz de este repositorio**:
 
 ```
-python3 -B -m unittest discover -s tests -v                      # 54 pruebas (corrida local: stdlib unittest)
+python3 -B -m unittest discover -s tests -v                      # 80 pruebas (corrida local: stdlib unittest)
 python3 -B examples/emitir_predicado.py                          # emite el recibo del acto: veredicto + página
+python3 -B examples/emitir_censo.py                               # el censo: declarado vs observado
+python3 -B examples/verificar_sello.py --manifiesto RUTA --raiz DIR --universo disco   # los cuatro estados
 python3 -B examples/emitir_predicado.py --check                   # REPRODUCE (RC 0) o DIVERGE (RC 1)
+python3 -B examples/emitir_censo.py --check                       # REPRODUCE (RC 0) o RANCIO (RC 1)
+python3 -B examples/verificar_sello.py --check                    # REPRODUCE (RC 0) o RANCIO (RC 1)
 python3 -B examples/contrafirmar_censo.py --check                 # CONFIRMA (RC 0) o RANCIO (RC 1)
 PYTHONPATH=src python3 -B -c "import protocol; print(protocol.__version__)"   # 0.1.0
 ```
 
-**Motor único: `unittest` de la biblioteca estándar.** Los 4 archivos de `tests/` hacen
-`import unittest`; 0 de los 11 `.py` rastreados hacen `import pytest`. Lo que el aparato de CI corre es
+**Motor único: `unittest` de la biblioteca estándar.** Los 5 archivos de `tests/` hacen
+`import unittest`; 0 de los 12 `.py` rastreados hacen `import pytest`. Lo que el aparato de CI corre es
 esa misma suite con `python -m pytest -q --junitxml=/tmp/junit.xml`, donde `pytest` es el **colector**
 y el productor del junitxml, no un segundo motor de aserciones. `pytest` lo instala el runner y este
 repositorio lo declara como **extra de desarrollo** (`pip install -e .[dev]`), nunca como dependencia
 de ejecución.
-El veredicto (`Ran 54 tests` · `OK`) sale por **stderr**; las líneas `MEDICION |` de cada prueba salen
+El veredicto (`Ran 80 tests` · `OK`) sale por **stderr**; las líneas `MEDICION |` de cada prueba salen
 por **stdout**.
 
 **Plataformas certificadas de la suite:** linux (CI) y darwin. Medido el 2026-11-24: `os.mkfifo` no
@@ -180,6 +187,51 @@ Cuatro reglas que el acto cumple, y el falsador de cada una:
 página publicada —diccionario, texto o bytes UTF-8—, exige las **siete** llaves
 y ninguna otra y no consulta al emisor. Sin esa inversa un tercero sólo puede
 comparar un digest que no sabe calcular, que es confiar, no verificar.
+
+## El cuarto acto: la ubicación (los bytes, no las rutas)
+
+Un manifiesto de sellado declara pares `(ruta, digest)`. La pregunta que contesta
+este acto no es *¿existe ese archivo?* sino ***¿siguen juntos esos bytes?***. La
+diferencia decide si una reorganización destruye la evidencia: `git mv` no
+cambia un solo byte y, bajo una verificación indexada por ruta, invalida catorce
+sellos con fecha cierta.
+
+```
+python3 -B examples/verificar_sello.py                    # la fixture; escribe su página
+python3 -B examples/verificar_sello.py --manifiesto M --raiz D --universo disco
+python3 -B examples/verificar_sello.py --check            # REPRODUCE (RC 0) · RANCIO (RC 1)
+```
+
+Cuatro estados, mutuamente excluyentes, y un quinto veredicto del acto:
+
+| estado | condición | lo que prueba |
+|---|---|---|
+| `INTACTA` | la ruta declarada tiene el digest declarado | bytes intactos en su ruta |
+| `REUBICADA` | otro camino del universo tiene ese digest | los bytes viven, la ruta cambió |
+| `INTERCAMBIADA` | el digest está donde se declaró el de **otra** entrada | dos entradas permutadas |
+| `DIVERGENTE` | el digest no aparece en el universo | alteración real o pérdida |
+| `OPACO` | el universo no puede mirar ahí | el tercero no puede cerrar la cadena |
+
+`INTERCAMBIADA` existe porque un esquema que sólo mire contenido **no puede ver un
+intercambio**: cada digest sigue apareciendo exactamente una vez y el acto
+devolvería `reubicada`. Es la laguna que el orden de los estados tapa, y la
+publica `UBICACION.md` §4.1. Siempre se publica la multiplicidad `k` —cuántos
+caminos del universo llevan ese digest—, porque el recibo no puede decidir cuál
+copia es la buena, sólo cuántas hay.
+
+Dos reglas que costaron una medición cada una:
+
+1. **Un universo ciego produce lagunas, no reubicaciones.** Si la ruta declarada
+   existe en disco y el universo declarado no la indexa, el estado es `OPACO`,
+   nunca `REUBICADA`. Decir «se movió» cuando sólo significa «no lo busqué» es
+   un falso hallazgo en la dirección peligrosa. Falsador: el sello A sobre
+   `--universo git` da `0 conforme / 4 reubicado / 10 opaco`, y las diez son
+   `platino-labs/protocol-core/*`, **no rastreado** aunque presente en disco.
+2. **El veredicto de la página se deriva, no se escribe.** Una página que declare
+   `conforme` mientras su propia salida dice `divergente` es exactamente el falso
+   verde que el acto existe para impedir. El caso real, medido el 2026-11-24
+   sobre `SHA256SUMS_SELLO_A` con `--universo disco` (83 654 rutas, 36 omitidas):
+   `10 conforme / 4 reubicado / 0 divergente / 0 opaco -> reubicada`.
 
 ## Sellos de fe pública
 

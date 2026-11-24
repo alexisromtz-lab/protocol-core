@@ -4,6 +4,11 @@
 # cambia: el predicado ata el número observado al número que alguien se atrevió
 # a declarar antes de verlo. Dejar `declarado` vacío es el acto génesis: se
 # observa y se publica el número sin juicio, porque no hay contra qué comparar.
+#
+# 2026-11-24: el acto anterior midió declarado 6 contra observado 7 con
+# discrepancia 1 (página 29ee44d5) al entrar el séptimo módulo del paquete. La
+# discrepancia se cerró declarándola aquí, no re-emitiendo el acto hasta que
+# saliera verde: un acto que se re-emite hasta coincidir no mide nada.
 
 ruta=src/protocol
 universo=protocol-core.src.protocol
@@ -12,4 +17,4 @@ motor=python3 -B examples/emitir_censo.py
 t_utc=2026-11-24T20:00:00Z
 ventana=no medida: el censo declara movimiento del conjunto, no duracion
 umbral=ninguno: el censo no aplica umbral
-declarado=6
+declarado=7

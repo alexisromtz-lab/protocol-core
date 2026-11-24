@@ -1,0 +1,11 @@
+# Sello de muestra — un caso de cada estado, escrito a mano.
+#
+# Los digests son los del momento del sello, no los del arbol de hoy: eso es lo
+# que un sello afirma. El arbol de al lado es el que hoy existe. La diferencia
+# entre los dos es el acto, y el acto no la decide este archivo.
+09aa5e9ecbf5c1bb1f2acaa0ccdcf1ec07759497882ea6ba6ca9d870a3a841b7  acta-uno.md
+ba0620af25dff929e366169eb3bb96a90afa914af6a34f4c4d3b60dbdb89bd2a  acta-dos.md
+ae50a33eae4967b0a5fc91cf03752891235ab18fa99a05474dec43cab48ed510  pieza-a.md
+1507b9ee78d9a43616d71e23a7a9e7d2adab26aa7c857df11e2864f9700a3ba4  pieza-b.md
+89fb4cb0dd482404cee7a1f5cb683e307fc20fe901ea53ce11de025b91dd505b  acta-tres.md
+789b0a4127bced94344b7f38024f506192f5de5f7a8ecda3790f33f506cf7749  <expediente-de-sellos>/VERIFICAR_SELLO.sh

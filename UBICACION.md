@@ -1,0 +1,130 @@
+# UBICACION — adjudicar un manifiesto contra un árbol por contenido
+
+Especificación del cuarto acto. Un tercero tiene que poder reimplementar lo que
+está aquí **sin leer el código**: si la especificación no alcanza, lo que se
+vende no es un estándar, es una caja negra.
+
+El acto anterior ([PREDICADO.md](PREDICADO.md)) fija el formato del recibo. Este
+fija **qué se mide** cuando el sujeto es un árbol de archivos y el testigo es un
+manifiesto de digests.
+
+## 1. La afirmación, y lo que no afirma
+
+> Los artefactos que el manifiesto declara existen en este árbol, byte a byte.
+
+**La ruta no forma parte de la afirmación.** Un artefacto con los bytes
+correctos en otra ruta sigue cumpliendo la afirmación; un artefacto con los
+bytes alterados no la cumple aunque su ruta no se haya movido. Las dos cosas
+viajan en el recibo, separadas, porque confundirlas produce dos errores
+distintos y los dos son caros:
+
+- llamar **roto** a lo que sólo se movió (falso rojo: se re-sella sin necesidad,
+  o se declara perdido un archivo que está a la vista);
+- llamar **intacto** a lo que cambió de sitio ocupando el sitio de otro (falso
+  verde: la reorganización pasa por mudanza limpia).
+
+Caso medido que abre este documento: `SHA256SUMS_SELLO_A` de `platino-labs`
+—14 filas, fecha cierta 2026-10-09— da **14/14 por hash y 10/14 por ruta**: el
+sello está intacto y lo que envejeció fue el resolutor, que buscaba rutas.
+
+## 2. Universo declarado
+
+No se puede adjudicar contra "el árbol" en abstracto. El universo es una lista
+de rutas, y **se publica con el recibo**, porque un veredicto sin denominador es
+una opinión.
+
+| fuente | qué es | ceguera declarada |
+|---|---|---|
+| `git ls-files` | lo versionado | no ve archivos presentes y no versionados |
+| caminata con exclusiones enumeradas | lo que el árbol tiene | no ve lo que excluye; cuesta 130 s contra 0,8 s en un árbol de 83 690 archivos |
+
+**La ceguera no se puede leer como ausencia.** Medido sobre el mismo árbol y el
+mismo manifiesto: universo `git ls-files` ⇒ *0 conformes / 4 reubicados / 10
+opacos*; universo de disco ⇒ *10 conformes / 4 reubicados / 0 opacos*. Las 10
+rutas de la diferencia existen en disco y git no las versiona.
+
+Regla: toda ruta declarada se **sondea en disco** aunque el universo no la
+traiga. Si existe y el universo no la indexó, la fila es `OPACO` con motivo
+`la ruta existe en disco y el universo declarado no la indexa` — nunca
+`REUBICADO`. "Se movió" que sólo significa "no lo busqué" es un hallazgo falso.
+
+## 3. Los cuatro estados
+
+Sea `S: ruta ↦ digest` el índice del universo, y `(p, h)` una fila declarada.
+
+| estado | condición | testigo que emite el recibo |
+|---|---|---|
+| `CONFORME` | `p ∈ dom(S)` y `S(p) = h` | la fila declarada, con `k = │{r : S(r) = h}│` |
+| `REUBICADO` | `S(p) ≠ h` y existe `r ≠ p` con `S(r) = h` | `p -> r`, `k`, y si `p` quedó **vacía** |
+| `DIVERGE` | ningún `r` del universo tiene `h` | `h` contra `S(p)` (o `ausente`) |
+| `OPACO` | la ruta está redactada, o existe en disco fuera del universo | el motivo, en texto |
+
+Los cuatro son exhaustivos y mutuamente excluyentes sobre `(p, h, S)`.
+
+**Multiplicidad.** `k = │{r : S(r) = h}│` se publica siempre. El recibo no puede
+decir *cuál* copia es la buena; puede decir que hay `k`. Ocultar `k` convierte
+una ambigüedad en una afirmación.
+
+### 3.1 Redacción
+
+Una ruta que contiene los bytes `<` o `>` no es un nombre de archivo: es una
+marca de que el manifiesto remite a un lugar que no escribe. Es `OPACO` por
+construcción, y su digest no se busca. Un lector que ignore esta regla la
+declara `DIVERGE`, y ese falso rojo es el que un manifiesto saneado produce en
+masa.
+
+## 4. El veredicto del acto: cinco valores, con orden declarado
+
+| veredicto | condición | ¿la afirmación se sostiene? |
+|---|---|---|
+| `DIVERGENTE` | alguna fila `DIVERGE` | no |
+| `INTERCAMBIADA` | alguna fila `REUBICADO` cuya ruta declarada **no** quedó vacía | no |
+| `NO_MEDIDA` | hay filas y ninguna de las anteriores, pero hay `OPACO` | no se sabe |
+| `REUBICADA` | hay `REUBICADO` y todas sus rutas declaradas quedaron vacías | **sí** |
+| `INTACTA` | todas las filas son `CONFORME` | sí |
+
+Un acto sin filas es `NO_MEDIDA`, no `INTACTA`: cero artefactos medidos no es
+cero hallazgos.
+
+### 4.1 El canje, que un esquema de sólo contenido no ve
+
+Si dos artefactos **intercambian** sus rutas, cada digest sigue apareciendo
+**una sola vez** (`k = 1`) y cada ruta sigue ocupada. Un adjudicador que sólo
+compare conjuntos de digests llama limpio a un canje; el canje es justo lo que
+un sello existe para detectar, porque es el resultado de una reorganización que
+nadie revisó.
+
+El discriminador es **`vaciada`**: ¿la ruta declarada quedó sin archivo? En una
+mudanza limpia, sí. En un canje, no: la ocupa el otro. De ahí que
+`INTERCAMBIADA` exista y ordene por encima de `NO_MEDIDA` — es un hallazgo
+positivo, no una laguna.
+
+El testigo distingue además si el ocupante era **declarado** (canje) o **ajeno**
+(intruso no declarado): `p -> r (ruta ocupada)` frente a la misma línea con
+`ocupante_declarado = False`.
+
+## 5. Lo que este acto no hace
+
+- **No sella.** Re-sellar es un acto externo con su propio pre-veredicto y su
+  propia fecha cierta. Este acto mide un sello ya emitido.
+- **No fecha.** No hay firma de tiempo; `entorno.no_medido` lo declara.
+- **No decide qué copia es la buena** cuando `k > 1`: publica `k` y para.
+- **No resuelve rutas redactadas** fuera de banda.
+- **No sigue enlaces simbólicos ni lee directorios**: sus bytes no son los bytes
+  del manifiesto. Se publican en `omitidas`.
+
+## 6. Reproducción
+
+    python3 -B examples/verificar_sello.py --check
+
+Lee `examples/predicado-sello.json`, recompone la página y la compara **entera**
+contra la emitida. RC 0 = reproduce; RC 1 = diverge; RC 2 = no hay página previa.
+
+La fixture `examples/sello-de-muestra/` tiene un caso de cada estado y está
+escrita a mano: los digests son los del sello y el árbol es el de hoy, y la
+diferencia entre los dos **es** el acto. Un fixture que se regenera no puede
+contradecir a su lector.
+
+El sello real de `platino-labs` se mide por comando (`--manifiesto … --raiz …`)
+y se reporta en prosa: una prueba que se salta cuando el árbol vecino no está
+enseña a saltarse la puerta.

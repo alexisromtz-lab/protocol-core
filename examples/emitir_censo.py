@@ -181,12 +181,19 @@ def _entradas(declaracion: dict) -> tuple:
 
 
 def _codigo() -> tuple:
-    fuente = [
-        "src/protocol/%s" % nombre
-        for nombre in sorted(_os.listdir(_os.path.join(RAIZ, "src", "protocol")))
-        if nombre.endswith(".py") and nombre != "__init__.py"
-    ]
-    return _referencias(sorted(fuente + ["examples/emitir_censo.py"]))
+    # El `codigo` de un acto son los módulos que el acto **necesita**, no todo
+    # lo que haya en el paquete. Un glob mete en la identidad del acto módulos
+    # que no ejecuta: al entrar `ubicacion.py` en `src/protocol`, la página del
+    # censo cambió sin que el censo cambiara, y una contrafirma viva quedó
+    # RANCIA por un módulo que el acto no importa. El alcance del acto es el
+    # del acto (§A2.4), no el del directorio.
+    fuente = (
+        "src/protocol/audit.py",
+        "src/protocol/predicado.py",
+        "src/protocol/types.py",
+        "examples/emitir_censo.py",
+    )
+    return _referencias(tuple(sorted(fuente)))
 
 
 def _predicado(

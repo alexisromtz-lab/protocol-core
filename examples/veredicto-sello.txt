@@ -1,0 +1,7 @@
+universo | 6 rutas | caminata con 6 exclusiones | 0 fuera del universo
+1 conforme / 3 reubicado / 1 diverge / 1 opaco -> divergente
+opaco <expediente-de-sellos>/VERIFICAR_SELLO.sh (ruta redactada: remite a un lugar que el manifiesto no escribe)
+reubicado acta-dos.md -> actas/acta-dos.md
+diverge acta-tres.md (bytes alterados)
+reubicado pieza-a.md -> pieza-b.md (ruta ocupada)
+reubicado pieza-b.md -> pieza-a.md (ruta ocupada)
