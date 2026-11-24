@@ -14,7 +14,7 @@ red, sin credenciales, sin re-sellar nada).
   `<expediente-de-custodia>/DECLARACION_DE_LICENCIA_DUAL_20261009.md`
   (85 líneas · 3 704 B · sha256 `48252c8b92e17d421a13e8a5a06ab2649250a4ad0c417623ad38ab77f9c17594`).
 
-## Las 13 piezas
+## Las 15 piezas
 
 ```
 SPEC.md                  PREDICADO.md             pyproject.toml
@@ -23,6 +23,7 @@ src/protocol/metrics.py  src/protocol/types.py    src/protocol/predicado.py
 tests/test_atomic.py     tests/test_audit.py      tests/test_metrics.py
 tests/test_predicado.py
 examples/emitir_predicado.py + los dos artefactos que emite
+examples/emitir_censo.py + censo-declarado.txt y los dos que emite
 ```
 
 `PREDICADO.md` es la especificación del Anillo 0 y existe para que un tercero
@@ -42,7 +43,7 @@ acoplada) · y las extensiones declaradas `INV-6` (ficha fuera de banda), `INV-7
 Los comandos se corren **desde la raíz de este repositorio**:
 
 ```
-python3 -B -m unittest discover -s tests -v                      # 44 pruebas (corrida local: stdlib unittest)
+python3 -B -m unittest discover -s tests -v                      # 51 pruebas (corrida local: stdlib unittest)
 python3 -B examples/emitir_predicado.py                          # emite el recibo del acto: veredicto + página
 python3 -B examples/emitir_predicado.py --check                   # REPRODUCE (RC 0) o DIVERGE (RC 1)
 PYTHONPATH=src python3 -B -c "import protocol; print(protocol.__version__)"   # 0.1.0
@@ -54,7 +55,7 @@ esa misma suite con `python -m pytest -q --junitxml=/tmp/junit.xml`, donde `pyte
 y el productor del junitxml, no un segundo motor de aserciones. `pytest` lo instala el runner y este
 repositorio lo declara como **extra de desarrollo** (`pip install -e .[dev]`), nunca como dependencia
 de ejecución.
-El veredicto (`Ran 44 tests` · `OK`) sale por **stderr**; las líneas `MEDICION |` de cada prueba salen
+El veredicto (`Ran 51 tests` · `OK`) sale por **stderr**; las líneas `MEDICION |` de cada prueba salen
 por **stdout**.
 
 **Plataformas certificadas de la suite:** linux (CI) y darwin. Medido el 2026-11-24: `os.mkfifo` no
@@ -92,8 +93,52 @@ El falsador se ve en un byte: se toca cualquier fuente, la suite **sigue verde**
 no es el que produjo ese veredicto. Un verde sin recibo es exactamente el falso
 verde que el recibo existe para nombrar.
 
+**El contrato se midió contra un tercero.** Una implementación independiente
+—escrita sin acceso al código, sólo con `PREDICADO.md` y la página emitida en
+`8bcb6b4` (`f7000a8c…`)— reprodujo ese digest **bit a bit** por tres caminos
+distintos (serializador propio en Node, `json.dumps` con los mismos argumentos,
+y `openssl dgst -sha256`) y aprobó la página con 0 hallazgos. Encontró además
+**cuatro** puntos donde un tercero razonable obtiene otro digest sin violar el
+texto —salto final, orden de listas, orden de llaves anidadas y `h_prev` ausente
+frente a `null`— más un error de alcance en la regla de rutas. Los cinco están
+cerrados en §2 del documento y vigilados por las pruebas P-19 y P-20. El riesgo
+residual se declara: el revisor no fue una persona distinta sino un modelo de la
+misma familia, así que la prueba mide *legibilidad del contrato*, no
+independencia de criterio.
+
 **Lo que este módulo no hace:** no firma, no mide el sistema de archivos y no
 adjudica. No se simula una firma que no se verifica.
+
+## El segundo acto: el censo (Anillo 2)
+
+La cifra honesta de un corpus no es «cuántos hay»: es el par `declarado −
+observado`. Este acto publica los **tres** números —declarado, observado y
+discrepancia— porque publicar dos es publicar una cifra que nadie puede
+refutar.
+
+```
+python3 -B examples/emitir_censo.py           # observa, resta y sella la página
+python3 -B examples/emitir_censo.py --check   # REPRODUCE (RC 0) · DIVERGE (RC 1)
+```
+
+El lado declarado vive en `examples/censo-declarado.txt` y **lo escribe una
+persona**: el programa no puede declarar contra sí mismo. Cambiar `declarado=6`
+por `declarado=7` y volver a pasar `--check` da `DIVERGE` (RC 1); emitir de nuevo
+publica `discrepancia=-1` y `veredicto=no_conforme`. Una declaración falsa no se
+discute: se resta, y el signo dice de qué lado se equivocó quien declaró.
+
+Tres límites que el acto declara en vez de esconder:
+
+1. El instrumento **vive dentro del universo contado** (`audit.py` está en
+   `src/protocol`), así que el censo no descuenta su propio pie. Restarlo sin
+   enumerarlo sería el doble descuento de `SPEC` §3.c; se declara en
+   `entorno.no_medido`.
+2. El acto **no lleva reloj**. El predicado prueba *qué*; la fecha cierta la
+   aporta el ancla. Un `t_utc` de pared haría irreproducible la página y un
+   `--check` que lo saltara sería un falso verde.
+3. Si el universo contiene bytecode del intérprete (`__pycache__`, `*.pyc`), el
+   acto **se para y no borra nada**: contarlos ataría el número a quién ejecutó
+   Python antes en esa máquina.
 
 ## Sellos de fe pública
 

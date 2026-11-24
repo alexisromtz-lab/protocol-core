@@ -1,0 +1,10 @@
+universo=protocol-core.src.protocol
+unidad=archivo
+motor=python3 -B examples/emitir_censo.py
+t_utc=2026-11-24T20:00:00Z
+ventana=no medida: el censo declara movimiento del conjunto, no duracion
+umbral=ninguno: el censo no aplica umbral
+ruta=src/protocol
+declarado=6
+observado=6
+discrepancia=0

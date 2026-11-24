@@ -111,6 +111,7 @@ Lecturas declaradas. Ninguna se hace pasar por el texto de SPEC.md:
 
 from __future__ import annotations
 
+import errno as _errno
 import os as _os
 import stat as _stat
 import time as _time
@@ -127,6 +128,7 @@ from .types import (
     ELOOP,
     Etiqueta,
     EstrategiaSelf,
+    FuenteT0,
     Indeterminado,
     Namespace,
     Recibo,
@@ -136,7 +138,16 @@ from .types import (
     Unidad,
 )
 
-__all__ = ["census", "resta", "reposo", "verify"]
+__all__ = [
+    "census",
+    "motor_nacimiento",
+    "nombre_max",
+    "reposo",
+    "resta",
+    "sensible_al_caso",
+    "verify",
+    "volumen_medido",
+]
 
 
 #: §2.3.3. El byte que la unidad `LINEA` cuenta. No es «la línea».
@@ -269,6 +280,109 @@ def _recorrer(fd_dir: int, partes: Tuple[str, ...], visita) -> None:
                 "(§2.4 · §3.d.1)",
                 slug=slug.texto,
             )
+
+
+# ---------------------------------------------------------------------------
+# §2.4 El volumen medido — de un descriptor a un `Namespace` declarado
+# ---------------------------------------------------------------------------
+
+
+#: Nombres de la sonda de caso. Distintos de los de `atomic.sonda_caso` a
+#: propósito: esta sonda mide el volumen para CONSTRUIR el namespace, aquélla lo
+#: certifica ya construido. Compartir nombre haría que una midiera a la otra.
+_SONDA_CASO_MENOR: Final[str] = ".sonda-caso-volumen-menor"
+_SONDA_CASO_MAYOR: Final[str] = ".SONDA-CASO-VOLUMEN-MENOR"
+
+#: Respaldo DECLARADO de `NAME_MAX` cuando el sistema no lo reporta. Un volumen
+#: que no reporta su límite no tiene un límite medido; devolver 0 convertiría
+#: «no medido» en «no cabe nada» (§default NO_MEDIDO).
+_RESPALDO_NOMBRE_MAX: Final[int] = 255
+
+
+def nombre_max(fd_root: int) -> int:
+    """`NAME_MAX` del volumen, medido; si el sistema no lo reporta, el respaldo."""
+
+    try:
+        medido = int(_os.fpathconf(fd_root, "PC_NAME_MAX"))
+    except (OSError, ValueError):
+        return _RESPALDO_NOMBRE_MAX
+    return medido if medido > 0 else _RESPALDO_NOMBRE_MAX
+
+
+def sensible_al_caso(fd_root: int) -> bool:
+    """¿Distingue el volumen mayúsculas de minúsculas? Sonda sobre el descriptor.
+
+    `Namespace` exige el parámetro MEDIDO y `atomic.sonda_caso` exige un
+    `Namespace` ya construido: sin esta sonda el cliente no tiene por dónde
+    empezar, y hasta hoy la medición vivía en tres copias dentro de la suite de
+    pruebas. Una medición que sólo existe en la suite no es del producto.
+
+    Se crea el nombre en minúsculas y se consulta el de mayúsculas con llamada
+    de sistema, no con un listado: el listado devuelve el nombre real y mide la
+    colación del motor, no la del volumen.
+
+    **No borra lo que no creó.** Si el nombre de sonda ya existía, la sonda no
+    corrió y no hay medición: se eleva en vez de contestar con el estado de un
+    archivo ajeno.
+    """
+
+    try:
+        fd = _os.open(
+            _SONDA_CASO_MENOR,
+            _os.O_CREAT | _os.O_EXCL | _os.O_WRONLY,
+            0o600,
+            dir_fd=fd_root,
+        )
+    except OSError as exc:
+        if getattr(exc, "errno", None) == _errno.EEXIST:
+            raise ContratoViolado(
+                "el nombre de sonda ya estaba ocupado: la sonda de caso no "
+                "corrió y no emite medición (§2.4)",
+                nombre=_SONDA_CASO_MENOR,
+            ) from exc
+        raise
+    try:
+        try:
+            _os.stat(_SONDA_CASO_MAYOR, dir_fd=fd_root, follow_symlinks=False)
+        except OSError as exc:
+            if getattr(exc, "errno", None) == _errno.ENOENT:
+                return True
+            raise
+        return False
+    finally:
+        _os.close(fd)
+        _os.unlink(_SONDA_CASO_MENOR, dir_fd=fd_root)
+
+
+def motor_nacimiento(fd_root: int) -> FuenteT0:
+    """§2.3.7 · INV-7. Escalera declarada: `BIRTHTIME` o `NINGUNA`, nunca inventada."""
+
+    if hasattr(_os.fstat(fd_root), "st_birthtime"):
+        return FuenteT0.BIRTHTIME
+    return FuenteT0.NINGUNA
+
+
+def volumen_medido(
+    fd_root: int,
+    volumen: str,
+    sincronizacion_directorio: Optional[bool] = None,
+) -> Namespace:
+    """§2.4. Construye el `Namespace` midiendo sus parámetros, no suponiéndolos.
+
+    Es la puerta de entrada de `census`. `sincronizacion_directorio` no se mide
+    aquí —medirla exige sellar un directorio real (§5 T-09)— y por eso se recibe
+    **declarada**: `None` es ⊥, «no consta», y no es lo mismo que `False`. No
+    cierra `fd_root`: el namespace no es dueño del descriptor.
+    """
+
+    return Namespace(
+        fd_root=fd_root,
+        sensible_al_caso=sensible_al_caso(fd_root),
+        nombre_max=nombre_max(fd_root),
+        motor_nacimiento=motor_nacimiento(fd_root),
+        sincronizacion_directorio=sincronizacion_directorio,
+        volumen=volumen,
+    )
 
 
 # ---------------------------------------------------------------------------

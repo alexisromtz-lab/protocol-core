@@ -1,0 +1,15 @@
+# El lado DECLARADO del acto de censo. Lo escribe una persona, no el programa.
+#
+# Editar cualquier línea de aquí es declarar otra cosa, y el digest de la página
+# cambia: el predicado ata el número observado al número que alguien se atrevió
+# a declarar antes de verlo. Dejar `declarado` vacío es el acto génesis: se
+# observa y se publica el número sin juicio, porque no hay contra qué comparar.
+
+ruta=src/protocol
+universo=protocol-core.src.protocol
+unidad=archivo
+motor=python3 -B examples/emitir_censo.py
+t_utc=2026-11-24T20:00:00Z
+ventana=no medida: el censo declara movimiento del conjunto, no duracion
+umbral=ninguno: el censo no aplica umbral
+declarado=6

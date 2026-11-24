@@ -38,6 +38,13 @@ segunda: sería la primera repetida.
 medir"; una lista con elementos nombra cada hueco. El vacío silencioso —una
 clave ausente— no es válido: es un cero no medido disfrazado de cero.
 
+**Un mismo objeto puede figurar a la vez en `entradas` y en `codigo`.** Medido y
+ejecutado no son excluyentes: cuando el acto mide un universo que contiene al
+instrumento —un censo del árbol donde vive el propio censo—, el archivo es fuente
+y es código. Sobredeclarar `codigo` no es mentir; omitir un módulo que corrió sí.
+La regla es de dirección única: la lista puede ser más larga que la verdad, nunca
+más corta.
+
 ## 2. La forma canónica
 
 El digest se calcula **sólo** sobre la forma canónica. Una implementación que no
@@ -47,7 +54,9 @@ produzca bytes idénticos a estos no verifica:
    Normalization Form C). APFS entrega NFD donde Linux entrega NFC; sin esto el
    mismo acto daría dos digests y el digest mediría la máquina. La normalización
    es del valor **antes** de serializar, no del serializado.
-2. **Claves**: ordenadas por bytes UTF-8, ascendente (`sort_keys`).
+2. **Claves**: ordenadas por bytes UTF-8, ascendente, **en toda profundidad**
+   (`sort_keys` recursivo), incluidos los objetos dentro de listas. Ordenar sólo
+   el nivel superior da otro digest.
 3. **Separadores**: `,` y `:` sin espacios.
 4. **No-ASCII**: se emite tal cual, en UTF-8 (`ensure_ascii=false`), nunca como
    `\uXXXX`. La forma escapada y la literal son el mismo texto y no deben poder
@@ -55,11 +64,28 @@ produzca bytes idénticos a estos no verifica:
 5. **Números**: se **rechazan** los flotantes. Su representación decimal no es
    portable y cualquier redondeo introduce una decisión no declarada. Un entero
    es un entero en toda plataforma; un flotante es una promesa.
-6. **Nulos**: `null` es un valor y se admite (`h_prev` en el génesis no es "sin
-   campo", es "sin eslabón anterior").
+6. **Nulos**: `null` es un valor y se admite. La clave **está siempre presente**:
+   `h_prev: null` es el génesis, y omitir la clave no es lo mismo que dejarla
+   nula —son dos objetos distintos y dan dos digests distintos—.
+7. **Listas**: conservan su orden, y ese orden entra al digest. En `entradas` y
+   `codigo` el orden **exige** que las rutas vayan ascendentes por bytes UTF-8,
+   sin repetir: una lista desordenada no se canoniza, se rechaza. Una lista no
+   es un conjunto: reordenarla cambia el digest aunque los elementos sean los
+   mismos.
+8. **Sin salto de línea final**: la forma canónica termina en `}`. La página
+   (§3) sí puede llevar `\n` final, porque un archivo de texto que no termina en
+   salto es incómodo de leer; el digest se calcula sobre los bytes sin él.
 
-Ningún campo puede contener una ruta absoluta, un componente `..` ni NUL, y
-ningún hash puede estar truncado: **una identidad truncada no es una identidad**.
+Un objeto con campos de más **no se canoniza**: se rechaza (§7.2). El cuerpo
+tiene exactamente las siete claves del §1, y un verificador que las ignore y
+siga adelante ha hasheado un objeto que no es el que recibió.
+
+Ninguna **ruta** —las de `entradas`, `codigo` y `salida`— puede ser absoluta ni
+contener un componente `..` ni NUL; la regla es de las rutas, no del texto
+libre: una `afirmacion` que mencione `..` es prosa válida. Ningún hash puede
+estar truncado, y el hexadecimal es minúscula: **una identidad truncada no es
+una identidad**, y una mayúscula no es otra grafía del mismo hash, es un valor
+no canónico.
 
 ## 3. Los dos nombres del acto
 
@@ -108,7 +134,7 @@ literal y no pierde nada:
 {
   "_type": "https://in-toto.io/Statement/v1",
   "subject": [ { "name": "<salida.ruta>", "digest": { "sha256": "<salida.sha256>" } } ],
-  "predicateType": "https://github.com/alexisromtz-lab/protocol-core/blob/main/PREDICADO.md#v1",
+  "predicateType": "https://github.com/alexisromtz-lab/protocol-core/blob/main/PREDICADO.md#predicado-v1",
   "predicate": { "afirmacion": "...", "entradas": [...], "codigo": [...],
                  "entorno": {...}, "veredicto": "...", "h_prev": null }
 }

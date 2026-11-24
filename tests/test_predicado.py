@@ -6,11 +6,12 @@ Motor declarado de la corrida:
 
 Lecturas declaradas. Ninguna se hace pasar por el texto de SPEC.md:
 
-  1. El contrato del predicado vive en `PREDICADO.md` (§`#v1`), no en `SPEC.md`:
-     el SPEC está sellado con fecha cierta y una sección nueva lo invalidaría.
-     El caso P-18 es el **lector** de ese puntero —comprueba que el ancla exista
-     y que el tipo declarado resuelva a este repositorio—, porque una convención
-     sin lector se pudre sin que nadie lo note.
+  1. El contrato del predicado vive en `PREDICADO.md` (§`#predicado-v1`), no en
+     `SPEC.md`: el SPEC está sellado con fecha cierta y una sección nueva lo
+     invalidaría. Los casos P-18, P-19 y P-20 son los **lectores** de ese
+     contrato —P-18 del ancla, P-19 de las cinco decisiones que un tercero podía
+     tomar al revés, y P-20 de que la implementación las obedece—, porque una
+     convención sin lector se pudre sin que nadie lo note.
   2. Las rutas de la referencia heredan el alfabeto ASCII de §2.1 vía
      `RutaRelativa`; por eso NFC/NFD **no** las toca y el caso de normalización
      se mide sobre texto libre (`afirmacion`, `entorno`). Medirlo sobre rutas
@@ -77,6 +78,11 @@ from protocol.types import (  # noqa: E402
 #: sobre la fixture. La holgura admite una referencia más y nada más.
 COPTA_LINEAS = 65
 COPTA_BYTES = 2000
+#: Cota del acto de censo. Es más ancha que la de la suite porque lleva 12
+#: referencias vivas en vez de 10; se declara aparte para que una cota no mida
+#: el acto que la escribió (§medición con unidad: cada acto, su número).
+COPTA_CENSO_LINEAS = 80
+COPTA_CENSO_BYTES = 2600
 
 H_A = Hash(ALGORITMO, "a" * 64)
 H_B = Hash(ALGORITMO, "b" * 64)
@@ -408,6 +414,108 @@ class TestPagina(_unittest.TestCase):
         # límite, no como garantía: si desaparece del documento, desaparece del
         # contrato y el verificador de un tercero no lo sabría.
         self.assertIn("sin ancla", texto)
+
+    def test_p19_la_especificacion_cierra_las_cuatro_ambiguedades(self) -> None:
+        """Lector de las decisiones que un tercero podía tomar al revés (§2).
+
+        Medido el 2026-11-24 con un verificador escrito leyendo SÓLO
+        `PREDICADO.md`: reprodujo el digest al bit y, aun así, encontró cuatro
+        puntos donde otra decisión razonable daba otro digest **sin violar la
+        especificación** —salto final, orden de listas, orden de claves
+        anidadas y `h_prev` ausente frente a nulo—, más uno de alcance: la
+        regla de `..` enunciada sobre «ningún campo» en vez de sobre las rutas.
+        Los cinco se escribieron en §2. Esta prueba es su lector: si alguien los
+        borra, la ambigüedad vuelve y no se sabe hasta que un cliente diverge.
+        """
+
+        with open(_os.path.join(_RAIZ, "PREDICADO.md"), "r", encoding="utf-8") as flujo:
+            texto = " ".join(flujo.read().split())
+
+        decisiones = (
+            "en toda profundidad",      # claves anidadas (§2.2)
+            "termina en `}`",           # sin salto final (§2.8)
+            "conservan su orden",       # listas: el orden entra al digest (§2.7)
+            "está siempre presente",    # `h_prev` nulable, no omitible (§2.6)
+            "la regla es de las rutas", # `..`/absoluta/NUL sólo en rutas (§2 cierre)
+        )
+        faltan = [fragmento for fragmento in decisiones if fragmento not in texto]
+        _medicion("P-19 decisiones declaradas", (len(decisiones) - len(faltan), len(decisiones)))
+        self.assertEqual(faltan, [], "la especificación perdió decisiones que cambian el digest")
+
+    def test_p20_la_implementacion_obedece_esas_decisiones(self) -> None:
+        """Las cinco decisiones de P-19, medidas sobre el objeto, no sobre el texto."""
+
+        canon = canonizar({"b": {"z": 1, "a": 2}})
+        _medicion("P-20 canon anidado", canon)
+        self.assertEqual(canon, b'{"b":{"a":2,"z":1}}')  # §2.2, recursivo
+        self.assertFalse(canon.endswith(b"\n"))  # §2.8, sin salto final
+        self.assertNotEqual(  # §2.7, el orden de la lista entra al digest
+            canonizar({"l": [1, 2]}), canonizar({"l": [2, 1]})
+        )
+
+        cuerpo = self._predicado_real().cuerpo()
+        self.assertIn("h_prev", cuerpo)  # §2.6, la clave está aunque sea nula
+        self.assertIsNone(cuerpo["h_prev"])
+
+        with self.assertRaises(ContratoViolado):  # §3, hex en minúscula
+            Hash(ALGORITMO, "A" * 64)
+
+        with self.assertRaises(ContratoViolado):  # §2.7, desordenada se rechaza
+            Predicado(
+                afirmacion="una lista desordenada no se canoniza",
+                entradas=(_entrada("b/dos.txt", H_A), _entrada("a/uno.txt", H_B)),
+                codigo=(),
+                entorno=Entorno("darwin", "CPython 3.9.6", ()),
+                salida=_entrada("a/salida.txt", H_C),
+                veredicto=VeredictoReclamado.CONFORME,
+            )
+
+    def test_p21_la_pagina_del_censo_cabe_y_su_veredicto_es_su_propia_resta(
+        self,
+    ) -> None:
+        # El acto de censo (`examples/emitir_censo.py`) emite una SEGUNDA página
+        # con la misma forma: `declarado · observado · discrepancia`. Su cota es
+        # otra porque tiene más referencias vivas (12 frente a 10); heredarla del
+        # acto de la suite mediría el acto que escribió la primera cota, no éste.
+        ruta_pagina = _os.path.join(_RAIZ, "examples", "predicado-censo.json")
+        ruta_salida = _os.path.join(_RAIZ, "examples", "censo-vigente.txt")
+        with open(ruta_pagina, "r", encoding="utf-8") as flujo:
+            texto = flujo.read()
+        cuerpo = _json.loads(texto)
+        lineas = len(texto.splitlines())
+        bytes_ = len(texto.encode("utf-8"))
+        _medicion("P-21 página del censo", (lineas, bytes_))
+        _medicion(
+            "P-21 referencias del censo", (len(cuerpo["entradas"]), len(cuerpo["codigo"]))
+        )
+        self.assertLessEqual(lineas, COPTA_CENSO_LINEAS)
+        self.assertLessEqual(bytes_, COPTA_CENSO_BYTES)
+
+        with open(ruta_salida, "rb") as flujo:
+            salida = flujo.read()
+        campos = dict(
+            linea.split("=", 1) for linea in salida.decode("utf-8").splitlines() if "=" in linea
+        )
+
+        # 1. La salida que la página declara es la que está en disco. Si no, la
+        #    página describe un archivo que ya no existe.
+        self.assertEqual(cuerpo["salida"]["sha256"], _hashlib.sha256(salida).hexdigest())
+
+        # 2. El veredicto de la página ES la resta que su salida publica, hecha
+        #    aquí por otro camino. Una página rancia con veredicto fresco muere
+        #    en esta línea; y `NO_MEDIDO` no se lee como cero.
+        if campos["declarado"] == "NO_MEDIDO":
+            esperado = VeredictoReclamado.NO_MEDIDO.value
+        else:
+            diferencia = int(campos["observado"]) - int(campos["declarado"])
+            self.assertEqual(diferencia, int(campos["discrepancia"]))
+            esperado = (
+                VeredictoReclamado.CONFORME.value
+                if diferencia == 0
+                else VeredictoReclamado.NO_CONFORME.value
+            )
+        self.assertEqual(cuerpo["veredicto"], esperado)
+        _medicion("P-21 veredicto y su resta", (cuerpo["veredicto"], esperado))
 
 
 if __name__ == "__main__":

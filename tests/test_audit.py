@@ -68,6 +68,7 @@ from __future__ import annotations
 import dataclasses as _dataclasses
 import datetime as _datetime
 import errno as _errno
+import importlib.util as _importlib_util
 import os as _os
 import shutil as _shutil
 import sys as _sys
@@ -77,22 +78,27 @@ import unittest as _unittest
 # Resolución del paquete relativa a ESTE archivo: ninguna ruta absoluta se
 # hornea en `src/` (§0.4.b); en las pruebas se usa el árbol efímero de
 # `tempfile`, declarado en el docstring.
-_SRC = _os.path.join(
-    _os.path.dirname(_os.path.dirname(_os.path.abspath(__file__))), "src"
-)
+_RAIZ = _os.path.dirname(_os.path.dirname(_os.path.abspath(__file__)))
+_SRC = _os.path.join(_RAIZ, "src")
 if _SRC not in _sys.path:
     _sys.path.insert(0, _SRC)
 
 from protocol.atomic import reserve  # noqa: E402  (después del ajuste de `sys.path`)
 from protocol.audit import (  # noqa: E402
+    _SONDA_CASO_MENOR,
     _exigir_sin_movimiento,
     _partida_de_rutas,
     census,
+    motor_nacimiento,
+    nombre_max,
     reposo,
     resta,
+    sensible_al_caso,
     verify,
+    volumen_medido,
 )
 from protocol.metrics import ficha  # noqa: E402
+from protocol.predicado import VeredictoReclamado  # noqa: E402
 from protocol.types import (  # noqa: E402
     ALGORITMO,
     OK,
@@ -643,6 +649,103 @@ class TestVerificacion(_BaseNamespace):
             verify(sellado, self.ns)
 
         _medicion("verify anchura declarada del recibo", 16)
+
+
+def _cargar_acto():
+    """Carga `examples/emitir_censo.py` como módulo, sin ejecutar su `main`.
+
+    Se prueba el acto REAL, no una copia del operador: dos implementaciones de la
+    misma resta divergen y la que mide es la que se publica.
+    """
+
+    ruta = _os.path.join(_RAIZ, "examples", "emitir_censo.py")
+    especificacion = _importlib_util.spec_from_file_location("emitir_censo_bajo_prueba", ruta)
+    modulo = _importlib_util.module_from_spec(especificacion)
+    especificacion.loader.exec_module(modulo)
+    return modulo
+
+
+class TestVolumenMedido(_BaseNamespace):
+    """§2.4 — el volumen se mide; el cliente no inventa cuatro parámetros."""
+
+    def test_t13_la_fabrica_coincide_con_el_namespace_de_la_suite(self) -> None:
+        # Dos caminos para el mismo objeto: la suite lo arma a mano con sus tres
+        # sondas, la fábrica con las de `audit`. Si discrepan, una de las dos
+        # miente y hay que saber cuál. La comparación es la única forma de que
+        # este archivo no sea el instrumento midiéndose a sí mismo.
+        fabrica = volumen_medido(self.fd, VOLUMEN)
+
+        self.assertIsInstance(fabrica, Namespace)
+        self.assertEqual(fabrica.fd_root, self.fd)
+        self.assertEqual(fabrica.nombre_max, self.nombre_max)
+        self.assertEqual(fabrica.sensible_al_caso, self.sensible)
+        self.assertEqual(fabrica.motor_nacimiento, self.motor)
+        self.assertEqual(fabrica.volumen, VOLUMEN)
+        # `sincronizacion_directorio` no se mide aquí: no consta es ⊥, no es False.
+        self.assertIsNone(fabrica.sincronizacion_directorio)
+
+        self.assertGreater(nombre_max(self.fd), 0)
+        self.assertIsInstance(motor_nacimiento(self.fd), FuenteT0)
+        _medicion(
+            "volumen medido fabrica | (nombre_max, sensible, motor)",
+            (fabrica.nombre_max, fabrica.sensible_al_caso, fabrica.motor_nacimiento.value),
+        )
+
+    def test_t13_b_la_sonda_no_deja_residuo_ni_borra_lo_ajeno(self) -> None:
+        # El acto escribe dos nombres en el volumen. Si los dejara, el próximo
+        # censo contaría la sonda como objeto del universo: el instrumento
+        # aparecería en la cifra que mide.
+        volumen_medido(self.fd, VOLUMEN)
+        self.assertEqual(_os.listdir(self.raiz), [])
+
+        # Y si un tercero ya ocupó el nombre, la sonda se para en vez de
+        # contestar con el estado de un archivo ajeno: `O_EXCL` es el cerrojo.
+        _escribir(self.fd, _SONDA_CASO_MENOR, b"ajeno\n")
+        with self.assertRaises(ContratoViolado):
+            sensible_al_caso(self.fd)
+        with open(_os.path.join(self.raiz, _SONDA_CASO_MENOR), "rb") as flujo:
+            self.assertEqual(flujo.read(), b"ajeno\n")
+        _medicion("sonda de caso | archivo ajeno intacto", True)
+
+
+class TestActoDeCenso(_BaseNamespace):
+    """§2.4 · §4 — el acto publica `declarado · observado · discrepancia`."""
+
+    def test_t14_una_declaracion_falsa_se_resta_y_se_declara(self) -> None:
+        acto = _cargar_acto()
+
+        # Positivo: la declaración coincide con lo observado.
+        self.assertEqual(
+            acto._discrepancia("6", 6), ("0", VeredictoReclamado.CONFORME)
+        )
+        # Falsadores: por arriba y por abajo. Una declaración falsa no se
+        # discute: se resta y el signo dice de qué lado se equivocó.
+        self.assertEqual(
+            acto._discrepancia("7", 6), ("-1", VeredictoReclamado.NO_CONFORME)
+        )
+        self.assertEqual(
+            acto._discrepancia("5", 6), ("1", VeredictoReclamado.NO_CONFORME)
+        )
+        # Génesis: sin declaración no hay resta. `NO_MEDIDO` no se lee como cero.
+        self.assertEqual(
+            acto._discrepancia("", 6), ("NO_MEDIDO", VeredictoReclamado.NO_MEDIDO)
+        )
+        _medicion("acto de censo | operador observado-declarado", "medido")
+
+    def test_t14_b_el_acto_no_mide_un_universo_con_bytecode(self) -> None:
+        acto = _cargar_acto()
+        limpio = _os.path.join(self.raiz, "universo")
+        _os.mkdir(limpio)
+
+        acto._exigir_universo_limpio(limpio)  # positivo: universo limpio pasa
+
+        # Falsador: el intérprete deja basura que no viaja con el código. Se
+        # para; no la borra. Borrarla mediría un universo que ya no es el que hay.
+        _os.mkdir(_os.path.join(limpio, "__pycache__"))
+        with self.assertRaises(SystemExit):
+            acto._exigir_universo_limpio(limpio)
+        self.assertTrue(_os.path.isdir(_os.path.join(limpio, "__pycache__")))
+        _medicion("acto de censo | bytecode presente", "se para y no borra")
 
 
 if __name__ == "__main__":  # pragma: no cover

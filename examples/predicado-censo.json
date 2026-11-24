@@ -1,0 +1,70 @@
+{
+  "afirmacion": "el universo protocol-core.src.protocol cuenta 6 (archivo); la declaracion vigente dice 6; la discrepancia es 0",
+  "entradas": [
+    {
+      "ruta": "src/protocol/__init__.py",
+      "sha256": "ffd3d4a2cfcbec73bd38e40fc000019a3bc179abaf83cc8c630e83552d1876ca"
+    },
+    {
+      "ruta": "src/protocol/atomic.py",
+      "sha256": "f683048ede5e0d484ead274260c7e78bfd13a339ec0a4951832d0bf142d672de"
+    },
+    {
+      "ruta": "src/protocol/audit.py",
+      "sha256": "f6e95219ca1fb60799027bb8a4ab78f036e11124ed6531d6917454edcbd17744"
+    },
+    {
+      "ruta": "src/protocol/metrics.py",
+      "sha256": "b0ffe59125d335352eeea25bc90e6765807bab67fc59f58d7c44f4dff062a767"
+    },
+    {
+      "ruta": "src/protocol/predicado.py",
+      "sha256": "ce2ccd976b0264ab0ad8dbfbc0dea0763307b16396c52097c3bb99437b519f52"
+    },
+    {
+      "ruta": "src/protocol/types.py",
+      "sha256": "2c7d13f85a4bce17e5e87cb9dc81266e819d27ad00427851bcc66e72aa685074"
+    }
+  ],
+  "codigo": [
+    {
+      "ruta": "examples/emitir_censo.py",
+      "sha256": "5b268b4f1478f5e479edf0d2cc25aee6850a272b2c8deacdf16accfda273cc64"
+    },
+    {
+      "ruta": "src/protocol/atomic.py",
+      "sha256": "f683048ede5e0d484ead274260c7e78bfd13a339ec0a4951832d0bf142d672de"
+    },
+    {
+      "ruta": "src/protocol/audit.py",
+      "sha256": "f6e95219ca1fb60799027bb8a4ab78f036e11124ed6531d6917454edcbd17744"
+    },
+    {
+      "ruta": "src/protocol/metrics.py",
+      "sha256": "b0ffe59125d335352eeea25bc90e6765807bab67fc59f58d7c44f4dff062a767"
+    },
+    {
+      "ruta": "src/protocol/predicado.py",
+      "sha256": "ce2ccd976b0264ab0ad8dbfbc0dea0763307b16396c52097c3bb99437b519f52"
+    },
+    {
+      "ruta": "src/protocol/types.py",
+      "sha256": "2c7d13f85a4bce17e5e87cb9dc81266e819d27ad00427851bcc66e72aa685074"
+    }
+  ],
+  "entorno": {
+    "plataforma": "darwin",
+    "runtime": "CPython 3.9.6",
+    "no_medido": [
+      "el instrumento vive dentro del universo contado: el censo no descuenta su pie",
+      "el instante del censo lo aporta el ancla, no un reloj de pared",
+      "plataformas distintas de la de esta corrida: no medidas desde aqui"
+    ]
+  },
+  "salida": {
+    "ruta": "examples/censo-vigente.txt",
+    "sha256": "58fb623f0f9428abaddeec9d08b0a88d3fc205fa6af174b532a47b7a33eb17d1"
+  },
+  "veredicto": "conforme",
+  "h_prev": null
+}
