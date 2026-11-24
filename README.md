@@ -48,6 +48,12 @@ de ejecución.
 El veredicto (`Ran 26 tests` · `OK`) sale por **stderr**; las líneas `MEDICION |` de cada prueba salen
 por **stdout**.
 
+**Plataformas certificadas de la suite:** linux (CI) y darwin. Medido el 2026-11-24: `os.mkfifo` no
+admite `dir_fd` en darwin —`os.supports_dir_fd` no lo lista—, así que el caso T-10(d) crea el FIFO por
+la ruta de la raíz efímera y sigue midiendo la barrera del instrumento (`MEDICION | T-10 barrera fifo |
+ELOOP`). Sin esa corrección la corrida en darwin terminaba en `FAILED (errors=1)` por una limitación
+del fixture, no del motor. Tercera plataforma: `NO_MEDIDO`.
+
 <!-- HUELLA-PROTOCOL-CORE-PYTEST-DEPENDENCIA-DECLARADA-20261020 -->
 
 ## Sellos de fe pública

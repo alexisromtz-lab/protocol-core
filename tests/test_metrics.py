@@ -42,7 +42,11 @@ Lecturas declaradas. Ninguna se hace pasar por el texto de SPEC.md:
      se sostienen un lector y un escritor del propio FIFO: así una apertura
      ajena no puede bloquear, y el defecto se ve como `Ficha` en vez de espera.
      Riesgo declarado y aceptado: la guarda es del archivo de pruebas, no del
-     instrumento.
+     instrumento. En darwin `mkfifo` no admite `dir_fd` —`os.supports_dir_fd`
+     no lo lista, medido 2026-11-24—: allí el FIFO se crea por la ruta de la
+     raíz efímera y el instrumento sigue recibiendo sólo el slug. Cambia el
+     camino de la fixture, no la unidad medida; saltar el caso habría dejado a
+     macOS sin medir la barrera y el verde habría sido por omisión.
   5. INV_ISOL se mide sobre un subárbol recién hecho: la raíz de la suite
      contiene objetos de otros casos y un manifiesto sobre ella mediría ruido
      ajeno. Los objetos se crean con `reserve` (el escritor ya certificado), no
@@ -381,7 +385,12 @@ class TestLecturaNoRasgada(_BaseNamespace):
 
     def test_t10_barrera_antes_de_abrir_sobre_un_fifo(self) -> None:
         slug = Slug("fifo-t10")
-        _os.mkfifo(slug.texto, 0o600, dir_fd=self.fd)
+        if _os.mkfifo in _os.supports_dir_fd:
+            _os.mkfifo(slug.texto, 0o600, dir_fd=self.fd)
+            _medicion("T-10 fifo creado por", "dir_fd")
+        else:
+            _os.mkfifo(_os.path.join(self.raiz, slug.texto), 0o600)
+            _medicion("T-10 fifo creado por", "ruta de la raiz efimera")
 
         # Guarda del archivo de pruebas (no del instrumento): se sostienen un
         # lector y un escritor del FIFO para que una apertura de lectura no
