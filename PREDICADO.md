@@ -125,6 +125,43 @@ dos formas de citar el mismo acto. `ancla: null` significa "adjudico sin prueba
 externa", que es exactamente lo que vale una contrafirma sin ancla. Este
 documento **no** define criptografía: no se simula una firma que no se verifica.
 
+## 5.bis Levantar el acto desde la página
+
+`desde_cuerpo(pagina)` es la inversa de `cuerpo()` y de `pagina()`. Es parte del
+contrato, no una comodidad de la biblioteca: sin ella la contrafirma cubre un
+digest que sólo su autor sabe reproducir, y entonces el verificador no puede
+divergir de nada.
+
+Reglas de la inversa, todas falsables:
+
+- Acepta el cuerpo como diccionario **o** como el texto/bytes UTF-8 publicado:
+  quien verifica tiene un archivo, no un objeto vivo.
+- Exige **las siete llaves y ninguna otra**. Una llave de menos es una laguna no
+  declarada: `h_prev` ausente no es el origen, es un eslabón sin enlace. Una de
+  más es un acto distinto que se leería con el vocabulario viejo.
+- Exige `entorno.no_medido` **presente**, aunque sea `[]`. Rellenarlo por omisión
+  afirmaría que no queda nada sin medir sin haberlo escrito.
+- Rechaza lo que el constructor rechaza: rutas desordenadas, hashes truncados,
+  veredicto fuera del vocabulario.
+
+## 5.ter El ciclo del ancla: dos commits
+
+El ancla nombra un commit **anterior**: el que contiene la página. Por eso cada
+acto anclado se publica en dos tiempos —primero el acto, después la contrafirma
+que lo nombra— y el segundo commit no cambia la página, sólo `ancla-declarada.txt`
+y `contrafirma-censo.json`, que ningún acto incluye en `codigo`.
+
+Dos consecuencias que se declaran porque un tercero las va a encontrar:
+
+- **El verificador no figura en `codigo`.** `examples/contrafirmar_censo.py` no
+  entra en el conjunto que el censo hashea: si el verificador se verificara a sí
+  mismo, cambiar el verificador cambiaría la página que verifica y el ancla sería
+  imposible de fijar. Un guardián no puede guardarse a sí mismo.
+- **Toda edición del código verificado produce una página nueva y deja el ancla
+  rancia.** No es un defecto: es la prueba de que la página ata los bytes. El
+  acto que la emite informa `RANCIO` y devuelve RC 1 hasta que se re-ancle; un
+  acto que lo callara sería el falso verde que este formato existe para impedir.
+
 ## 6. Proyección a in-toto Statement v1
 
 El predicado no compite con el estándar; se monta encima. La proyección es
@@ -152,6 +189,13 @@ es el falsador de que la proyección no pierde información.
    sin `no_medido`, veredicto fuera del vocabulario, campos faltantes o de más.
 3. Recorrer una cadena y nombrar el eslabón que rompe.
 4. Decir explícitamente que **sin ancla** la cadena sólo prueba coherencia.
+5. Levantar el predicado desde la página publicada y recomputar su digest **sin
+   el emisor** (`§5.bis`). Un verificador que necesite el proceso que emitió no
+   verifica: repite.
+6. Nombrar por separado las dos divergencias que no son la misma: `RANCIO`, la
+   página de la mesa no es la del ancla —el ancla describe otro árbol— y
+   `REFUTA`, la contrafirma no cubre el acto de enfrente. Mezclarlas deja al
+   auditor sin saber si re-ancorar o investigar.
 
 Un verificador que acepte cualquiera de (2) con un `warning` y siga no ha
 verificado: ha saludado.

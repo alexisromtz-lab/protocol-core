@@ -19,7 +19,7 @@
     },
     {
       "ruta": "src/protocol/predicado.py",
-      "sha256": "ce2ccd976b0264ab0ad8dbfbc0dea0763307b16396c52097c3bb99437b519f52"
+      "sha256": "a6f1048bce754c204f22000c03b6bb0a8d51c274f2baad3ad8ea9d8f5298fc71"
     },
     {
       "ruta": "src/protocol/types.py",
@@ -45,7 +45,7 @@
     },
     {
       "ruta": "src/protocol/predicado.py",
-      "sha256": "ce2ccd976b0264ab0ad8dbfbc0dea0763307b16396c52097c3bb99437b519f52"
+      "sha256": "a6f1048bce754c204f22000c03b6bb0a8d51c274f2baad3ad8ea9d8f5298fc71"
     },
     {
       "ruta": "src/protocol/types.py",

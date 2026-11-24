@@ -15,7 +15,7 @@
     },
     {
       "ruta": "tests/test_predicado.py",
-      "sha256": "6c08fee40fc948272378a8088ac0e18fe935e378b4e16933479e94dfff99200a"
+      "sha256": "06cee93f59755054023ce4612639e63f092d828753ade65d64a3eeb4c2641367"
     }
   ],
   "codigo": [
@@ -37,7 +37,7 @@
     },
     {
       "ruta": "src/protocol/predicado.py",
-      "sha256": "ce2ccd976b0264ab0ad8dbfbc0dea0763307b16396c52097c3bb99437b519f52"
+      "sha256": "a6f1048bce754c204f22000c03b6bb0a8d51c274f2baad3ad8ea9d8f5298fc71"
     },
     {
       "ruta": "src/protocol/types.py",
@@ -54,7 +54,7 @@
   },
   "salida": {
     "ruta": "examples/veredicto-suite.txt",
-    "sha256": "cc1ed684b13e948f24ec85f22bc88d79aebdb544e73bfebbf31a02495ce0fa42"
+    "sha256": "fedf3c3365925f4da37c9c4b9a88ab022449cf4f1ec9813884bd87ce3dcb0f02"
   },
   "veredicto": "conforme",
   "h_prev": null

@@ -69,6 +69,7 @@ __all__ = [
     "VeredictoReclamado",
     "canonizar",
     "contrafirmar",
+    "desde_cuerpo",
     "desde_in_toto",
     "verificar_cadena",
     "verificar_contrafirma",
@@ -342,6 +343,29 @@ def _entrada_desde_dict(bruto: object, campo: str) -> EntradaManifiesto:
     return EntradaManifiesto(RutaRelativa(ruta), Hash(algoritmo=ALGORITMO, digest=digest))
 
 
+def _entorno_desde_dict(bruto: object) -> Entorno:
+    """El entorno vuelve de la página con sus tres llaves, `no_medido` incluida.
+
+    `no_medido` no se rellena por omisión: un entorno que llega sin la llave
+    afirmaría que no queda nada sin medir sin haberlo escrito.
+    """
+
+    if not isinstance(bruto, dict):
+        raise ContratoViolado("el entorno de la página no es diccionario", tipo=type(bruto).__name__)
+    no_medido = bruto.get("no_medido")
+    if not isinstance(no_medido, list):
+        raise ContratoViolado(
+            "`no_medido` viaja como lista, presente aun vacía: omitirlo declara "
+            "que no queda nada sin medir",
+            tipo=type(no_medido).__name__,
+        )
+    return Entorno(
+        plataforma=bruto.get("plataforma"),
+        runtime=bruto.get("runtime"),
+        no_medido=tuple(no_medido),
+    )
+
+
 def _veredicto_reclamado(bruto: object) -> VeredictoReclamado:
     try:
         return VeredictoReclamado(bruto)
@@ -369,9 +393,7 @@ def desde_in_toto(estatuto: object) -> Predicado:
     cuerpo = estatuto.get("predicate")
     if not isinstance(cuerpo, dict):
         raise ContratoViolado("el predicado proyectado no es diccionario")
-    entorno = cuerpo.get("entorno")
-    if not isinstance(entorno, dict):
-        raise ContratoViolado("el entorno proyectado no es diccionario")
+    entorno = _entorno_desde_dict(cuerpo.get("entorno"))
     entradas = cuerpo.get("entradas")
     codigo = cuerpo.get("codigo")
     if not isinstance(entradas, list) or not isinstance(codigo, list):
@@ -381,13 +403,73 @@ def desde_in_toto(estatuto: object) -> Predicado:
         afirmacion=cuerpo.get("afirmacion"),
         entradas=tuple(_entrada_desde_dict(e, "entradas") for e in entradas),
         codigo=tuple(_entrada_desde_dict(e, "codigo") for e in codigo),
-        entorno=Entorno(
-            plataforma=entorno.get("plataforma"),
-            runtime=entorno.get("runtime"),
-            no_medido=tuple(entorno.get("no_medido", ())),
-        ),
+        entorno=entorno,
         salida=_entrada_desde_dict(sujetos[0], "subject"),
         veredicto=_veredicto_reclamado(cuerpo.get("veredicto")),
+        h_prev=None if h_prev is None else Hash(algoritmo=ALGORITMO, digest=h_prev),
+    )
+
+
+_CLAVES_DEL_CUERPO: Final[Tuple[str, ...]] = (
+    "afirmacion",
+    "codigo",
+    "entorno",
+    "entradas",
+    "h_prev",
+    "salida",
+    "veredicto",
+)
+
+
+def desde_cuerpo(objeto: object) -> Predicado:
+    """Invierte `cuerpo()` y `pagina()`: el tercero levanta el acto desde la página.
+
+    Acepta el cuerpo como diccionario o como el texto/bytes JSON que se publicó,
+    porque quien verifica tiene un archivo, no un objeto vivo. Exige **las siete
+    llaves y ninguna otra**: una de menos es una laguna no declarada —`h_prev`
+    ausente no es el origen, es un eslabón sin enlace— y una de más es un acto
+    distinto que se leería con el vocabulario viejo.
+
+    Sin esta función el predicado es verificable sólo por quien lo emitió, y una
+    contrafirma sin verificador independiente no es un objeto vendible.
+    """
+
+    if isinstance(objeto, (bytes, bytearray)):
+        try:
+            objeto = bytes(objeto).decode("utf-8")
+        except UnicodeDecodeError as exc:
+            raise ContratoViolado("la página no es UTF-8", causa=str(exc)) from exc
+    if isinstance(objeto, str):
+        try:
+            objeto = _json.loads(objeto)
+        except ValueError as exc:
+            raise ContratoViolado("la página no es JSON", causa=str(exc)) from exc
+    if not isinstance(objeto, dict):
+        raise ContratoViolado("la página es un diccionario", tipo=type(objeto).__name__)
+    presentes = tuple(sorted(objeto))
+    if presentes != _CLAVES_DEL_CUERPO:
+        raise ContratoViolado(
+            "la página lleva las siete llaves del predicado y ninguna otra",
+            faltan=[clave for clave in _CLAVES_DEL_CUERPO if clave not in objeto],
+            sobran=[clave for clave in presentes if clave not in _CLAVES_DEL_CUERPO],
+        )
+    entradas = objeto["entradas"]
+    codigo = objeto["codigo"]
+    if not isinstance(entradas, list) or not isinstance(codigo, list):
+        raise ContratoViolado("los conjuntos de la página son listas, presentes aun vacías")
+    h_prev = objeto["h_prev"]
+    if h_prev is not None and not isinstance(h_prev, str):
+        raise ContratoViolado(
+            "`h_prev` es el digest del eslabón anterior o nulo en el origen",
+            tipo=type(h_prev).__name__,
+        )
+    return Predicado(
+        afirmacion=objeto["afirmacion"],
+        entradas=tuple(_entrada_desde_dict(entrada, "entradas") for entrada in entradas),
+        codigo=tuple(_entrada_desde_dict(entrada, "codigo") for entrada in codigo),
+        entorno=_entorno_desde_dict(objeto["entorno"]),
+        salida=_entrada_desde_dict(objeto["salida"], "salida"),
+        veredicto=_veredicto_reclamado(objeto["veredicto"]),
         h_prev=None if h_prev is None else Hash(algoritmo=ALGORITMO, digest=h_prev),
     )
 

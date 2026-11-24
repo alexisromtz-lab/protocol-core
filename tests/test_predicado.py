@@ -58,6 +58,7 @@ from protocol.predicado import (  # noqa: E402
     VeredictoReclamado,
     canonizar,
     contrafirmar,
+    desde_cuerpo,
     desde_in_toto,
     verificar_cadena,
     verificar_contrafirma,
@@ -516,6 +517,70 @@ class TestPagina(_unittest.TestCase):
             )
         self.assertEqual(cuerpo["veredicto"], esperado)
         _medicion("P-21 veredicto y su resta", (cuerpo["veredicto"], esperado))
+
+
+class TestVerificacionDesdeLaPagina(_unittest.TestCase):
+    """P-22 · P-23 · P-24 — quien verifica tiene un archivo, no un emisor.
+
+    La `Contrafirma` sólo es el objeto vendible si un tercero puede levantar el
+    predicado desde la página publicada y recalcular su nombre. Sin la inversa,
+    la contrafirma cubre un digest que sólo su autor sabe reproducir, y eso es
+    una promesa con formato, no una prueba.
+    """
+
+    PAGINAS = ("examples/predicado-suite.json", "examples/predicado-censo.json")
+
+    def _texto(self, relativa: str) -> str:
+        with open(_os.path.join(_RAIZ, relativa), "r", encoding="utf-8") as flujo:
+            return flujo.read()
+
+    def test_p22_la_inversa_reproduce_la_pagina_publicada(self) -> None:
+        for relativa in self.PAGINAS:
+            texto = self._texto(relativa)
+            predicado = desde_cuerpo(texto)
+            _medicion("P-22 digest desde el archivo", (relativa, predicado.digest().digest[:16]))
+            # 1. La página en disco se recompone byte a byte desde el objeto.
+            self.assertEqual(predicado.pagina(), texto.rstrip("\n"))
+            # 2. Y el texto JSON produce el mismo objeto que el diccionario: la
+            #    ruta de lectura no cambia el acto.
+            self.assertEqual(desde_cuerpo(_json.loads(texto)).digest(), predicado.digest())
+
+    def test_p23_la_pagina_no_admite_ni_una_llave_menos_ni_una_de_mas(self) -> None:
+        texto = self._texto("examples/predicado-censo.json")
+        cuerpo = _json.loads(texto)
+        sin_h_prev = {clave: valor for clave, valor in cuerpo.items() if clave != "h_prev"}
+        with self.assertRaises(ContratoViolado):
+            desde_cuerpo(sin_h_prev)
+        con_extra = dict(cuerpo, nota="campo que el formato viejo ignoraria")
+        with self.assertRaises(ContratoViolado):
+            desde_cuerpo(con_extra)
+        sin_entorno_lagunas = _json.loads(texto)
+        sin_entorno_lagunas["entorno"] = {
+            "plataforma": sin_entorno_lagunas["entorno"]["plataforma"],
+            "runtime": sin_entorno_lagunas["entorno"]["runtime"],
+        }
+        with self.assertRaises(ContratoViolado):
+            desde_cuerpo(sin_entorno_lagunas)
+        _medicion("P-23 rechazos de la inversa", ("h_prev ausente", "llave de mas", "no_medido ausente"))
+
+    def test_p24_la_contrafirma_cubre_el_acto_y_refuta_el_manipulado(self) -> None:
+        texto = self._texto("examples/predicado-censo.json")
+        predicado = desde_cuerpo(texto)
+        contrafirma = contrafirmar(
+            predicado, "test_p24", VeredictoAdjudicado.CONFIRMA, "ancla-de-prueba"
+        )
+        self.assertTrue(verificar_contrafirma(predicado, contrafirma))
+
+        cuerpo = _json.loads(texto)
+        otro = "no_conforme" if cuerpo["veredicto"] == "conforme" else "conforme"
+        manipulado = desde_cuerpo(dict(cuerpo, veredicto=otro))
+        resultado = verificar_contrafirma(manipulado, contrafirma)
+        self.assertIsInstance(resultado, Divergencia)
+        self.assertEqual(resultado.campo, "digest_del_predicado")
+        _medicion(
+            "P-24 una letra mueve el nombre del acto",
+            (cuerpo["veredicto"], otro, resultado.medido[:16]),
+        )
 
 
 if __name__ == "__main__":
