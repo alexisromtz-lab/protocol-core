@@ -183,6 +183,14 @@ Cuatro reglas que el acto cumple, y el falsador de cada una:
    `predicado-censo.json` (`conforme` → `no_conforme`) y `--check` devuelve
    `RANCIO` con RC 1 mientras el digest anclado sigue siendo el anterior.
 
+**El clon tiene que traer historia.** La contrafirma se adjudica contra el
+commit que nombra el ancla, así que un clon superficial (`--depth 1`) no puede
+cerrarla: `git clone` normal, o `git fetch --unshallow`, o falla con
+`CONTRATO | git no respondió: sin ancla no hay contrafirma`. Falla cerrado a
+propósito — un ancla ausente no se lee como un ancla confirmada. Medido el
+2026-11-24 en `/tmp`, mismo commit, dos clones: superficial ⇒ RC 1, completo ⇒
+`CONFIRMA`.
+
 **La inversa es parte del contrato.** `desde_cuerpo` levanta el acto desde la
 página publicada —diccionario, texto o bytes UTF-8—, exige las **siete** llaves
 y ninguna otra y no consulta al emisor. Sin esa inversa un tercero sólo puede
