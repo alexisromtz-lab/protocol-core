@@ -25,7 +25,7 @@
   "codigo": [
     {
       "ruta": "examples/verificar_sello.py",
-      "sha256": "e34b9e01d53028a2d75f04a06694b0e51449bc75a8c271ee6f9120323e25d87c"
+      "sha256": "1ba322e39ce8949e2ec067cc6845921c8c01cd0164adabddaf254c20fdeb4be4"
     },
     {
       "ruta": "src/protocol/predicado.py",

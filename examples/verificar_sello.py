@@ -27,6 +27,13 @@ manifiesto. Se elige así y se publica siempre en la salida:
   versionadas y 104 316 archivos en disco: la caminata sin exclusiones mide el
   entorno del observador, no el corpus.
 
+Código de salida, y por qué no es decorativo: `0` la afirmación se sostiene
+(`intacta` o `reubicada`), `1` no se sostiene (`divergente`, `suplantada`,
+`intercambiada`) **o** no se pudo medir (`no_medida`), `2` no hay página o
+contrato roto. Un verificador que sale en cero con el sello roto es el falso
+verde que este acto existe para nombrar; la línea `veredicto` dice cuál de los
+dos unos es.
+
 Lo que este script **no** hace: no re-sella. Re-sellar es un acto externo con su
 propio pre-vuelo y su propia fecha cierta; este acto sólo mide lo que un sello
 ya emitido dice hoy.
@@ -308,7 +315,7 @@ def main(argv: tuple) -> int:
     _medicion("lineas", len(pagina.splitlines()))
     _medicion("bytes", len(pagina.encode("utf-8")))
     _medicion("digest", digest.digest)
-    return 0
+    return 0 if adjudicacion.conforme else 1
 
 
 if __name__ == "__main__":

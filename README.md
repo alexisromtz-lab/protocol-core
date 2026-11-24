@@ -47,7 +47,7 @@ acoplada) · y las extensiones declaradas `INV-6` (ficha fuera de banda), `INV-7
 Los comandos se corren **desde la raíz de este repositorio**:
 
 ```
-python3 -B -m unittest discover -s tests -v                      # 100 pruebas (corrida local: stdlib unittest)
+python3 -B -m unittest discover -s tests -v                      # 102 pruebas (corrida local: stdlib unittest)
 python3 -B examples/emitir_predicado.py                          # emite el recibo del acto: veredicto + página
 python3 -B examples/emitir_censo.py                               # el censo: declarado vs observado
 python3 -B examples/verificar_sello.py --manifiesto RUTA --raiz DIR --universo disco   # los seis veredictos
@@ -214,6 +214,14 @@ página publicada —diccionario, texto o bytes UTF-8—, exige las **siete** ll
 y ninguna otra y no consulta al emisor. Sin esa inversa un tercero sólo puede
 comparar un digest que no sabe calcular, que es confiar, no verificar.
 
+**La ruta declarada es una entrada, y se confina antes de abrirse.**
+`ancla-declarada.txt` la escribe un humano, así que no se abre: se pasa por
+`RutaRelativa`, se resuelve y se exige que caiga dentro de `RAIZ` y que sea
+archivo. `../fuera.json`, una ruta absoluta o un enlace que salga del árbol
+salen `OPACO | <ruta> | <motivo>` y el acto va a `NO_MEDIDA`; **no se lee**. Un
+verificador que abre lo que le piden es un lector arbitrario del host que lo
+ejecuta. Falsador: P-40, cinco vectores.
+
 ## El cuarto acto: la ubicación (los bytes, no las rutas)
 
 Un manifiesto de sellado declara pares `(ruta, digest)`. La pregunta que contesta
@@ -272,6 +280,25 @@ Dos reglas que costaron una medición cada una:
    normaliza y se **cuenta** (`prefijadas`); OpenBSD (BSD tradicional), el registro
    de npm (SRI base64) y un `sha256sum` con un solo espacio se **rechazan nombrando
    el dialecto**. Publica `UBICACION.md` §2.1. Falsador: P-33.
+
+4. **Una fibra declarada que pierde un miembro no se reubicó: divergió.** Si el
+   manifiesto declara `k ≥ 2` rutas con el mismo digest (`jq` trae binarios
+   gemelos), supervivencia del digest en cualquier ruta **no** basta: el estado es
+   `DIVERGE` si alguna de las `k` rutas declaradas perdió sus bytes, porque
+   entonces nadie recibió esa copia. Y una lectura que cambia bajo el hasher
+   —`st_size`/`st_mtime_ns` distintos antes y después— es `OPACO`, nunca
+   `DIVERGE`: un digest híbrido no es una mutación del sujeto, es un defecto de
+   medición. Publica `UBICACION.md` §3. Falsadores: P-36, P-38.
+
+**El código de salida del acto lo dice el veredicto, no el número de filas.**
+Medir (`--manifiesto … --raiz …`) devuelve **RC 0 sólo si el veredicto es
+`INTACTA` o `REUBICADA`** —la claim del acto es sobre bytes, no sobre rutas— y
+**RC 1** para `DIVERGENTE`, `SUPLANTADA`, `INTERCAMBIADA` **y también** para
+`NO_MEDIDA`: un acto que no pudo mirar no certifica, y salir en verde «porque no
+encontró nada» es el falso verde en la dirección peligrosa. RC 2 queda para
+entrada inválida. Un verificador que sale 0 con el sello roto no es un
+instrumento: es el defecto que el instrumento existe para nombrar. Falsador:
+P-41, dos casos por `subprocess` sobre un sujeto temporal.
 
 ## Sellos de fe pública
 

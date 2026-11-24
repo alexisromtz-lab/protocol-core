@@ -34,6 +34,7 @@ from __future__ import annotations
 import hashlib as _hashlib
 import json as _json
 import os as _os
+import shutil as _shutil
 import subprocess as _subprocess
 import sys as _sys
 import tempfile as _tempfile
@@ -751,6 +752,71 @@ class TestFibraDeclarada(_unittest.TestCase):
         self.assertTrue(juicio.suplantada)
         self.assertFalse(juicio.canje)
         self.assertEqual(VeredictoDeUbicacion.SUPLANTADA, acto.veredicto)
+
+
+class TestRcDelActo(_unittest.TestCase):
+    """P-41 — el acto no sale en cero con el sello roto.
+
+    El verificador es lo que un cliente pone en su CI. Si `divergente` devolviera
+    0, el pipeline pasaría con el sello roto y el acto mediría sin consecuencias:
+    el falso verde que este corpus existe para nombrar. `no_medida` tampoco es
+    cero —una ceguera no es un hallazgo limpio—, y por eso comparte el 1 con los
+    tres veredictos negativos: la línea `veredicto` dice cuál de los dos es.
+    """
+
+    def setUp(self) -> None:
+        self.raiz = _tempfile.mkdtemp()
+        self.addCleanup(_shutil.rmtree, self.raiz, True)
+        self.manifiesto = _os.path.join(self.raiz, "SHA256SUMS")
+
+    def _escribir(self, contenido: bytes) -> str:
+        with open(_os.path.join(self.raiz, "a.md"), "wb") as flujo:
+            flujo.write(contenido)
+        with open(self.manifiesto, "w", encoding="utf-8") as flujo:
+            flujo.write("%s  a.md\n" % _hashlib.sha256(b"uno\n").hexdigest())
+        return contenido.decode("utf-8")
+
+    def _correr(self):
+        return _subprocess.run(
+            [
+                _sys.executable,
+                "-B",
+                _os.path.join(_RAIZ, "examples", "verificar_sello.py"),
+                "--manifiesto",
+                self.manifiesto,
+                "--raiz",
+                self.raiz,
+                "--universo",
+                "disco",
+            ],
+            cwd=_RAIZ,
+            stdout=_subprocess.PIPE,
+            stderr=_subprocess.STDOUT,
+            check=False,
+        )
+
+    def _veredicto(self, corrida) -> str:
+        for linea in corrida.stdout.decode("utf-8", "replace").splitlines():
+            if "adjudicacion" in linea:
+                return linea.rsplit("->", 1)[-1].strip()
+        self.fail("el acto no publica la adjudicacion")
+
+    def test_p41_intacta_sale_en_cero(self) -> None:
+        self._escribir(b"uno\n")
+        corrida = self._correr()
+
+        self.assertEqual("intacta", self._veredicto(corrida))
+        self.assertEqual(0, corrida.returncode)
+        _medicion("P-41 RC | intacta", corrida.returncode)
+
+    def test_p41_divergente_no_sale_en_cero(self) -> None:
+        self._escribir(b"dos\n")  # el manifiesto sigue declarando `uno`
+
+        corrida = self._correr()
+
+        self.assertEqual("divergente", self._veredicto(corrida))
+        self.assertEqual(1, corrida.returncode)
+        _medicion("P-41 RC | divergente", corrida.returncode)
 
 
 if __name__ == "__main__":

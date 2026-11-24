@@ -154,6 +154,14 @@ masa.
 Un acto sin filas es `NO_MEDIDA`, no `INTACTA`: cero artefactos medidos no es
 cero hallazgos.
 
+**El código de salida se deriva del veredicto, no del número de filas.** En
+medición (`--manifiesto … --raiz …`) el acto devuelve RC 0 sólo para `INTACTA` y
+`REUBICADA`; RC 1 para los cuatro restantes, `NO_MEDIDA` incluida —un acto que no
+pudo mirar no certifica, y salir en verde «porque no encontró nada» es el falso
+verde en la dirección peligrosa—; RC 2 si la entrada no se puede leer. `--check`
+conserva su contrato propio (§6). La línea del veredicto nombra cuál de los
+cuatro fue: el RC agrupa, el tipo distingue.
+
 El testigo de una reubicación nombra **todos** los caminos medidos, no el que el
 lector prefiera: `p -> k caminos: a, b` cuando `k > 1`. Elegir uno cuando hay `k`
 publica un destino que el índice no sostiene — medido sobre jq 1.7.1, que trae
