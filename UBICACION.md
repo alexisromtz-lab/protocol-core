@@ -156,6 +156,13 @@ El testigo nombra el ocupante: `p -> r (ruta ocupada)` cuando el ocupante es un
 digest declarado, `p -> r (ruta ocupada por bytes no declarados)` cuando no lo
 es.
 
+**El mismo acto físico, dos pérdidas distintas.** Un byte cambiado en una ruta
+cuyo digest no vive en ningún otro sitio da `DIVERGENTE`: se perdió el
+artefacto. El mismo byte, en una ruta cuyo digest sobrevive en un gemelo, da
+`SUPLANTADA`: se perdió la ruta, el artefacto está. Un verificador que sólo
+conozca la primera dice «se corrompió» de las dos, y manda a buscar un archivo
+que existe.
+
 ## 5. Lo que este acto no hace
 
 - **No sella.** Re-sellar es un acto externo con su propio pre-veredicto y su
