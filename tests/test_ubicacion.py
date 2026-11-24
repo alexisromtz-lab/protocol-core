@@ -170,6 +170,35 @@ class TestMultiplicidad(_unittest.TestCase):
         self.assertEqual(EstadoDeEntrada.CONFORME, juicio.estado)
         self.assertEqual(2, juicio.multiplicidad)
 
+    def test_p26_el_testigo_nombra_los_k_caminos(self) -> None:
+        """Publicar k en el dato y elegir un destino en el texto es publicar cero.
+
+        Caso real (jq 1.7.1, medido el 2026-11-24): el release trae tres pares de
+        binarios byte-idénticos, así que al mover `jq-linux-amd64` a `sub/` el
+        testigo nombraba `jq-linux64` — una ruta que nunca se movió y que ya
+        estaba declarada. El veredicto era correcto; el destino era inventado.
+        """
+
+        indice = Indice.desde_mapa({"nueva/a.md": _A, "nueva/copia/a.md": _A})
+        acto = adjudicar((_fila("actas/a.md", _A),), indice)
+        juicio = acto.juicios[0]
+        self.assertEqual(("nueva/a.md", "nueva/copia/a.md"), juicio.observadas)
+        self.assertEqual(
+            ("reubicado actas/a.md -> 2 caminos: nueva/a.md, nueva/copia/a.md",),
+            acto.testigos(),
+        )
+
+    def test_p26_un_testigo_con_k_no_admite_un_solo_camino(self) -> None:
+        with self.assertRaises(ContratoViolado):
+            Juicio(
+                declarada="actas/a.md",
+                h=Hash("sha256", _A),
+                estado=EstadoDeEntrada.REUBICADO,
+                observada="nueva/a.md",
+                observadas=("nueva/a.md",),
+                multiplicidad=2,
+            )
+
 
 class TestIntercambio(_unittest.TestCase):
     """P-27 · el hallazgo que el esquema «sólo contenido» no puede ver."""
@@ -200,11 +229,29 @@ class TestIntercambio(_unittest.TestCase):
         self.assertEqual(VeredictoDeUbicacion.DIVERGENTE, acto.veredicto)
 
     def test_p27_un_intruso_no_declarado_ocupa_la_ruta(self) -> None:
+        """Caso real: jq 1.7.1 trae tres pares de binarios byte-idénticos.
+
+        Mutar un byte de `jq-linux64` deja su digest vivo en su gemelo, así que
+        la fila no es pérdida: es una ruta suplantada. Decir `intercambiada`
+        afirmaría un canje que no ocurrió (nadie ocupó la otra ruta con el
+        digest de esta) y decir `reubicada` sería un falso verde.
+        """
+
         indice = Indice.desde_mapa({"a.md": _C, "actas/a.md": _A})
-        juicio = adjudicar((_fila("a.md", _A),), indice).juicios[0]
+        acto = adjudicar((_fila("a.md", _A),), indice)
+        juicio = acto.juicios[0]
         self.assertEqual(EstadoDeEntrada.REUBICADO, juicio.estado)
         self.assertFalse(juicio.vaciada)
         self.assertFalse(juicio.ocupante_declarado)
+        self.assertTrue(juicio.suplantada)
+        self.assertFalse(juicio.canje)
+        self.assertEqual(VeredictoDeUbicacion.SUPLANTADA, acto.veredicto)
+        self.assertNotEqual(VeredictoDeUbicacion.INTERCAMBIADA, acto.veredicto)
+        self.assertFalse(acto.conforme)
+        self.assertEqual(
+            ("reubicado a.md -> actas/a.md (ruta ocupada por bytes no declarados)",),
+            acto.testigos(),
+        )
 
 
 class TestOrdenDelVeredicto(_unittest.TestCase):
@@ -225,6 +272,15 @@ class TestOrdenDelVeredicto(_unittest.TestCase):
         indice = Indice.desde_mapa({"a.md": _B, "b.md": _A})
         entradas = (_fila("a.md", _A), _fila("b.md", _B), _fila("c.md", _C))
         self.assertEqual(VeredictoDeUbicacion.DIVERGENTE, adjudicar(entradas, indice).veredicto)
+
+    def test_p28_suplantacion_manda_sobre_el_intercambio(self) -> None:
+        """Las dos violan la frontera; la suplantación además desconoce qué hay."""
+
+        indice = Indice.desde_mapa({"a.md": _C, "actas/a.md": _A, "b.md": _A, "actas/b.md": _B})
+        entradas = (_fila("a.md", _A), _fila("b.md", _B))
+        acto = adjudicar(entradas, indice)
+        _medicion("P-28 suplantada+canje", acto.resumen())
+        self.assertEqual(VeredictoDeUbicacion.SUPLANTADA, acto.veredicto)
 
     def test_p28_sin_filas_no_es_intacta(self) -> None:
         vacia = Adjudicacion(juicios=())

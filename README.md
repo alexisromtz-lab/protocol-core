@@ -31,7 +31,7 @@ examples/verificar_sello.py + sello-de-muestra/ y los dos que emite
 
 `PREDICADO.md` es la especificación del Anillo 0 y existe para que un tercero
 reimplemente la verificación **sin leer el código**. `UBICACION.md` hace lo mismo
-con los cuatro estados de ubicación. Si el documento y el módulo discrepan, manda
+con los estados y veredictos de ubicación. Si el documento y el módulo discrepan, manda
 el documento. `SPEC.md` no se toca: está sellado con fecha cierta y una sección
 nueva invalidaría el sello.
 
@@ -47,10 +47,10 @@ acoplada) · y las extensiones declaradas `INV-6` (ficha fuera de banda), `INV-7
 Los comandos se corren **desde la raíz de este repositorio**:
 
 ```
-python3 -B -m unittest discover -s tests -v                      # 85 pruebas (corrida local: stdlib unittest)
+python3 -B -m unittest discover -s tests -v                      # 88 pruebas (corrida local: stdlib unittest)
 python3 -B examples/emitir_predicado.py                          # emite el recibo del acto: veredicto + página
 python3 -B examples/emitir_censo.py                               # el censo: declarado vs observado
-python3 -B examples/verificar_sello.py --manifiesto RUTA --raiz DIR --universo disco   # los cuatro estados
+python3 -B examples/verificar_sello.py --manifiesto RUTA --raiz DIR --universo disco   # los seis veredictos
 python3 -B examples/emitir_predicado.py --check                   # REPRODUCE (RC 0) o DIVERGE (RC 1)
 python3 -B examples/emitir_censo.py --check                       # REPRODUCE (RC 0) o RANCIO (RC 1)
 python3 -B examples/verificar_sello.py --check                    # REPRODUCE (RC 0) o RANCIO (RC 1)
@@ -64,7 +64,7 @@ esa misma suite con `python -m pytest -q --junitxml=/tmp/junit.xml`, donde `pyte
 y el productor del junitxml, no un segundo motor de aserciones. `pytest` lo instala el runner y este
 repositorio lo declara como **extra de desarrollo** (`pip install -e .[dev]`), nunca como dependencia
 de ejecución.
-El veredicto (`Ran 85 tests` · `OK`) sale por **stderr**; las líneas `MEDICION |` de cada prueba salen
+El veredicto (`Ran 88 tests` · `OK`) sale por **stderr**; las líneas `MEDICION |` de cada prueba salen
 por **stdout**.
 
 **Plataformas certificadas de la suite:** linux (CI) y darwin. Medido el 2026-11-24: `os.mkfifo` no
@@ -210,22 +210,27 @@ python3 -B examples/verificar_sello.py --manifiesto M --raiz D --universo disco
 python3 -B examples/verificar_sello.py --check            # REPRODUCE (RC 0) · RANCIO (RC 1)
 ```
 
-Cuatro estados, mutuamente excluyentes, y un quinto veredicto del acto:
+Cuatro estados por fila —`CONFORME`, `REUBICADO`, `DIVERGE`, `OPACO`— y seis
+veredictos del acto, en orden de gravedad:
 
-| estado | condición | lo que prueba |
-|---|---|---|
-| `INTACTA` | la ruta declarada tiene el digest declarado | bytes intactos en su ruta |
-| `REUBICADA` | otro camino del universo tiene ese digest | los bytes viven, la ruta cambió |
-| `INTERCAMBIADA` | el digest está donde se declaró el de **otra** entrada | dos entradas permutadas |
-| `DIVERGENTE` | el digest no aparece en el universo | alteración real o pérdida |
-| `OPACO` | el universo no puede mirar ahí | el tercero no puede cerrar la cadena |
+| veredicto | lo que prueba |
+|---|---|
+| `DIVERGENTE` | el digest declarado no aparece en el universo: pérdida real |
+| `SUPLANTADA` | los bytes viven en otra ruta y la sellada la ocupan bytes no declarados |
+| `INTERCAMBIADA` | el digest está donde se declaró el de **otra** entrada: canje |
+| `NO_MEDIDA` | el universo no puede mirar en algún sitio declarado |
+| `REUBICADA` | los bytes viven, la ruta cambió |
+| `INTACTA` | cada ruta declarada tiene su digest declarado |
 
 `INTERCAMBIADA` existe porque un esquema que sólo mire contenido **no puede ver un
 intercambio**: cada digest sigue apareciendo exactamente una vez y el acto
-devolvería `reubicada`. Es la laguna que el orden de los estados tapa, y la
-publica `UBICACION.md` §4.1. Siempre se publica la multiplicidad `k` —cuántos
-caminos del universo llevan ese digest—, porque el recibo no puede decidir cuál
-copia es la buena, sólo cuántas hay.
+devolvería `reubicada`. Es la laguna que el orden de los veredictos tapa, y la
+publica `UBICACION.md` §4.1. `SUPLANTADA` existe porque el caso inverso también
+miente: mutar un byte de un archivo que tiene un gemelo byte-idéntico deja el
+digest vivo en el gemelo, y llamar «canje» a eso afirma un intercambio que no
+ocurrió. Siempre se publica la multiplicidad `k` —cuántos caminos del universo
+llevan ese digest, y cuáles—, porque el recibo no puede decidir cuál copia es la
+buena, sólo cuántas hay.
 
 Dos reglas que costaron una medición cada una:
 

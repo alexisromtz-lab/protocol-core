@@ -107,18 +107,25 @@ construcción, y su digest no se busca. Un lector que ignore esta regla la
 declara `DIVERGE`, y ese falso rojo es el que un manifiesto saneado produce en
 masa.
 
-## 4. El veredicto del acto: cinco valores, con orden declarado
+## 4. El veredicto del acto: seis valores, con orden declarado
 
 | veredicto | condición | ¿la afirmación se sostiene? |
 |---|---|---|
 | `DIVERGENTE` | alguna fila `DIVERGE` | no |
-| `INTERCAMBIADA` | alguna fila `REUBICADO` cuya ruta declarada **no** quedó vacía | no |
+| `SUPLANTADA` | alguna fila `REUBICADO` cuya ruta declarada no quedó vacía y no la ocupa un digest declarado | no |
+| `INTERCAMBIADA` | alguna fila `REUBICADO` cuya ruta declarada la ocupa el digest declarado de otra fila | no |
 | `NO_MEDIDA` | hay filas y ninguna de las anteriores, pero hay `OPACO` | no se sabe |
 | `REUBICADA` | hay `REUBICADO` y todas sus rutas declaradas quedaron vacías | **sí** |
 | `INTACTA` | todas las filas son `CONFORME` | sí |
 
 Un acto sin filas es `NO_MEDIDA`, no `INTACTA`: cero artefactos medidos no es
 cero hallazgos.
+
+El testigo de una reubicación nombra **todos** los caminos medidos, no el que el
+lector prefiera: `p -> k caminos: a, b` cuando `k > 1`. Elegir uno cuando hay `k`
+publica un destino que el índice no sostiene — medido sobre jq 1.7.1, que trae
+tres pares de binarios byte-idénticos, el testigo nombraba el gemelo que nunca se
+movió.
 
 ### 4.1 El canje, que un esquema de sólo contenido no ve
 
@@ -133,9 +140,21 @@ mudanza limpia, sí. En un canje, no: la ocupa el otro. De ahí que
 `INTERCAMBIADA` exista y ordene por encima de `NO_MEDIDA` — es un hallazgo
 positivo, no una laguna.
 
-El testigo distingue además si el ocupante era **declarado** (canje) o **ajeno**
-(intruso no declarado): `p -> r (ruta ocupada)` frente a la misma línea con
-`ocupante_declarado = False`.
+Un canje es **mutuo por construcción**, y no hay que postularlo: si `p1` lleva el
+digest declarado de `p2`, la fila de `p2` tiene necesariamente su digest fuera de
+su ruta. Lo que no es mutuo es un **intruso**: bytes que el manifiesto no declara
+ocupando la ruta sellada mientras el artefacto verdadero vive en otra parte.
+Eso es `SUPLANTADA`, y no se puede llamar `INTERCAMBIADA` sin afirmar un canje
+que no ocurrió ni `REUBICADA` sin abrir un falso verde.
+
+Caso real (jq 1.7.1, 2026-11-24): mutar un byte de `jq-linux64` deja su digest
+vivo en su gemelo `jq-linux-amd64`, así que la fila no es pérdida. El acto
+anterior lo llamaba `intercambiada`; el veredicto nuevo dice lo que pasó:
+`reubicado jq-linux64 -> jq-linux-amd64 (ruta ocupada por bytes no declarados)`.
+
+El testigo nombra el ocupante: `p -> r (ruta ocupada)` cuando el ocupante es un
+digest declarado, `p -> r (ruta ocupada por bytes no declarados)` cuando no lo
+es.
 
 ## 5. Lo que este acto no hace
 

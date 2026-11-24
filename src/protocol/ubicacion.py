@@ -121,6 +121,7 @@ class VeredictoDeUbicacion(str, Enum):
     INTACTA = "intacta"
     REUBICADA = "reubicada"
     INTERCAMBIADA = "intercambiada"
+    SUPLANTADA = "suplantada"
     DIVERGENTE = "divergente"
     NO_MEDIDA = "no_medida"
 
@@ -421,6 +422,7 @@ class Juicio:
     h: Hash
     estado: EstadoDeEntrada
     observada: Optional[str] = None
+    observadas: Tuple[str, ...] = ()
     multiplicidad: int = 0
     medido: Optional[str] = None
     ocupante_declarado: bool = False
@@ -434,6 +436,14 @@ class Juicio:
                 raise ContratoViolado("una reubicación sin testigo no es un juicio", declarada=self.declarada)
             if self.multiplicidad < 1:
                 raise ContratoViolado("una reubicación publica su multiplicidad", declarada=self.declarada)
+            # El testigo nombra las k rutas medidas, no una elegida: un destino
+            # único cuando hay k es una afirmación que el índice no sostiene.
+            if len(self.observadas) != self.multiplicidad:
+                raise ContratoViolado(
+                    "una reubicación nombra sus k caminos", declarada=self.declarada, k=self.multiplicidad
+                )
+            if self.observada not in self.observadas:
+                raise ContratoViolado("el testigo no está entre los caminos publicados", declarada=self.declarada)
         if self.estado is EstadoDeEntrada.CONFORME and self.medido != self.h.digest:
             raise ContratoViolado("un conforme cuyo medido no es el declarado", declarada=self.declarada)
         if self.estado is EstadoDeEntrada.OPACO and self.motivo == "":
@@ -444,6 +454,23 @@ class Juicio:
         """La ruta declarada quedó sin bytes: nadie la ocupó."""
 
         return self.estado is EstadoDeEntrada.REUBICADO and self.medido is None
+
+    @property
+    def suplantada(self) -> bool:
+        """La ruta declarada la ocupan bytes que el manifiesto no declara."""
+
+        return self.estado is EstadoDeEntrada.REUBICADO and self.medido is not None and not self.ocupante_declarado
+
+    @property
+    def canje(self) -> bool:
+        """La ruta declarada la ocupa el digest declarado de **otra** fila.
+
+        Eso no se sostiene solo: si `p1` lleva el digest de `p2`, la fila de
+        `p2` tiene necesariamente su digest fuera de su ruta, así que un canje
+        es mutuo por construcción y no hay que postularlo.
+        """
+
+        return self.estado is EstadoDeEntrada.REUBICADO and self.ocupante_declarado
 
 
 @dataclass(frozen=True)
@@ -479,10 +506,16 @@ class Adjudicacion:
     def veredicto(self) -> VeredictoDeUbicacion:
         """El peor hallazgo, con un orden declarado y no negociable.
 
-        - `divergente` manda: hay bytes que ya no están. Es un hallazgo positivo.
-        - `intercambiada` le sigue: un artefacto reubicado cuya ruta no quedó
-          vacía. Los bytes existen y la frontera está rota; el sello existe para
-          nombrar justo eso.
+        - `divergente` manda: hay bytes declarados que ya no están. Es un
+          hallazgo positivo de pérdida.
+        - `suplantada` le sigue: los bytes declarados existen en otra ruta, pero
+          la ruta sellada la ocupan bytes que el manifiesto no declara. El
+          artefacto sobrevive y la frontera fue violada: llamarlo `reubicada`
+          sería un falso verde en la dirección peligrosa, y llamarlo
+          `intercambiada` afirmaría un canje que no ocurrió.
+        - `intercambiada` después: un artefacto reubicado cuya ruta la ocupa el
+          digest declarado de otra fila. Los bytes existen y la frontera está
+          rota por una permutación, no por una intrusión.
         - `no_medida` va después: no saber no se lee como cero, y tampoco se lee
           como un hallazgo positivo.
         - `reubicada` es benigna y explicada: los bytes están, la ruta cambió.
@@ -494,7 +527,9 @@ class Adjudicacion:
             return VeredictoDeUbicacion.NO_MEDIDA
         if self.divergentes:
             return VeredictoDeUbicacion.DIVERGENTE
-        if any(not j.vaciada for j in self.reubicados):
+        if any(j.suplantada for j in self.reubicados):
+            return VeredictoDeUbicacion.SUPLANTADA
+        if any(j.canje for j in self.reubicados):
             return VeredictoDeUbicacion.INTERCAMBIADA
         if self.opacos:
             return VeredictoDeUbicacion.NO_MEDIDA
@@ -518,13 +553,20 @@ class Adjudicacion:
         lineas: List[str] = []
         for j in sorted(self.juicios, key=lambda x: x.declarada):
             if j.estado is EstadoDeEntrada.REUBICADO:
+                destino = (
+                    j.observada
+                    if j.multiplicidad == 1
+                    else "%d caminos: %s" % (j.multiplicidad, ", ".join(j.observadas))
+                )
                 lineas.append(
                     "%s %s -> %s%s"
                     % (
                         j.estado.value,
                         j.declarada,
-                        j.observada,
-                        "" if j.vaciada else " (ruta ocupada)",
+                        destino,
+                        " (ruta ocupada por bytes no declarados)"
+                        if j.suplantada
+                        else (" (ruta ocupada)" if j.canje else ""),
                     )
                 )
             elif j.estado is EstadoDeEntrada.DIVERGE:
@@ -598,7 +640,8 @@ def adjudicar(entradas: Sequence[EntradaDeclarada], indice: Indice) -> Adjudicac
                     declarada=entrada.ruta,
                     h=entrada.h,
                     estado=EstadoDeEntrada.REUBICADO,
-                    observada=candidatas[0],
+                    observada=sorted(candidatas)[0],
+                    observadas=tuple(sorted(candidatas)),
                     multiplicidad=len(candidatas),
                     medido=medido,
                     ocupante_declarado=bool(medido is not None and medido in declarados),

@@ -37,7 +37,7 @@
     },
     {
       "ruta": "src/protocol/ubicacion.py",
-      "sha256": "a49944de4b22ed90a5fbcdcdce282bc7b62fda47732aec1d376fcf1b9af6c550"
+      "sha256": "17a021a3868af02b0bc0ea2d90478dec073b133126cc232f5d4f3e85185cc9cb"
     }
   ],
   "entorno": {
