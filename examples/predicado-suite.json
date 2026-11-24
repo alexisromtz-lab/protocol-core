@@ -1,0 +1,61 @@
+{
+  "afirmacion": "la suite declara su veredicto sobre este codigo y estas pruebas, en el entorno declarado",
+  "entradas": [
+    {
+      "ruta": "tests/test_atomic.py",
+      "sha256": "eae9482cd207372f9001baab1a5bc0eb26ea852f434d17b2a0bb89342da3ff02"
+    },
+    {
+      "ruta": "tests/test_audit.py",
+      "sha256": "b7f20090324835d769c81c7329f1ac1c044451ccf08cf1e3e32896e81ebec2b4"
+    },
+    {
+      "ruta": "tests/test_metrics.py",
+      "sha256": "626176486c07c02e0f3451725b73f2791838b5c5043022f4a4059a4f54d7da6a"
+    },
+    {
+      "ruta": "tests/test_predicado.py",
+      "sha256": "84fa42bd77d717dc3f68080db88127b3cc129467575d8ba0f0f8aa440fa2db35"
+    }
+  ],
+  "codigo": [
+    {
+      "ruta": "examples/emitir_predicado.py",
+      "sha256": "4b9d356a706dc6189a28b770a7383f4e0706decf7d3bdf71acd7c73d0c3d28ed"
+    },
+    {
+      "ruta": "src/protocol/atomic.py",
+      "sha256": "f683048ede5e0d484ead274260c7e78bfd13a339ec0a4951832d0bf142d672de"
+    },
+    {
+      "ruta": "src/protocol/audit.py",
+      "sha256": "2e5126ae125dd0e946bbfd4971134faecda5a191faeb9fcd1df4f8a4086fad46"
+    },
+    {
+      "ruta": "src/protocol/metrics.py",
+      "sha256": "b0ffe59125d335352eeea25bc90e6765807bab67fc59f58d7c44f4dff062a767"
+    },
+    {
+      "ruta": "src/protocol/predicado.py",
+      "sha256": "ce2ccd976b0264ab0ad8dbfbc0dea0763307b16396c52097c3bb99437b519f52"
+    },
+    {
+      "ruta": "src/protocol/types.py",
+      "sha256": "2c7d13f85a4bce17e5e87cb9dc81266e819d27ad00427851bcc66e72aa685074"
+    }
+  ],
+  "entorno": {
+    "plataforma": "darwin",
+    "runtime": "CPython 3.9.6",
+    "no_medido": [
+      "CI linux no medido desde aqui",
+      "detalle del rojo no reducido"
+    ]
+  },
+  "salida": {
+    "ruta": "examples/veredicto-suite.txt",
+    "sha256": "f39eb66997ddd17f01a69fdb67ff90a41389240c1e824e8ea6003735ec2905cc"
+  },
+  "veredicto": "conforme",
+  "h_prev": null
+}

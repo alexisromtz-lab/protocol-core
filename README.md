@@ -14,14 +14,21 @@ red, sin credenciales, sin re-sellar nada).
   `<expediente-de-custodia>/DECLARACION_DE_LICENCIA_DUAL_20261009.md`
   (85 líneas · 3 704 B · sha256 `48252c8b92e17d421a13e8a5a06ab2649250a4ad0c417623ad38ab77f9c17594`).
 
-## Las 10 piezas
+## Las 13 piezas
 
 ```
-SPEC.md                  pyproject.toml
-src/protocol/__init__.py src/protocol/atomic.py  src/protocol/audit.py
-src/protocol/metrics.py  src/protocol/types.py
-tests/test_atomic.py     tests/test_audit.py     tests/test_metrics.py
+SPEC.md                  PREDICADO.md             pyproject.toml
+src/protocol/__init__.py src/protocol/atomic.py   src/protocol/audit.py
+src/protocol/metrics.py  src/protocol/types.py    src/protocol/predicado.py
+tests/test_atomic.py     tests/test_audit.py      tests/test_metrics.py
+tests/test_predicado.py
+examples/emitir_predicado.py + los dos artefactos que emite
 ```
+
+`PREDICADO.md` es la especificación del Anillo 0 y existe para que un tercero
+reimplemente la verificación **sin leer el código**. Si el documento y el módulo
+discrepan, manda el documento. `SPEC.md` no se toca: está sellado con fecha
+cierta y una sección nueva invalidaría el sello.
 
 ## Invariantes (SPEC §3)
 
@@ -35,17 +42,19 @@ acoplada) · y las extensiones declaradas `INV-6` (ficha fuera de banda), `INV-7
 Los comandos se corren **desde la raíz de este repositorio**:
 
 ```
-python3 -B -m unittest discover -s tests -v                      # 26 pruebas (corrida local: stdlib unittest)
+python3 -B -m unittest discover -s tests -v                      # 44 pruebas (corrida local: stdlib unittest)
+python3 -B examples/emitir_predicado.py                          # emite el recibo del acto: veredicto + página
+python3 -B examples/emitir_predicado.py --check                   # REPRODUCE (RC 0) o DIVERGE (RC 1)
 PYTHONPATH=src python3 -B -c "import protocol; print(protocol.__version__)"   # 0.1.0
 ```
 
-**Motor único: `unittest` de la biblioteca estándar.** Los 3 archivos de `tests/` hacen
-`import unittest`; 0 de los 8 `.py` rastreados hacen `import pytest`. Lo que el aparato de CI corre es
+**Motor único: `unittest` de la biblioteca estándar.** Los 4 archivos de `tests/` hacen
+`import unittest`; 0 de los 11 `.py` rastreados hacen `import pytest`. Lo que el aparato de CI corre es
 esa misma suite con `python -m pytest -q --junitxml=/tmp/junit.xml`, donde `pytest` es el **colector**
 y el productor del junitxml, no un segundo motor de aserciones. `pytest` lo instala el runner y este
 repositorio lo declara como **extra de desarrollo** (`pip install -e .[dev]`), nunca como dependencia
 de ejecución.
-El veredicto (`Ran 26 tests` · `OK`) sale por **stderr**; las líneas `MEDICION |` de cada prueba salen
+El veredicto (`Ran 44 tests` · `OK`) sale por **stderr**; las líneas `MEDICION |` de cada prueba salen
 por **stdout**.
 
 **Plataformas certificadas de la suite:** linux (CI) y darwin. Medido el 2026-11-24: `os.mkfifo` no
@@ -55,6 +64,36 @@ ELOOP`). Sin esa corrección la corrida en darwin terminaba en `FAILED (errors=1
 del fixture, no del motor. Tercera plataforma: `NO_MEDIDO`.
 
 <!-- HUELLA-PROTOCOL-CORE-PYTEST-DEPENDENCIA-DECLARADA-20261020 -->
+
+## El recibo de un acto (Anillo 0)
+
+`src/protocol/predicado.py` compone el enunciado que hace verificable un acto:
+**afirmación · entradas · código · entorno · salida · veredicto · eslabón
+anterior**, en una página de 61 líneas y 1 881 bytes. El contrato, escrito para
+que un tercero lo reimplemente sin leer el código, vive en `PREDICADO.md`; la
+proyección a in-toto Statement v1 hace que cualquier pipeline que ya entienda
+SLSA/Sigstore lea el `subject` y el `predicateType` sin conversión.
+
+`veredicto` es lo que el productor **reclama**. La adjudicación es otro objeto
+—la contrafirma— y es la única que vale ante un tercero. Y una cadena de
+digests **sin ancla** prueba coherencia, no autoría: quien reescribe todos los
+eslabones recalcula la cadena entera y cuadra. Ese límite está en el contrato y
+en una prueba que lo afirma como resultado negativo, no escondido en un README.
+
+El ejemplo es el acto real de este repositorio, no una simulación:
+
+```
+python3 -B examples/emitir_predicado.py          # corre la suite, reduce, emite la página
+python3 -B examples/emitir_predicado.py --check   # REPRODUCE (RC 0) · DIVERGE (RC 1)
+```
+
+El falsador se ve en un byte: se toca cualquier fuente, la suite **sigue verde**
+—`salida reproducida | True`— y la página declara `DIVERGE`, porque el árbol ya
+no es el que produjo ese veredicto. Un verde sin recibo es exactamente el falso
+verde que el recibo existe para nombrar.
+
+**Lo que este módulo no hace:** no firma, no mide el sistema de archivos y no
+adjudica. No se simula una firma que no se verifica.
 
 ## Sellos de fe pública
 
