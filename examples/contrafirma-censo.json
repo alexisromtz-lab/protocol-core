@@ -1,0 +1,19 @@
+{
+  "ancla": "3ce77b932e6b2e4d1087e3a0d9d4a693c1edd900",
+  "contrafirma": {
+    "ancla": "github.com/alexisromtz-lab/protocol-core@3ce77b932e6b · 2026-11-24T14:12:46-06:00",
+    "digest_del_predicado": "474d799e7e3e631047cc57c225fc204d06549015794cb0d8057ce2572dcb2172",
+    "veredicto": "confirma",
+    "verificador": "protocol-core/examples/contrafirmar_censo.py (auto-contrafirma)"
+  },
+  "entorno": {
+    "no_medido": [
+      "la publicacion del ancla en el remoto se declara; este acto no alcanza la red",
+      "la independencia del verificador: es el mismo arbol que emitio la pagina"
+    ],
+    "plataforma": "darwin",
+    "runtime": "python 3.9"
+  },
+  "repositorio": "github.com/alexisromtz-lab/protocol-core",
+  "ruta": "examples/predicado-censo.json"
+}

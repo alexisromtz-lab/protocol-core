@@ -14,7 +14,7 @@ red, sin credenciales, sin re-sellar nada).
   `<expediente-de-custodia>/DECLARACION_DE_LICENCIA_DUAL_20261009.md`
   (85 líneas · 3 704 B · sha256 `48252c8b92e17d421a13e8a5a06ab2649250a4ad0c417623ad38ab77f9c17594`).
 
-## Las 15 piezas
+## Las 16 piezas
 
 ```
 SPEC.md                  PREDICADO.md             pyproject.toml
@@ -24,6 +24,7 @@ tests/test_atomic.py     tests/test_audit.py      tests/test_metrics.py
 tests/test_predicado.py
 examples/emitir_predicado.py + los dos artefactos que emite
 examples/emitir_censo.py + censo-declarado.txt y los dos que emite
+examples/contrafirmar_censo.py + ancla-declarada.txt y contrafirma-censo.json
 ```
 
 `PREDICADO.md` es la especificación del Anillo 0 y existe para que un tercero
@@ -43,9 +44,10 @@ acoplada) · y las extensiones declaradas `INV-6` (ficha fuera de banda), `INV-7
 Los comandos se corren **desde la raíz de este repositorio**:
 
 ```
-python3 -B -m unittest discover -s tests -v                      # 51 pruebas (corrida local: stdlib unittest)
+python3 -B -m unittest discover -s tests -v                      # 54 pruebas (corrida local: stdlib unittest)
 python3 -B examples/emitir_predicado.py                          # emite el recibo del acto: veredicto + página
 python3 -B examples/emitir_predicado.py --check                   # REPRODUCE (RC 0) o DIVERGE (RC 1)
+python3 -B examples/contrafirmar_censo.py --check                 # CONFIRMA (RC 0) o RANCIO (RC 1)
 PYTHONPATH=src python3 -B -c "import protocol; print(protocol.__version__)"   # 0.1.0
 ```
 
@@ -55,7 +57,7 @@ esa misma suite con `python -m pytest -q --junitxml=/tmp/junit.xml`, donde `pyte
 y el productor del junitxml, no un segundo motor de aserciones. `pytest` lo instala el runner y este
 repositorio lo declara como **extra de desarrollo** (`pip install -e .[dev]`), nunca como dependencia
 de ejecución.
-El veredicto (`Ran 51 tests` · `OK`) sale por **stderr**; las líneas `MEDICION |` de cada prueba salen
+El veredicto (`Ran 54 tests` · `OK`) sale por **stderr**; las líneas `MEDICION |` de cada prueba salen
 por **stdout**.
 
 **Plataformas certificadas de la suite:** linux (CI) y darwin. Medido el 2026-11-24: `os.mkfifo` no
@@ -139,6 +141,45 @@ Tres límites que el acto declara en vez de esconder:
 3. Si el universo contiene bytecode del intérprete (`__pycache__`, `*.pyc`), el
    acto **se para y no borra nada**: contarlos ataría el número a quién ejecutó
    Python antes en esa máquina.
+
+## El tercer acto: la contrafirma (la frontera)
+
+El censo prueba **qué** se contó. La contrafirma prueba **que ese recibo existía
+en un punto que su autor no controla**. Sin ella el predicado es un sistema
+cerrado: quien reescribe los siete campos y recalcula el digest obtiene un acto
+internamente consistente y sin autoría.
+
+```
+python3 -B examples/contrafirmar_censo.py           # adjudica y emite contrafirma-censo.json
+python3 -B examples/contrafirmar_censo.py --check   # CONFIRMA (RC 0) · RANCIO (RC 1)
+```
+
+La frontera es un solo archivo que **edita una persona**:
+`examples/ancla-declarada.txt` nombra `repositorio`, `ancla` (el commit) y
+`ruta` (la página). La fecha **no se declara ahí**: se mide con `git show` sobre
+la propia ancla, porque una fecha escrita a mano es una afirmación más.
+
+Cuatro reglas que el acto cumple, y el falsador de cada una:
+
+1. **Se contrafirma la página tal como existe en el ancla, no en el árbol de
+   trabajo.** Si se leyera el árbol local, una página manipulada emitiría su
+   propia contrafirma y el acto se absolvería a sí mismo.
+2. **El verificador no figura en `codigo`.** Si figurara, mejorarlo cambiaría la
+   página que verifica y el ancla quedaría inservible para siempre: un guardián
+   no puede guardarse a sí mismo. Su digest vive en la contrafirma, que es un
+   objeto distinto del acto.
+3. **El ancla nombra un commit anterior.** Levantar el acto produce dos commits:
+   el primero crea las páginas, el segundo nombra su SHA y trae la contrafirma.
+4. **Dos divergencias no se confunden.** `RANCIO` = el ancla describe otro árbol
+   (hay que re-anclar). `REFUTA` = la contrafirma no cubre este acto (hay que
+   investigar). Falsador medido el 2026-11-24: un byte movido en
+   `predicado-censo.json` (`conforme` → `no_conforme`) y `--check` devuelve
+   `RANCIO` con RC 1 mientras el digest anclado sigue siendo el anterior.
+
+**La inversa es parte del contrato.** `desde_cuerpo` levanta el acto desde la
+página publicada —diccionario, texto o bytes UTF-8—, exige las **siete** llaves
+y ninguna otra y no consulta al emisor. Sin esa inversa un tercero sólo puede
+comparar un digest que no sabe calcular, que es confiar, no verificar.
 
 ## Sellos de fe pública
 
