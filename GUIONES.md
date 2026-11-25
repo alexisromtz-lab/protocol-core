@@ -114,6 +114,33 @@ $ python3 -B examples/verificar_sello.py --manifiesto <…> --raiz ../platino-la
 14 digests | 206 rutas
 ```
 
+### 1.3 · El sujeto ajeno — jq 1.7.1
+
+Ni el Sello A ni las fixtures sirven para la mitad vendible de G4: los dos son míos. Sujeto con **bytes y manifiesto de un tercero**, descargado por HTTPS sin cooperación del autor, y con dos copias que el manifiesto oficial no declara:
+
+```
+$ curl -sL -o sha256sum.txt https://github.com/jqlang/jq/releases/download/jq-1.7.1/sha256sum.txt
+$ grep 'jq-linux-amd64$' sha256sum.txt > SHA256SUMS_OFICIAL
+$ cp jq-linux-amd64 vendor/…  # y otra copia en vendor/third_party/
+
+$ python3 -B examples/verificar_sello.py --manifiesto /tmp/ajeno/SHA256SUMS_OFICIAL \
+    --raiz /tmp/ajeno --universo disco --completo
+
+universo | 5 rutas | caminata con 6 exclusiones | 0 fuera del universo
+1 conforme / 0 reubicado / 0 diverge / 0 opaco -> intacta
+redundancia | 5942c9b0934e510ee61eb3e30273f1b3fe2590df93933a93d7c58b81d19c8ff5 | 1 declaradas | 3 observadas | jq-linux-amd64, vendor/jq-linux-amd64, vendor/third_party/jq-linux-amd64
+coste | 1 declaradas | 5 barridas | 5 hasheadas
+RC 0
+```
+
+El digest es el que publica jq: cualquiera lo comprueba contra el release. Y el veredicto **no se movió** pese a las dos copias — la claim es sobre los bytes declarados, el resto es censo (ley 27).
+
+El manifiesto original declara **26 filas** (`2129 B`); el sujeto declara **una**: esto mide una fila contra un árbol, no el release entero. Declararlo es la mitad del resultado, como el dialecto.
+
+**Lo que esta medición no es:** los bytes y el manifiesto son de jq; la **topología de copias la construí yo**. Prueba que el acto cuenta copias no declaradas de bytes ajenos; no prueba cómo se duplica el árbol de un cliente. Eso sigue en §10.
+
+El mismo acto tardó **11 ms** sobre 5 rutas y **264,35 s** sobre 87 819 (§1.2). La diferencia no es el acto: es el universo. Es la misma ley de §8 #8 vista desde el otro extremo.
+
 ---
 
 ## 2 · Reglas de cámara
@@ -192,14 +219,15 @@ $ python3 -B examples/verificar_sello.py --manifiesto <…> --raiz ../platino-la
 
 | t | pantalla | voz |
 |---|---|---|
-| 0,0–5,0 | `redundancia | bbbff613… | 1 declaradas | 2 observadas | a.md, copia/a.md` | «Un archivo declarado. Dos rutas. Nadie firmó la segunda.» |
-| 5,0–12,0 | `14 digests | 206 rutas` (cian, contador) | «En un árbol real: catorce archivos firmados, doscientas seis rutas.» |
-| 12,0–18,0 | `redundancia | <digest> | 1 declaradas | 15 observadas |` ×3 + nota `lista recortada en pantalla; el acto imprime las 15` | «Cada digest vive en catorce o quince sitios. El acto imprime la lista entera.» |
-| 18,0–25,0 | `14 digests son worktrees del mismo dueño. Un árbol ajeno: NO_MEDIDO.` (gris) | «Y esto es un árbol mío. El de usted todavía no lo he medido.» |
+| 0,0–6,0 | `$ curl -sL …/jq-1.7.1/sha256sum.txt` + `26 filas · 2129 B` (cian) | «Un manifiesto que no escribí yo.» |
+| 6,0–13,0 | `redundancia | 5942c9b0… | 1 declaradas | 3 observadas | jq-linux-amd64, vendor/jq-linux-amd64, vendor/third_party/jq-linux-amd64` | «Un archivo firmado por jq. Tres rutas con esos bytes.» |
+| 13,0–19,0 | `1 conforme / 0 reubicado / 0 diverge / 0 opaco -> intacta` + `RC 0` + segunda línea `la copia entra como dato, no como veredicto` (gris) | «El veredicto no se mueve. La copia entra como dato.» |
+| 19,0–25,0 | `14 digests | 206 rutas` (ámbar) + segunda línea `esto sí es mi árbol` | «En el mío: doscientas seis rutas. Ese árbol es mío, no el suyo.» |
 
-**Animación:** el contador sube de 1 a 206 una sola vez, monotónico, sin easing. El gris final no se anima.
-**Cifras:** §8 #4 (+ el recorte declarado).
-**Falsador:** el agregado §1.2. **Y el hueco:** mientras el sujeto sea el árbol del dueño, la mitad vendible de esta pieza es una promesa. Ver §10.
+**Animación:** el contador sube de 3 a 206 una sola vez, monotónico, sin easing. La segunda línea en gris entra 800 ms después que su principal.
+**Cifras:** §8 #4, #10.
+**Falsador:** §1.3 (la línea `1 declaradas | 3 observadas` sobre jq 1.7.1) y el agregado §1.2.
+**Aviso permanente, tercio inferior en gris, de 6,0 a 19,0:** `bytes y manifiesto: jq 1.7.1 · las copias: mías`. La voz no lo dice (no cabe) y la pieza no lo esconde. Ver §10.
 
 ---
 
@@ -235,6 +263,7 @@ $ python3 -B examples/verificar_sello.py --manifiesto <…> --raiz ../platino-la
 | 7 | `1 fuera del universo` · `opaco __pycache__/x.pyc` | ensayo, paso 7/7 | 25-Nov-2026 |
 | 8 | `343,61 / 164,11 / 67,11 / 264,35 s` | `/usr/bin/time -p` sobre el acto (§1.2), cuatro veces en cuatro estados de máquina | 24–25 Nov-2026 |
 | 9 | `Ran 119 tests` · `OK` | `python3 -B -m unittest discover -s tests` | 25-Nov-2026 |
+| 10 | `redundancia | 5942c9b0… | 1 declaradas | 3 observadas` · `coste | 1 declaradas | 5 barridas | 5 hasheadas` | §1.3 (jq 1.7.1, manifiesto oficial) | 25-Nov-2026 |
 
 `87819` y `87855` cuentan cosas distintas (rutas del universo / rutas hasheadas, que incluyen las declaradas fuera de él); no se restan entre sí. `206` es suma de longitudes de listas impresas por el acto, no una resta.
 
@@ -244,7 +273,7 @@ $ python3 -B examples/verificar_sello.py --manifiesto <…> --raiz ../platino-la
 
 | pieza | qué la falsa | comando |
 |---|---|---|
-| G1, G4 | el Sello A cambia de veredicto | §1.2 |
+| G1, G4 | el Sello A o el sujeto jq cambian de veredicto o de multiplicidad | §1.2 · §1.3 |
 | G2, G5 | un paso del ensayo deja de coincidir | `python3 -B examples/ensayo_escalera.py` (RC ≠ 0) |
 | G3 | `--completo` deja de mover el contador o mueve el veredicto | `python3 -B -m unittest tests.test_ubicacion.TestRedundancia` |
 | G5 | el acto no reproduce su sello / el ancla no está vigente | `--check` sobre el acto · `contrafirmar_censo.py --check` |
@@ -260,7 +289,7 @@ Un guion cuya cifra ya no la produce su comando **no se corrige**: se retira y s
 
 Estas son las lagunas del producto, y por eso no tienen guion:
 
-1. **`redundancia` sobre un árbol ajeno: `NO_MEDIDO`.** El único sujeto con `k = 14` son worktrees del mismo dueño. La cifra que un cliente compraría —cuánto se duplica *su* repositorio— no existe todavía. `--completo` la hace **medible**, no medida.
+1. **La tasa de duplicación de un árbol de cliente: `NO_MEDIDA`.** Lo medido es el acto sobre bytes ajenos (jq 1.7.1: `1 declaradas | 3 observadas`, §1.3) con **topología propia**. Cuánto se duplica el repositorio de un cliente —la cifra que compraría— no existe todavía. `--completo` la hace **medible**, no medida. Los `k = 14` del Sello A son worktrees del mismo dueño.
 2. **El coste de una máquina de cliente.** Cuatro medidas del mismo acto van de 67 a 344 s, todas en esta máquina. Ninguna es «el tiempo del acto».
 3. **La precedencia entre `suplantada` e `intercambiada`** está fijada sólo en la fixture (P-28).
 4. **La rama de fallo de `git ls-files`** se trata como «fuera del universo» y no tiene falsador propio (sería P-48).
