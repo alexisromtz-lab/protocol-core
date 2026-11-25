@@ -22,6 +22,10 @@
       "sha256": "626176486c07c02e0f3451725b73f2791838b5c5043022f4a4059a4f54d7da6a"
     },
     {
+      "ruta": "tests/test_negocio.py",
+      "sha256": "2a3532d6f2c5dca47a013edee46ab0e81d1f19016fa91f880520554293ff892a"
+    },
+    {
       "ruta": "tests/test_predicado.py",
       "sha256": "5cc32d9b76cfff49b2821a25981d58d6fea65b1040fc4f72a1fd1a2fe1b28325"
     },
@@ -74,7 +78,7 @@
   },
   "salida": {
     "ruta": "examples/veredicto-suite.txt",
-    "sha256": "2161ace4fba79b2bc8dcbb5171d9af2d4b9f51e88fb2dd0410b7cd1d1cea9c57"
+    "sha256": "8d9f54339c25f4fae083f1d46210726e583b9850218e6eaba58f7b98736a39ed"
   },
   "veredicto": "conforme",
   "h_prev": null

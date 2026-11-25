@@ -102,8 +102,11 @@ from protocol.types import (  # noqa: E402
 #: `tests/test_guiones.py`, entra por la misma puerta que las otras dos — la
 #: suite lo ejecuta. Cuatro líneas más, y la cuenta cierra: tres artefactos por
 #: cuatro líneas sobre las 69 de HEAD.
-COPTA_LINEAS = 81
-COPTA_BYTES = 2600
+#: Subida del 2026-11-25 a 85 líneas y 2 702 bytes: un cuarto artefacto,
+#: `tests/test_negocio.py`, paga la misma regla —cuatro líneas, no tres—. Se
+#: sube midiendo el emitido, no contando a mano.
+COPTA_LINEAS = 85
+COPTA_BYTES = 2702
 #: Cota del acto de censo. Es más ancha que la de la suite porque lleva 12
 #: referencias vivas en vez de 10; se declara aparte para que una cota no mida
 #: el acto que la escribió (§medición con unidad: cada acto, su número).

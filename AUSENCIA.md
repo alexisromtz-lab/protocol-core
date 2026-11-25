@@ -202,6 +202,38 @@ Por eso `auto` resuelve a **disco** aquí. No es una inconsistencia entre actos:
 es que cada acto resuelve `auto` hacia el universo de *su* pregunta. P-59 mide
 las dos ramas sobre el mismo árbol.
 
+### §4.4 · La proyección la firma el cliente, no el módulo
+
+Fuera de un árbol de software la pregunta por la ausencia deja de tener rutas y
+pasa a tener **claves**: `Ávila-cita-09-30` y `avila-cita-09-30` son la misma
+cita. El módulo no decide eso. Acepta una sola proyección declarada —`A-Za-z0-9._-`,
+sin normalizar en silencio— y **rechaza** lo que no encaja en ella, porque una
+tilde borrada a escondidas es una fila que desaparece del inventario:
+
+```
+ENTRADA INVALIDA | avila-cita-09-30-sillon1 | componente no admisible como slug   (RC 2)
+```
+
+La proyección `π(k)` es, entonces, **entrada del cliente aplicada antes de que la
+página exista**: el exportador pliega tildes, caja y separadores, y firma el
+resultado. De ahí la frontera que el módulo no puede verificar por él: si dos
+registros **distintos** colapsan bajo el mismo `π`, la página tendría dos filas
+con una sola clave y el testigo de vecinos dejaría de acotar. El módulo lo corta
+donde puede —`Pagina` exige filas estrictamente crecientes, así que el choque es
+violación de contrato (RC 2)— y el exportador lo corta antes, en el origen:
+
+```
+CONTRATO | colapsa-el-caso: 'Ávila-cita-09-00-sillon1' y 'AVILA-CITA-09-00-SILLON1'
+           proyectan a la misma clave 'avila-cita-09-00-sillon1'                 (RC 1)
+-> no se emite: una clave que colapsa se resuelve, no se sella
+```
+
+Elegir cuál de los dos registros es el bueno es una decisión del dueño de los
+datos; el instrumento sólo puede negarse a sellar la ambigüedad. Por eso este
+§4.4 es una **frontera declarada** y no un control: P-75 prueba que el
+exportador se detiene, P-73 que la proyección es una sola definición y P-78 que
+el orden de bytes del archivo no es el orden de la página.
+
 ---
 
 ## §5 · Escalera de códigos de salida
