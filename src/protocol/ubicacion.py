@@ -31,6 +31,12 @@ entregan, y devuelve cuántas leyó y cuáles omitió para que el acto las publi
 `node_modules` en el denominador y hace que el mismo acto dé cifras distintas en
 cada máquina.
 
+EL UNIVERSO ES UNA CONTINUACIÓN, NO UN PEAJE. `intacta` se decide con las rutas
+que el manifiesto declara; el universo sólo hace falta para nombrar un destino
+cuando una ruta falla. `adjudicar_por_rutas` mide lo declarado y devuelve `None`
+—no un veredicto— cuando no alcanza, así que el barrido se paga sólo en el caso
+que lo necesita. Falsador: P-43.
+
 EL DIALECTO ES UNA ENTRADA. Un manifiesto no es texto abstracto: es una
 gramática. Medido el 2026-11-24 contra cinco manifiestos públicos reales, este
 lector admite uno (jq 1.7.1, `sha256sum`), normaliza el prefijo `./` de otro
@@ -331,12 +337,18 @@ class Indice:
     inestables: Tuple[str, ...] = field(default_factory=tuple)
 
     @classmethod
-    def desde_mapa(cls, por_ruta: Mapping[str, str]) -> "Indice":
+    def desde_mapa(
+        cls,
+        por_ruta: Mapping[str, str],
+        omitidas: Iterable[str] = (),
+        inestables: Iterable[str] = (),
+    ) -> "Indice":
         """Construye el índice desde un mapa ya medido.
 
         Existe para que el inverso se derive del directo en un solo sitio: dos
         tablas que se llenan por separado divergen, y el índice es justo el par
-        que tiene que cuadrar.
+        que tiene que cuadrar. `omitidas` e `inestables` viajan aquí porque la
+        vía rápida las descubre midiendo y no puede dejarlas en el camino.
         """
 
         acumulado: Dict[str, List[str]] = {}
@@ -346,6 +358,8 @@ class Indice:
             por_ruta=dict(por_ruta),
             por_digest={d: tuple(sorted(rs)) for d, rs in acumulado.items()},
             leidas=len(por_ruta),
+            omitidas=tuple(sorted(omitidas)),
+            inestables=tuple(sorted(inestables)),
         )
 
     def digest_en(self, ruta: str) -> Optional[str]:
@@ -772,3 +786,80 @@ def adjudicar(entradas: Sequence[EntradaDeclarada], indice: Indice) -> Adjudicac
             )
         )
     return Adjudicacion(juicios=tuple(juicios))
+
+
+def _resuelve_dentro(raiz_resuelta: str, completa: str) -> bool:
+    """¿La ruta real del archivo cae dentro de la raíz real del universo?
+
+    Un manifiesto es una entrada de quien pide el acto, así que una fila que
+    resuelve fuera de `--raiz` —por `..`, por ruta absoluta o por un enlace en
+    un directorio intermedio— no se lee: el manifiesto no decide qué archivos
+    del host evaluador se abren. La comparación es sobre rutas resueltas, no
+    sobre texto: `raiz/enlace/archivo` puede estar fuera con la ruta intacta.
+    """
+
+    real = os.path.realpath(completa)
+    try:
+        return os.path.commonpath((raiz_resuelta, real)) == raiz_resuelta
+    except ValueError:  # volúmenes distintos: no hay prefijo común que sostener
+        return False
+
+
+def adjudicar_por_rutas(
+    entradas: Sequence[EntradaDeclarada], raiz: str
+) -> Optional[Tuple[Adjudicacion, Indice]]:
+    """La vía rápida: adjudica con las rutas declaradas y **no** recorre el universo.
+
+    QUE MIDE. `intacta` es una afirmación sobre las rutas que el manifiesto
+    declara: cada una conserva su digest en su sitio. Se decide leyendo esas
+    rutas y nada más. El universo —las rutas que el manifiesto **no** declara—
+    sólo hace falta para nombrar un destino cuando una ruta falla, o para
+    publicar `k` observado. Recorrerlo antes de mirar las rutas declaradas cobra
+    el precio del caso raro en todos los casos: medido el 2026-11-24 sobre el
+    Sello A de platino-labs, 87 813 caminos para adjudicar 14 filas, de las que
+    10 se sostienen en su sitio. Un verificador que cuesta dos minutos por PR no
+    se adopta como compuerta; con la vía rápida cuesta lo que cuesta leer el
+    manifiesto.
+
+    CONTRATO DE DEVOLUCIÓN. Devuelve `(adjudicacion, indice)` **sólo** si el
+    veredicto es `INTACTA`; en cualquier otro caso devuelve `None` y el llamador
+    barre el universo. El `None` no es un error ni un veredicto: una ruta que
+    aquí falta no es `DIVERGE` —sus bytes pueden estar en otra parte, y eso lo
+    decide el universo— es la señal de que este índice no alcanza.
+
+    POR QUÉ LA DEVOLUCIÓN PARCIAL NO PUEDE MENTIR. Sin universo no hay
+    candidatas, así que `adjudicar` no puede emitir `REUBICADO`; una fila
+    opaca, ausente, inestable o fuera de la raíz deja el veredicto por debajo de
+    `intacta`. La única salida que cruza esta frontera es la que exige que
+    **todas** las filas declaradas se midieron estables en su ruta con su
+    digest, y ésa es exactamente la que el barrido no puede mejorar.
+    """
+
+    if not entradas:
+        return None
+    raiz_resuelta = os.path.realpath(raiz)
+    por_ruta: Dict[str, str] = {}
+    omitidas: List[str] = []
+    inestables: List[str] = []
+    for entrada in entradas:
+        if entrada.opaca:
+            # Una fila redactada no se puede medir aquí y el motivo es asunto
+            # del manifiesto, no del árbol: que lo adjudique el acto completo.
+            return None
+        completa = os.path.join(raiz, *entrada.ruta.split("/"))
+        if os.path.islink(completa) or not os.path.isfile(completa):
+            omitidas.append(entrada.ruta)
+            continue
+        if not _resuelve_dentro(raiz_resuelta, completa):
+            omitidas.append(entrada.ruta)
+            continue
+        digest = _digest_de_archivo(completa)
+        if digest is None:
+            inestables.append(entrada.ruta)
+            continue
+        por_ruta[entrada.ruta] = digest
+    indice = Indice.desde_mapa(por_ruta, omitidas, inestables)
+    adjudicacion = adjudicar(entradas, indice)
+    if adjudicacion.veredicto is not VeredictoDeUbicacion.INTACTA:
+        return None
+    return adjudicacion, indice

@@ -27,6 +27,24 @@ manifiesto. Se elige así y se publica siempre en la salida:
   versionadas y 104 316 archivos en disco: la caminata sin exclusiones mide el
   entorno del observador, no el corpus.
 
+El universo es una **continuación, no un peaje**. `intacta` se decide con las
+rutas que el manifiesto declara; recorrer el universo sólo hace falta cuando una
+ruta declarada dejó de sostenerse, porque sólo entonces hay que nombrar un
+destino. El recibo publica en qué régimen se decidió —`universo | N rutas |
+rutas declaradas (sin barrido) | ...`— y lo que costó en contadores, no en
+segundos: `coste | N declaradas | B barridas | H hasheadas`. Un cronómetro no
+reproduce y la página tiene que reproducir bit a bit, así que la duración va al
+stream de medición (`MEDICION | reloj de duracion`) y nunca al recibo. Medido el
+2026-11-24 sobre el Sello A de platino-labs: 87 813 caminos barridos para
+adjudicar 14 filas, de las que 10 se sostienen en su sitio, `real 343,61 s` con
+`57,71 s` de CPU: cuatro quintos del coste son espera de I/O, y por eso la vía
+rápida no es un adorno. Con las 14 rutas intactas el mismo acto se decide sin
+tocar el universo.
+
+El recibo se **publica en stdout** con cualquier sujeto, no sólo con la fixture.
+Un acto que se vende por acto tiene que entregar el recibo: quien pide la
+verificación se lleva estas líneas, y su página es el sha256 de ellas.
+
 Código de salida, y por qué no es decorativo: `0` la afirmación se sostiene
 (`intacta` o `reubicada`), `1` no se sostiene (`divergente`, `suplantada`,
 `intercambiada`) **o** no se pudo medir (`no_medida`), `2` la entrada no se puede
@@ -48,6 +66,7 @@ import json as _json
 import os as _os
 import subprocess as _subprocess
 import sys as _sys
+import time as _time
 
 RAIZ = _os.path.dirname(_os.path.dirname(_os.path.abspath(__file__)))
 EJEMPLOS = _os.path.join(RAIZ, "examples")
@@ -68,6 +87,7 @@ from protocol.types import (  # noqa: E402
 from protocol.ubicacion import (  # noqa: E402
     VeredictoDeUbicacion,
     adjudicar,
+    adjudicar_por_rutas,
     indice_por_contenido,
     leer_manifiesto,
 )
@@ -157,7 +177,7 @@ def _universo(raiz: str, modo: str = "auto") -> tuple:
     return _universo_caminata(raiz), "caminata con %d exclusiones" % len(EXCLUSIONES)
 
 
-def _salida(adjudicacion, indice, fuente: str) -> bytes:
+def _salida(adjudicacion, indice, fuente: str, barridas: int, declaradas: int) -> bytes:
     lineas = [
         "universo | %d rutas | %s | %d fuera del universo"
         % (indice.leidas, fuente, len(indice.fuera_del_universo)),
@@ -165,6 +185,13 @@ def _salida(adjudicacion, indice, fuente: str) -> bytes:
     ]
     lineas.extend(adjudicacion.testigos())
     lineas.extend(adjudicacion.fibras())
+    # El coste va en el recibo porque una afirmación de coste en prosa no se
+    # puede refutar y estos tres números sí. Son contadores, no reloj: un
+    # cronómetro nunca reproduce, y la página tiene que reproducir bit a bit.
+    lineas.append(
+        "coste | %d declaradas | %d barridas | %d hasheadas"
+        % (declaradas, barridas, indice.leidas)
+    )
     return ("\n".join(lineas) + "\n").encode("utf-8")
 
 
@@ -229,6 +256,7 @@ def _argumento(argv: tuple, nombre: str, defecto: str) -> str:
 
 
 def main(argv: tuple) -> int:
+    marca = _time.monotonic()
     ruta_manifiesto = _argumento(argv, "--manifiesto", _os.path.join(MUESTRA, "MANIFIESTO.txt"))
     raiz = _argumento(argv, "--raiz", MUESTRA)
     modo = _argumento(argv, "--universo", "auto")
@@ -250,13 +278,24 @@ def main(argv: tuple) -> int:
         print("ENTRADA INVALIDA | %s | la raiz del universo no es un directorio" % raiz)
         return 2
     declaradas = manifiesto.filas
-    rutas, fuente = _universo(raiz, modo)
-    # Las rutas declaradas se sondean en disco: un universo barato no ve lo no
-    # versionado, y esa ceguera tiene que salir como laguna, no como ausencia.
-    indice = indice_por_contenido(raiz, rutas, [d.ruta for d in declaradas if not d.opaca])
-    adjudicacion = adjudicar(declaradas, indice)
+    # El barrido del universo es una continuación y no un peaje: `intacta` se
+    # decide con las rutas declaradas, y sólo cuando alguna deja de sostenerse
+    # hace falta el universo para nombrar un destino.
+    directa = adjudicar_por_rutas(declaradas, raiz)
+    barrido = directa is None
+    if barrido:
+        rutas, fuente = _universo(raiz, modo)
+        # Las rutas declaradas se sondean en disco: un universo barato no ve lo
+        # no versionado, y esa ceguera tiene que salir como laguna, no como ausencia.
+        indice = indice_por_contenido(raiz, rutas, [d.ruta for d in declaradas if not d.opaca])
+        adjudicacion = adjudicar(declaradas, indice)
+        barridas = len(rutas)
+    else:
+        adjudicacion, indice = directa
+        fuente = "rutas declaradas (sin barrido)"
+        barridas = 0
 
-    salida = _salida(adjudicacion, indice, fuente)
+    salida = _salida(adjudicacion, indice, fuente, barridas, len(declaradas))
     # El orden del manifiesto no es parte de la afirmación —la adjudicación es
     # por fila y no depende de la posición— pero la página exige orden byte a
     # byte (§3.d.2), así que el conjunto se normaliza aquí y la fixture, que va
@@ -274,7 +313,12 @@ def main(argv: tuple) -> int:
     lagunas = ["sin firma de tiempo externa: este acto mide un sello ya emitido, no lo emite"]
     if redactadas:
         lagunas.append("%d rutas redactadas no viajan en entradas" % redactadas)
-    if fuente == "git ls-files":
+    if not barrido:
+        lagunas.append(
+            "sin barrido del universo: la afirmacion se decide con las rutas declaradas"
+            " y k observado no se publica"
+        )
+    elif fuente == "git ls-files":
         lagunas.append("archivos no versionados no indexados")
     else:
         lagunas.append("universo por caminata: %d exclusiones declaradas" % len(EXCLUSIONES))
@@ -319,6 +363,10 @@ def main(argv: tuple) -> int:
         _escribir(SALIDA, salida)
         _escribir(PAGINA, (pagina + "\n").encode("utf-8"))
         _medicion("pagina", PAGINA)
+    # El recibo se publica con cualquier sujeto: es lo que el cliente se lleva y
+    # su sha256 es la página. Los números de reloj van después, en el stream de
+    # medición, para que copiar el recibo no arrastre un valor que no reproduce.
+    _sys.stdout.write(salida.decode("utf-8"))
     _medicion("manifiesto", ruta_manifiesto)
     _medicion("raiz", raiz)
     _medicion("dialecto del manifiesto", manifiesto.dialecto)
@@ -332,6 +380,13 @@ def main(argv: tuple) -> int:
     _medicion("lineas", len(pagina.splitlines()))
     _medicion("bytes", len(pagina.encode("utf-8")))
     _medicion("digest", digest.digest)
+    # La duración va aquí y no al recibo: es un reloj de duración del acto —no
+    # del objeto— y no reproduce. Lo que el cliente puede citar es el coste en
+    # contadores, que viaja sellado en la salida.
+    transcurrido = _time.monotonic() - marca
+    _medicion("reloj de duracion ms", int(transcurrido * 1000))
+    if transcurrido > 0:
+        _medicion("rutas por segundo", int(indice.leidas / transcurrido))
     return 0 if adjudicacion.conforme else 1
 
 

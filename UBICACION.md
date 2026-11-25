@@ -116,6 +116,49 @@ que no ocurrió y dejaría en verde un manifiesto con una copia declarada menos.
 La relación es de **subconjunto**, no de igualdad: las copias que el manifiesto
 no declara (`k_obs > k_decl`) no se acusan — no estaban declaradas.
 
+### 3.0 La ley bipartita: `k_decl × k_obs`
+
+Todo lo anterior se resume en un solo cuadro, y el cuadro no tiene casos
+especiales. Sean `k_decl = │π_decl⁻¹(h)│` las rutas que el manifiesto declara con
+el digest `h` y `k_obs = │π_obs⁻¹(h)│` las que el universo observado tiene:
+
+| `k_decl` | `k_obs` | dónde viven | veredicto | qué certifica |
+|---|---|---|---|---|
+| 2 | 2 | las rutas declaradas | `INTACTA` | las `k` rutas declaradas conservan `h` **simultáneamente** (jq 1.7.1: binarios gemelos) |
+| 1 | 14 | 1 declarada + 13 no declaradas | `REUBICADA` | los bytes están, en otra ruta; publica las 14 y no elige destino (Sello A: 13 `.worktrees/` + raíz) |
+| 1 | 1 | ruta cruzada con otra fila | `INTERCAMBIADA` | el multiconjunto de hashes no cambió y la biyección de rutas sí |
+| 1 | 0 | ninguna | `DIVERGE` | los bytes no están en el universo |
+
+La fila 1×14 es la que fija la regla comercial del acto: **la multiplicidad se
+publica, la unicidad no se inventa**. Un adjudicador que exija `k_obs = 1` para
+adjudicar sólo funciona en el árbol donde se escribió el verificador.
+
+### 3.0.1 La vía rápida: el universo es una continuación, no un peaje
+
+`INTACTA` vive en la sub-σ-álgebra que generan las rutas declaradas: si las `N`
+rutas del manifiesto miden su digest en su sitio, no hay nada que el barrido
+pueda añadir salvo coste. Medido el 2026-11-24 sobre el Sello A de `platino-labs`
+(14 filas, 87 813 caminos): `real 343,61 s`, de los que `57,71 s` son CPU — cuatro
+quintos del reloj son espera de I/O. Con las 14 rutas intactas el mismo acto se
+decide en milisegundos y lo declara: `universo | 14 rutas | rutas declaradas (sin
+barrido) | 0 fuera del universo` y `coste | 14 declaradas | 0 barridas | 14
+hasheadas`.
+
+La vía rápida **no puede** adjudicar nada más. Devuelve `None` —no un veredicto—
+en cuanto una fila deja de sostenerse, porque sin universo no hay dónde mirar:
+
+- ruta ausente o alterada ⇒ `None`. Contestar `DIVERGE` aquí sería acusar de una
+  ausencia que el índice no midió; `REUBICADA` exige nombrar un destino.
+- canje (`a ↔ b`) ⇒ `None`, y sólo el barrido lo nombra `INTERCAMBIADA`.
+- una sola fila `OPACA`, o un manifiesto vacío ⇒ `None`. El vacío tampoco es
+  `INTACTA`: `∀ p ∈ ∅` es verdadero y no certifica nada.
+- una ruta que se resuelve fuera de `--raiz` (escape `..`, enlace externo) ⇒
+  `None`: no se lee, y no se adjudica con lo que no se leyó.
+
+Lo que la vía rápida **no publica** es `k_obs`. El recibo lo dice con una laguna
+—`sin barrido del universo: … y k observado no se publica`— para que `INTACTA`
+sin barrido no se lea como una afirmación sobre copias que nadie contó.
+
 **La lectura inestable no es una divergencia.** Un digest calculado mientras otro
 proceso escribía no es el digest de ningún estado del archivo: es un híbrido que
 nunca existió entero en disco. Se mide `fstat` antes y después de leer y, si
@@ -219,6 +262,13 @@ que existe.
 - **No acusa las copias que el manifiesto no declara.** `INTACTA` es una
   relación de subconjunto (`∀ p declarada`), no de igualdad de multiconjuntos.
   Detectar una duplicación posterior es otro acto.
+- **No publica `k` observado cuando decide por la vía rápida.** Si las rutas
+  declaradas se sostienen, contesta `INTACTA` sin barrer el universo, y lo
+  declara con la laguna `sin barrido del universo: … y k observado no se
+  publica`. Un `INTACTA` sin barrido es una afirmación sobre las `N` filas
+  declaradas, no sobre cuántas copias hay.
+- **No cronometra dentro del recibo.** `coste | declaradas | barridas |
+  hasheadas` son contadores y reproducen; la duración va al stream de medición.
 - **No decide entre `RANCIO` y `REFUTA` con el código de salida.** El acto de
   contrafirma (`contrafirmar_censo.py`) devuelve `VeredictoDeAncla` —`vigente`,
   `rancio`, `refuta`, `no_medida`— en su propia línea; RC 1 agrupa los tres que

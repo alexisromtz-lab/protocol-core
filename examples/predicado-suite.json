@@ -19,7 +19,7 @@
     },
     {
       "ruta": "tests/test_ubicacion.py",
-      "sha256": "168a27dec8f7e36eb86ab714986d2559fc1d64887fe4c46e65597cd78fcbfd67"
+      "sha256": "147fd33dc441942e622d53ee1d61e354aff2d74bae59dcbead014f8bee3c3b7d"
     }
   ],
   "codigo": [
@@ -49,7 +49,7 @@
     },
     {
       "ruta": "src/protocol/ubicacion.py",
-      "sha256": "f304c1797bbd4a88b936645735ef09d1c07c502966533d187cef143afee6616c"
+      "sha256": "cf3d5d3387561eba6cdd01cf7d22f27ad02a164ee49c049504cf7cb51486f302"
     }
   ],
   "entorno": {
@@ -62,7 +62,7 @@
   },
   "salida": {
     "ruta": "examples/veredicto-suite.txt",
-    "sha256": "ff9bd16e63784e04f508dadb21f95febff1a86dfcdc8f674367f7b87ad5a506e"
+    "sha256": "9191dbd7b307b6785b5455d9e55579c340a2eb36811a307a52209b1212a25a83"
   },
   "veredicto": "conforme",
   "h_prev": null

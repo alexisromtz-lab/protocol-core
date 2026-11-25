@@ -5,3 +5,4 @@ reubicado acta-dos.md -> actas/acta-dos.md (ruta vaciada)
 diverge acta-tres.md (bytes alterados)
 reubicado pieza-a.md -> pieza-b.md (ruta ocupada)
 reubicado pieza-b.md -> pieza-a.md (ruta ocupada)
+coste | 6 declaradas | 6 barridas | 6 hasheadas

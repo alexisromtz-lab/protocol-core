@@ -62,6 +62,7 @@ from protocol.ubicacion import (  # noqa: E402
     Manifiesto,
     VeredictoDeUbicacion,
     adjudicar,
+    adjudicar_por_rutas,
     indice_por_contenido,
     leer_manifiesto,
     leer_manifiesto_hash,
@@ -884,6 +885,174 @@ class TestRcDelActo(_unittest.TestCase):
         self.assertEqual(2, corrida.returncode)
         self.assertIn("dialecto no admitido", salida)
         _medicion("P-42 RC | dialecto ajeno", corrida.returncode)
+
+
+class TestViaRapida(_unittest.TestCase):
+    """P-43 · `intacta` se decide con las rutas declaradas, y sin universo.
+
+    El barrido cobra el precio del caso raro en todos los casos: sobre el Sello A
+    de platino-labs son 87 813 caminos para adjudicar 14 filas, de las que 10 se
+    sostienen en su sitio. La vía rápida mide lo declarado y devuelve `None` —no
+    un veredicto— cuando le falta el universo para nombrar un destino. Lo que no
+    puede es inventar un `DIVERGE` porque no lo miró.
+    """
+
+    def setUp(self) -> None:
+        self.raiz = _tempfile.mkdtemp()
+        self.addCleanup(_shutil.rmtree, self.raiz, True)
+        self.filas = self._sembrar(("a.md", b"uno\n"), ("b.md", b"dos\n"))
+
+    def _sembrar(self, *archivos):
+        filas = []
+        for nombre, datos in archivos:
+            completa = _os.path.join(self.raiz, *nombre.split("/"))
+            _os.makedirs(_os.path.dirname(completa), exist_ok=True)
+            with open(completa, "wb") as flujo:
+                flujo.write(datos)
+            filas.append(_fila(nombre, _sha256(datos)))
+        return tuple(filas)
+
+    def _correr(self, filas=None):
+        return adjudicar_por_rutas(self.filas if filas is None else filas, self.raiz)
+
+    def test_p43_intacta_publica_lo_mismo_que_el_barrido(self) -> None:
+        directa = self._correr()
+        self.assertIsNotNone(directa)
+        adjudicacion, indice = directa
+        barrida = adjudicar(self.filas, indice_por_contenido(self.raiz, ("a.md", "b.md")))
+        _medicion("P-43 via rapida", (adjudicacion.resumen(), indice.leidas))
+
+        self.assertIs(VeredictoDeUbicacion.INTACTA, adjudicacion.veredicto)
+        # El recibo no se puede distinguir del barrido: mismos estados, mismos
+        # testigos, mismas fibras. Si se distinguiera, el régimen barato sería
+        # otro acto y no una continuación del mismo.
+        self.assertEqual(barrida.veredicto, adjudicacion.veredicto)
+        self.assertEqual(barrida.testigos(), adjudicacion.testigos())
+        self.assertEqual(barrida.fibras(), adjudicacion.fibras())
+        self.assertEqual(barrida.resumen(), adjudicacion.resumen())
+        self.assertEqual(2, indice.leidas)
+        self.assertEqual((), indice.fuera_del_universo)
+
+    def test_p43_ruta_ausente_no_es_divergente_es_senal_de_barrer(self) -> None:
+        """Sin universo, `diverge` sería una acusación que el índice no midió."""
+
+        _os.remove(_os.path.join(self.raiz, "a.md"))
+
+        self.assertIsNone(self._correr())
+
+    def test_p43_mudanza_y_canje_tampoco_se_deciden_aqui(self) -> None:
+        _os.makedirs(_os.path.join(self.raiz, "sub"))
+        _os.rename(_os.path.join(self.raiz, "a.md"), _os.path.join(self.raiz, "sub", "a.md"))
+        self.assertIsNone(self._correr(), "reubicada exige universo")
+
+        with open(_os.path.join(self.raiz, "sub", "a.md"), "wb") as flujo:
+            flujo.write(b"dos\n")
+        with open(_os.path.join(self.raiz, "b.md"), "wb") as flujo:
+            flujo.write(b"uno\n")
+        self.assertIsNone(self._correr(), "intercambiada exige universo")
+
+    def test_p43_la_fibra_declarada_se_mide_entera(self) -> None:
+        """`k >= 2` no cambia el régimen: o miden las k rutas, o hay que barrer."""
+
+        datos = b"tres\n"
+        filas = self._sembrar(("g1.md", datos), ("g2.md", datos))
+        directa = self._correr(filas)
+        self.assertIsNotNone(directa)
+        adjudicacion, _indice = directa
+        self.assertIs(VeredictoDeUbicacion.INTACTA, adjudicacion.veredicto)
+        self.assertEqual(1, len(adjudicacion.fibras()))
+        self.assertIn("2 declaradas | 2 conformes", adjudicacion.fibras()[0])
+
+        _os.remove(_os.path.join(self.raiz, "g2.md"))
+        self.assertIsNone(self._correr(filas), "una fibra que pierde un miembro no es intacta")
+
+    def test_p43_sin_filas_y_con_fila_opaca_no_hay_veredicto(self) -> None:
+        self.assertIsNone(self._correr(()), "sin filas no es intacta, es no medida")
+        opaca = EntradaDeclarada(ruta="<expediente>.md", h=_h(_A), motivo="ruta redactada")
+        self.assertIsNone(self._correr((opaca,)))
+
+    def test_p43_un_enlace_no_abre_la_puerta_de_la_raiz(self) -> None:
+        fuera = _tempfile.mkdtemp()
+        self.addCleanup(_shutil.rmtree, fuera, True)
+        with open(_os.path.join(fuera, "x.md"), "wb") as flujo:
+            flujo.write(b"fuera\n")
+        enlace = _os.path.join(self.raiz, "fuera")
+        _os.symlink(fuera, enlace)
+        filas = self.filas + (_fila("fuera/x.md", _sha256(b"fuera\n")),)
+
+        # El predicado del confinamiento y su efecto: la fila no se lee y el
+        # acto no devuelve veredicto con una ruta que sale de la raíz.
+        self.assertFalse(
+            _ubicacion._resuelve_dentro(_os.path.realpath(self.raiz), _os.path.join(enlace, "x.md"))
+        )
+        self.assertTrue(
+            _ubicacion._resuelve_dentro(_os.path.realpath(self.raiz), _os.path.join(self.raiz, "a.md"))
+        )
+        self.assertIsNone(self._correr(filas))
+
+
+class TestRegimenDelRecibo(_unittest.TestCase):
+    """P-44 · el recibo declara el régimen y el coste, y el coste son contadores.
+
+    Una afirmación de coste en prosa no se puede refutar. `coste | 1 declaradas
+    | 0 barridas | 1 hasheadas` sí: dice que el acto leyó lo declarado y nada
+    más. Cuando barre, lo dice también. La duración va al stream de medición y
+    nunca al recibo, porque un cronómetro no reproduce y el recibo tiene que
+    reproducir bit a bit.
+    """
+
+    def setUp(self) -> None:
+        self.raiz = _tempfile.mkdtemp()
+        self.addCleanup(_shutil.rmtree, self.raiz, True)
+        self.manifiesto = _os.path.join(self.raiz, "SHA256SUMS")
+        with open(_os.path.join(self.raiz, "a.md"), "wb") as flujo:
+            flujo.write(b"uno\n")
+        with open(self.manifiesto, "w", encoding="utf-8") as flujo:
+            flujo.write("%s  a.md\n" % _sha256(b"uno\n"))
+
+    def _correr(self):
+        return _subprocess.run(
+            [
+                _sys.executable,
+                "-B",
+                _os.path.join(_RAIZ, "examples", "verificar_sello.py"),
+                "--manifiesto",
+                self.manifiesto,
+                "--raiz",
+                self.raiz,
+                "--universo",
+                "disco",
+            ],
+            cwd=_RAIZ,
+            stdout=_subprocess.PIPE,
+            stderr=_subprocess.STDOUT,
+            check=False,
+        )
+
+    def test_p44_intacta_no_barre_y_lo_declara(self) -> None:
+        corrida = self._correr()
+        salida = corrida.stdout.decode("utf-8", "replace")
+        _medicion("P-44 regimen | intacta", salida.splitlines()[0])
+
+        self.assertEqual(0, corrida.returncode, salida)
+        self.assertIn(
+            "universo | 1 rutas | rutas declaradas (sin barrido) | 0 fuera del universo", salida
+        )
+        self.assertIn("coste | 1 declaradas | 0 barridas | 1 hasheadas", salida)
+        self.assertIn("reloj de duracion ms", salida)
+
+    def test_p44_reubicada_barre_y_lo_declara(self) -> None:
+        _os.makedirs(_os.path.join(self.raiz, "sub"))
+        _os.rename(_os.path.join(self.raiz, "a.md"), _os.path.join(self.raiz, "sub", "a.md"))
+
+        corrida = self._correr()
+        salida = corrida.stdout.decode("utf-8", "replace")
+        _medicion("P-44 regimen | reubicada", salida.splitlines()[0])
+
+        self.assertEqual(0, corrida.returncode, salida)
+        self.assertNotIn("(sin barrido)", salida)
+        self.assertRegex(salida, r"coste \| 1 declaradas \| [1-9][0-9]* barridas \| ")
+        self.assertIn("1 reubicado", salida)
 
 
 if __name__ == "__main__":

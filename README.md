@@ -269,8 +269,10 @@ Dos reglas que costaron una medición cada una:
 2. **El veredicto de la página se deriva, no se escribe.** Una página que declare
    `conforme` mientras su propia salida dice `divergente` es exactamente el falso
    verde que el acto existe para impedir. El caso real, medido el 2026-11-24
-   sobre `SHA256SUMS_SELLO_A` con `--universo disco` (83 654 rutas, 36 omitidas):
-   `10 conforme / 4 reubicado / 0 divergente / 0 opaco -> reubicada`.
+   sobre `SHA256SUMS_SELLO_A` con `--universo disco` (83 654 rutas, 36 omitidas;
+   más tarde ese mismo día 87 813 — el universo creció con tres `.worktrees/`
+   nuevos, y por eso la cifra viaja con su hora): `10 conforme / 4 reubicado /
+   0 divergente / 0 opaco -> reubicada`.
 
 3. **El dialecto del manifiesto es una entrada, no un detalle de lectura.** Un
    manifiesto sellado es una gramática: si el recibo no declara cuál se leyó, dos
@@ -299,6 +301,33 @@ encontró nada» es el falso verde en la dirección peligrosa. RC 2 queda para
 entrada inválida. Un verificador que sale 0 con el sello roto no es un
 instrumento: es el defecto que el instrumento existe para nombrar. Falsador:
 P-41, dos casos por `subprocess` sobre un sujeto temporal.
+
+**El universo es una continuación, no un peaje.** Si las rutas declaradas se
+sostienen, el acto no barre: `INTACTA` vive en la σ-álgebra que generan esas
+rutas y el barrido sólo añadiría coste. Medido el 2026-11-24 sobre el Sello A de
+`platino-labs` —14 filas, 87 813 caminos— `real 343,61 s` con `57,71 s` de CPU:
+cuatro quintos del reloj son espera de I/O para adjudicar 14 filas, de las que 10
+se sostienen en su sitio. Con las 14 intactas el mismo acto se decide en
+milisegundos. El recibo declara en cuál de los dos regímenes decidió y lo que
+costó en contadores, no en segundos:
+
+```
+universo | 14 rutas | rutas declaradas (sin barrido) | 0 fuera del universo
+coste | 14 declaradas | 0 barridas | 14 hasheadas
+```
+
+Un cronómetro no reproduce y la página tiene que reproducir bit a bit: la
+duración viaja en el stream de medición (`MEDICION | reloj de duracion ms`).
+La vía rápida **no adjudica nada más**: devuelve `None` —no un veredicto— en
+cuanto una fila deja de sostenerse, porque sin universo no hay dónde mirar un
+`REUBICADO` ni contra qué probar un `DIVERGE`. Un manifiesto vacío tampoco es
+`INTACTA`: `∀ p ∈ ∅` es verdadero y no certifica nada. Publica `UBICACION.md`
+§3.0.1. Falsadores: P-43, seis casos.
+
+**La ley bipartita `k_decl × k_obs`** cierra el cuadro sin casos especiales: `2×2`
+en las mismas rutas ⇒ `INTACTA` (jq 1.7.1); `1×14` en otras ⇒ `REUBICADA` con las
+14 publicadas (Sello A, 13 `.worktrees/` + la raíz); `1×1` cruzada ⇒
+`INTERCAMBIADA`; `1×0` ⇒ `DIVERGENTE`. Publica `UBICACION.md` §3.0.
 
 ## Sellos de fe pública
 
