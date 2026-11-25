@@ -1,4 +1,4 @@
-# GUIONES_EN — seven pieces, written before anything is filmed
+# GUIONES_EN — eight pieces, written before anything is filmed
 
 <!-- HUELLA-GUIONES-EN-20261125 -->
 
@@ -12,7 +12,7 @@ It exists for one reason: the closing piece (G5) ends with `git clone` on camera
 
 ## 0 · The script contract — six rules
 
-1. **No figure on screen without its command.** True for `206 routes` and for `RC 1`. The table in [§10](#10--figure-table) is the source; the script cites it, it does not remember it.
+1. **No figure on screen without its command.** True for `206 routes` and for `RC 1`. The table in [§11](#11--figure-table) is the source; the script cites it, it does not remember it.
 2. **The script is not transcribed, it is convoked.** The lines that go on screen are printed by `examples/ensayo_escalera.py`, not typed by an editor.
 3. **The script is rehearsed before it is filmed.** `python3 -B examples/ensayo_escalera.py` ⇒ `ENSAYO | 7/7 | … | RC 0`. That RC is the falsifier: if the act changes, the rehearsal shouts before the camera does.
 4. **Animation never runs ahead.** A line appears whole — as the act printed it — and then fades in. Never character by character: typing suggests a process the act did not have.
@@ -54,7 +54,51 @@ Three things this agenda measures that an exporter's `grep` cannot:
 - **`pi` is applied before the page exists.** A route with a byte outside `A-Za-z0-9._-` is not silently normalised: `ENTRADA INVALIDA | … | componente no admisible como slug`, RC 2. A diacritic dropped in silence is a row that disappears.
 - **Two clients with the same `pi` are one client.** `Ávila-cita-09-00-sillon1` and `AVILA-CITA-09-00-SILLON1` project onto the same key and the act **refuses to seal**: `CONTRATO | colapsa-el-caso: … proyectan a la misma clave` · `-> no se emite: una clave que colapsa se resuelve, no se sella` · RC 1. Guessing which one is right would be inventing the owner's answer.
 
-**What this measurement is not:** we wrote the manifest. It proves the algebra works outside a software tree; it does **not** prove that a manifest signed by a client behaves the same way. That remains open (see [`GUIONES.md` §12](GUIONES.md)).
+**What this measurement is not:** we wrote the manifest. It proves the algebra works outside a software tree; it does **not** prove that a manifest signed by a client behaves the same way. That remains open (see [`GUIONES.md` §13](GUIONES.md)).
+
+---
+
+### 1.6 · The chain — two receipts composed
+
+Ring 4 does not measure one hop: it measures the **composition** of two, `R_AB ∘ R_BC`, and the object it produces has to serve an auditor who never saw B. Over the same agenda as §1.5, with B re-reading the book and C receiving B's package:
+
+```
+cadena | A -325c7ca8fb07-> B -325c7ca8fb07-> C
+tramos | 2 | peor | reubicada
+ausencia vigente | avila-cita-09-30-sillon1.tsv | "avila-cita-09-00-sillon1.tsv" < avila-cita-09-30-sillon1.tsv < "montes-cita-11-15-sillon3.tsv"
+-> reubicada
+```
+
+And the same pair of hops with the frontier broken —B signed one page and C read another—:
+
+```
+cadena | A -325c7ca8fb07-> B -325c7ca8fb07-> C
+tramos | 2 | peor | frontera_rota
+frontera | rota | el tramo anterior dejo 325c7ca8fb07 y el siguiente leyo 196b31a91400
+ausencia sin transito | avila-cita-09-30-sillon1.tsv | probada contra la pagina final y la cadena no sostiene
+-> frontera_rota
+```
+
+The third object is the one that makes the chain auditable from outside. [`examples/verificar_recibo_externo.py`](examples/verificar_recibo_externo.py) receives **only** the manifest and the receipt's JSON —it does not import `protocol`, it never sees the generator— and recomputes everything:
+
+```
+tramo | A->B | intacta | 7 filas | 325c7ca8fb07
+testigo | avila-cita-09-30-sillon1.tsv | ausente | avila-cita-09-00-sillon1.tsv < consulta < montes-cita-11-15-sillon3.tsv
+tramo | B->C | reubicada | 7 filas | 325c7ca8fb07
+veredicto | reubicada | recalculado sobre 2 tramos | sostiene si
+manifiesto | 7 filas | 325c7ca8fb07 | archivo ya canonico
+limite | el verificador comprueba que las paginas encadenadas son las mismas; no que B hiciera su trabajo
+-> cierra
+```
+
+Four things this chain measures that two loose receipts cannot say:
+
+- **The order is not invented twice.** The composed verdict is the **worst** of the hops, and "worst" uses the order [`UBICACION.md` §4](UBICACION.md) already published: the same one that decides the RC of a single act. With two orders, the same chain would yield two certificates depending on who read it.
+- **The neutral is absorbed.** `R_AB ∘ Id_B = R_AB` with the same verdict, the same chain and the same witnesses: an identity hop that survived would grow the trace with hops that never happened. And a **sick** identity —`B -> B` in `no_medida`— is not absorbed: a neutral that certifies nothing is a hole shaped like a neutral.
+- **The witness has three states, not two.** `ausencia vigente` (the page that proves it is the one arriving **and** the chain holds), `ausencia historica` (proven against another page: the witness aged) and `ausencia sin transito` (the witness did not age; what is missing is the path). The third blocks the shortcut: with a broken frontier, C can read a page whose digest matches A's, the witness fits by digest, and the chain still does not join the ends.
+- **`FRONTERA_ROTA` ranks above `divergente`.** A `divergente` hop says something changed; a broken frontier says the two hops are not talking about the same object, and then there is no chain to compose.
+
+**What this measurement is not:** it certifies **byte continuity across hops**, not that B applied the agreed rule. An integrity receipt read as a correctness receipt is the signed false green. And the chain does not get cheaper by being composed: verifying a hop still costs O(page).
 
 ---
 
@@ -152,7 +196,7 @@ Three things this agenda measures that an exporter's `grep` cannot:
 | 21,0–27,0 | `caso \| colapsa-el-caso` + `caso-choque \| jq-linux-amd64 \| …` + `-> presente` `RC 1` | «Case-blind volume, uppercase name: still `presente`.» |
 | 27,0–30,0 | `ausente` · `presente` · `no_medida` (all cyan) | «Absence proved. Presence declared. The rest said.» |
 
-**Figures:** §10 #11, #12, #13.
+**Figures:** §11 #11, #12, #13.
 **Falsifier:** `python3 -B -m unittest tests.test_ausencia` (27 tests) and the receipts in [`GUIONES.md` §1.4](GUIONES.md).
 
 ---
@@ -170,19 +214,38 @@ Three things this agenda measures that an exporter's `grep` cannot:
 | 27,0–30,0 | `ausente` · `presente` · `no_medida` (all three in cyan) | "Absence proven. Presence declared. The rest, unmeasured." |
 
 **Animation:** the same as G3 and G6 — the series has one visual ending and does not invent new grammar.
-**Figures:** §10 #14, #15.
-**Falsifier:** `python3 -B -m unittest tests.test_negocio` (9 tests) and the receipts in [`GUIONES.md` §1.5](GUIONES.md).
+**Figures:** §11 #14, #15.
+**Falsifier:** `python3 -B -m unittest tests.test_negocio` (13 tests) and the receipts in [`GUIONES.md` §1.5](GUIONES.md).
 **Permanent note, lower third in grey, while the 21,0–27,0 row is up:** `our own subject, not a client's · no client has signed this manifest`.
 
 ---
 
-## 9 · G5 · "Verify it without believing me" — 45 s · closing
+## 9 · G8 · "The chain that does not break" — 30 s · composition piece
+
+**Thesis:** when the package passes through hands that are not the owner's, two loose receipts are not enough: it takes a **composed receipt** that names both what travelled and the point where the chain stopped talking about the same object. This is the piece for anyone whose data is already spread across an exporter, a worker and an auditor.
+
+| t | screen | voice |
+|---|---|---|
+| 0,0–5,0 | `cadena \| A -325c7ca8fb07-> B -325c7ca8fb07-> C` (cyan) | "Two hops. One object." |
+| 5,0–13,0 | `tramos \| 2 \| peor \| reubicada` + `ausencia vigente \| avila-cita-09-30-sillon1.tsv \| "…09-00…" < … < "montes…"` + `-> reubicada` (amber) | "The appointment is still absent three nodes later. The witness travels with the chain." |
+| 13,0–21,0 | `frontera \| rota \| el tramo anterior dejo 325c7ca8fb07 y el siguiente leyo 196b31a91400` + `-> frontera_rota` (amber) | "The middle node swapped the book. The chain does not close, and without a chain there is no receipt." |
+| 21,0–27,0 | `ausencia sin transito \| …` + `veredicto \| reubicada \| recalculado sobre 2 tramos \| sostiene si` + `limite \| … no que B hiciera su trabajo` (grey) | "Neither current nor stale: the witness is the same and the path is not." |
+| 27,0–30,0 | `reubicada` · `frontera_rota` · `no_medida` (all three in cyan) | "What travelled. What broke." |
+
+**Animation:** the one from G3, G6 and G7 —three words at the close, same movement, same opacity—; the new move is the joint: the `frontera` line enters **between** the two digests, not on top.
+**Figures:** §11 #16, #17.
+**Falsifier:** `python3 -B -m unittest tests.test_composicion` (22 tests) and the receipts in [`GUIONES.md` §1.6](GUIONES.md).
+**Permanent note, lower third in grey, while the 13,0–21,0 row is up:** `byte continuity across hops · not that the middle node did its job`.
+
+---
+
+## 10 · G5 · "Verify it without believing me" — 45 s · closing
 
 **Thesis:** the whole product fits in one line: *I am not asking you to believe me, I am giving you the act.* The piece shows no conclusions — it shows the commands and their output, and leaves the keyboard to the viewer.
 
 | t | screen | voice |
 |---|---|---|
-| 0,0–5,0 | `$ git clone …` + `Ran 176 tests` + `OK` | «A public clone. The whole suite.» |
+| 0,0–5,0 | `$ git clone …` + `Ran 202 tests` + `OK` | «A public clone. The whole suite.» |
 | 5,0–13,0 | `$ python3 -B examples/verificar_sello.py --manifiesto … --check` ⇒ `REPRODUCE \| <digest>` | «Re-emitted and compared to itself.» |
 | 13,0–21,0 | four grey `real` lines: `343,61 s` · `164,11 s` · `67,11 s` · `264,35 s` | «Four runs. Sixty-seven seconds, or three hundred.» |
 | 21,0–29,0 | `coste \| 14 declaradas \| 87855 barridas \| 87819 hasheadas` (cyan) | «So the clock stays out. Counters go in.» |
@@ -190,12 +253,12 @@ Three things this agenda measures that an exporter's `grep` cannot:
 | 38,0–45,0 | `git clone` + `python3 -B examples/ensayo_escalera.py` (monospace, still) | «If this stops being true, the rehearsal fails first.» |
 
 **Animation:** the four `real` timings appear as columns of one table, not as a trend line: there is no trend, there is dispersion.
-**Figures:** §10 #1, #3, #8, #9.
-**Falsifier:** the commands themselves, on camera, from a cold clone (§11).
+**Figures:** §11 #1, #3, #8, #9.
+**Falsifier:** the commands themselves, on camera, from a cold clone (§12).
 
 ---
 
-## 10 · Figure table
+## 11 · Figure table
 
 | # | figure | command that produces it | date |
 |---|---|---|---|
@@ -207,19 +270,21 @@ Three things this agenda measures that an exporter's `grep` cannot:
 | 6 | `coste \| 2 declaradas \| 4 barridas \| 4 hasheadas` | ensayo, step 6/7 | 25-Nov-2026 |
 | 7 | `1 fuera del universo` · `opaco __pycache__/x.pyc` | ensayo, step 7/7 | 25-Nov-2026 |
 | 8 | `343,61 / 164,11 / 67,11 / 264,35 s` | `/usr/bin/time -p` over the act, four machine states | 24–25 Nov-2026 |
-| 9 | `Ran 176 tests` · `OK` | `python3 -B -m unittest discover -s tests` | 25-Nov-2026 |
+| 9 | `Ran 202 tests` · `OK` | `python3 -B -m unittest discover -s tests` | 25-Nov-2026 |
 | 10 | `redundancia \| 5942c9b0… \| 1 declaradas \| 3 observadas` | [`GUIONES.md` §1.3](GUIONES.md) (jq 1.7.1, official manifest) | 25-Nov-2026 |
 | 11 | `ausencia \| .env \| ausente` · `testigo \| ⊥ < .env < …` · `RC 0` | [`GUIONES.md` §1.4](GUIONES.md) | 25-Nov-2026 |
 | 12 | `ausencia \| AGENTS.md \| ausente` · `arbol-ausencia \| presente` · `RC 1` | [`GUIONES.md` §1.4](GUIONES.md) | 25-Nov-2026 |
 | 13 | `caso-choque \| jq-linux-amd64 \| …` · `caso \| colapsa-el-caso` · `RC 1` | [`GUIONES.md` §1.4](GUIONES.md) (jq 1.7.1) | 25-Nov-2026 |
 | 14 | `pagina \| 7 filas \| canonica` and `… \| desordenada` · **same** `digest f6d1b109…` | [`GUIONES.md` §1.5](GUIONES.md) | 25-Nov-2026 |
 | 15 | `ausencia \| avila-cita-09-30-sillon1.tsv \| ausente` · `testigo \| "…09-00…" < … < "montes…"` · `coste \| 7 declaradas \| 7 autenticadas` | [`GUIONES.md` §1.5](GUIONES.md) | 25-Nov-2026 |
+| 16 | `cadena \| A -325c7ca8fb07-> B -325c7ca8fb07-> C` · `tramos \| 2 \| peor \| reubicada` · `ausencia vigente \| …` | [`GUIONES.md` §1.6](GUIONES.md) | 25-Nov-2026 |
+| 17 | `frontera \| rota \| … 325c7ca8fb07 … 196b31a91400` · `ausencia sin transito \| …` · `veredicto \| reubicada \| recalculado sobre 2 tramos` | [`GUIONES.md` §1.6](GUIONES.md) | 25-Nov-2026 |
 
 `87819` and `87855` count different sets (swept routes / hashed routes, which include declared routes outside the universe); they are not subtracted from each other. `206` is a sum of list lengths printed by the act, not a subtraction.
 
 ---
 
-## 11 · Falsifiers of the series
+## 12 · Falsifiers of the series
 
 | piece | what falsifies it | command |
 |---|---|---|
@@ -228,6 +293,7 @@ Three things this agenda measures that an exporter's `grep` cannot:
 | G3 | `--completo` stops moving the counter, or moves the verdict | `python3 -B -m unittest tests.test_ubicacion.TestRedundancia` |
 | G6 | the same `grep` distinguishes two truths again, or `21,0–27,0` stops printing `presente` | `python3 -B -m unittest tests.test_ausencia` |
 | G7 | the absent appointment stops printing `ausente` RC 0, two orders stop sharing one digest, or a `pi` collision stops halting the act | `python3 -B -m unittest tests.test_negocio` |
+| G8 | the chain stops naming the degraded hop, the neutral stops being absorbed, or a broken frontier inherits the absence again | `python3 -B -m unittest tests.test_composicion` |
 | all | the suite falls | `python3 -B -m unittest discover -s tests` |
 
 A script whose figure is no longer produced by its command **is not fixed**: it is withdrawn and re-measured.
@@ -236,18 +302,20 @@ Both pages are checked by `tests/test_guiones.py`: same section numbering, same 
 
 ---
 
-## 12 · What must not be filmed yet
+## 13 · What must not be filmed yet
 
 1. **The duplication rate of a client tree: `NO_MEDIDA`.** What is measured is the act over foreign bytes (jq 1.7.1) with a **self-built** copy topology. The `k = 14` copies of the Sello A are worktrees of the same owner.
 2. **The cost on a client machine.** Four runs of the same act range from 67 to 344 s, all on this machine. None of them is "the time of the act".
 3. **The precedence between `suplantada` and `intercambiada`** is fixed only in a fixture (P-28).
 4. **Absence inside a client's universe.** The act proves absence over the page and checks it against a tree it walks with six declared exclusions.
-5. **The full ladder against a third-party tree** covers `intacta`/`reubicada`/`suplantada`/`divergente`, not the seven steps.
+5. **The business subject is ours.** The agenda in §1.5 is a fixture: it proves the algebra works outside a software tree, **not** that a manifest signed by a client behaves the same way.
+6. **The full ladder against a third-party tree** covers `intacta`/`reubicada`/`suplantada`/`divergente`, not the seven steps.
+7. **A client's chain.** Composition is measured between nodes of the same owner and over an agenda we wrote; no real three-party chain has gone through `componer`. And composing does not make verification cheaper: `n` hops still cost O(page) per hop someone has to re-hash.
 
-Filming any of these six as if measured is the only mistake this file cannot repair afterwards.
+Filming any of these seven as if measured is the only mistake this file cannot repair afterwards.
 
 ---
 
-## 13 · Bridge with `letras-video`
+## 14 · Bridge with `letras-video`
 
-Each piece is a `cues.ts` file: `t` in, `t` out, the exact string, and the color. The render is deterministic, so the same cues produce the same MP4 — and the MP4 can be its own subject in G5. Full bridge in [`GUIONES.md` §13](GUIONES.md).
+Each piece is a `cues.ts` file: `t` in, `t` out, the exact string, and the color. The render is deterministic, so the same cues produce the same MP4 — and the MP4 can be its own subject in G5. Full bridge in [`GUIONES.md` §14](GUIONES.md).

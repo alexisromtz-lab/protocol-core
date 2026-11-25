@@ -1,4 +1,4 @@
-# GUIONES — siete piezas escritas antes de grabar
+# GUIONES — ocho piezas escritas antes de grabar
 
 <!-- HUELLA-GUIONES-CON-RECIBO-20261124 --><!-- HUELLA-GUIONES-G6-AUSENCIA-20261125 -->
 
@@ -10,7 +10,7 @@ Este archivo no es publicidad: es **una página**, en el mismo sentido que `PRED
 
 ## 0 · El contrato del guion — seis reglas
 
-1. **Ninguna cifra en pantalla sin su comando.** Vale para `206 rutas` igual que para `RC 1`. La tabla [§10](#10--tabla-de-cifras) es la fuente; el guion la cita, no la recuerda.
+1. **Ninguna cifra en pantalla sin su comando.** Vale para `206 rutas` igual que para `RC 1`. La tabla [§11](#11--tabla-de-cifras) es la fuente; el guion la cita, no la recuerda.
 2. **El guion no se transcribe: se convoca.** Las líneas que van a pantalla las imprime `examples/ensayo_escalera.py`, no un editor de texto. Si alguien reescribe una línea «para que se lea mejor», el video y el acto ya no son el mismo objeto.
 3. **El guion se ensaya antes de grabarse.** `python3 -B examples/ensayo_escalera.py` ⇒ `ENSAYO | 7/7 | … | RC 0`. Ese RC es el falsador del guion: si el acto cambia, el ensayo lo grita **antes** que la cámara.
 4. **La animación no adelanta.** Una línea aparece completa —como la imprime el acto— y después entra. Nunca se escribe carácter a carácter: escribir sugiere un proceso que el acto no tuvo.
@@ -137,7 +137,7 @@ El digest es el que publica jq: cualquiera lo comprueba contra el release. Y el 
 
 El manifiesto original declara **26 filas** (`2129 B`); el sujeto declara **una**: esto mide una fila contra un árbol, no el release entero. Declararlo es la mitad del resultado, como el dialecto.
 
-**Lo que esta medición no es:** los bytes y el manifiesto son de jq; la **topología de copias la construí yo**. Prueba que el acto cuenta copias no declaradas de bytes ajenos; no prueba cómo se duplica el árbol de un cliente. Eso sigue en §12.
+**Lo que esta medición no es:** los bytes y el manifiesto son de jq; la **topología de copias la construí yo**. Prueba que el acto cuenta copias no declaradas de bytes ajenos; no prueba cómo se duplica el árbol de un cliente. Eso sigue en §13.
 
 El mismo acto tardó **11 ms** sobre 5 rutas y **264,35 s** sobre 87 819 (§1.2). La diferencia no es el acto: es el universo. Es la misma ley de §10 #8 vista desde el otro extremo.
 
@@ -212,7 +212,51 @@ Tres cosas que esta agenda mide y un `grep` de exportador no:
 - **`pi` se aplica antes de que la página exista.** Una ruta con un byte fuera de `A-Za-z0-9._-` no se normaliza a la callada: `ENTRADA INVALIDA | … | componente no admisible como slug`, RC 2. Un acento que se cae sin decirlo es una fila que desaparece.
 - **Dos clientes con la misma `pi` son un cliente.** `Ávila-cita-09-00-sillon1` y `AVILA-CITA-09-00-SILLON1` proyectan a la misma clave y el acto **no sella**: `CONTRATO | colapsa-el-caso: … proyectan a la misma clave 'avila-cita-09-00-sillon1'` · `-> no se emite: una clave que colapsa se resuelve, no se sella` · RC 1. Adivinar cuál de los dos es el bueno sería inventar la respuesta del dueño.
 
-**Lo que esta medición no es:** el manifiesto lo escribimos nosotros. Prueba que el álgebra funciona fuera de un árbol de software; **no** prueba que un manifiesto firmado por un cliente se comporte igual. Eso sigue en §12.
+**Lo que esta medición no es:** el manifiesto lo escribimos nosotros. Prueba que el álgebra funciona fuera de un árbol de software; **no** prueba que un manifiesto firmado por un cliente se comporte igual. Eso sigue en §13.
+
+---
+
+### 1.6 · La cadena — dos recibos que se componen
+
+El anillo 4 no mide un salto: mide la **composición** de dos, `R_AB ∘ R_BC`, y el objeto que produce tiene que servirle a un auditor que nunca vio B. Sobre la misma agenda de §1.5, con B releyendo el libro y C recibiendo el paquete de B:
+
+```
+cadena | A -325c7ca8fb07-> B -325c7ca8fb07-> C
+tramos | 2 | peor | reubicada
+ausencia vigente | avila-cita-09-30-sillon1.tsv | "avila-cita-09-00-sillon1.tsv" < avila-cita-09-30-sillon1.tsv < "montes-cita-11-15-sillon3.tsv"
+-> reubicada
+```
+
+Y el mismo par de saltos con la frontera rota —B firmó una página y C leyó otra—:
+
+```
+cadena | A -325c7ca8fb07-> B -325c7ca8fb07-> C
+tramos | 2 | peor | frontera_rota
+frontera | rota | el tramo anterior dejo 325c7ca8fb07 y el siguiente leyo 196b31a91400
+ausencia sin transito | avila-cita-09-30-sillon1.tsv | probada contra la pagina final y la cadena no sostiene
+-> frontera_rota
+```
+
+El tercer objeto es el que hace la cadena auditable desde fuera. `examples/verificar_recibo_externo.py` recibe **sólo** el manifiesto y el JSON del recibo —no importa `protocol`, no ve el generador— y recomputa todo:
+
+```
+tramo | A->B | intacta | 7 filas | 325c7ca8fb07
+testigo | avila-cita-09-30-sillon1.tsv | ausente | avila-cita-09-00-sillon1.tsv < consulta < montes-cita-11-15-sillon3.tsv
+tramo | B->C | reubicada | 7 filas | 325c7ca8fb07
+veredicto | reubicada | recalculado sobre 2 tramos | sostiene si
+manifiesto | 7 filas | 325c7ca8fb07 | archivo ya canonico
+limite | el verificador comprueba que las paginas encadenadas son las mismas; no que B hiciera su trabajo
+-> cierra
+```
+
+Cuatro cosas que esta cadena mide y que dos recibos sueltos no dicen:
+
+- **El orden no se inventa dos veces.** El veredicto compuesto es el **peor** de los tramos, y «peor» usa el orden que ya publicaba [`UBICACION.md` §4](UBICACION.md): el mismo que decide el RC de un acto simple. Con dos órdenes, la misma cadena daría dos certificados según quién la leyera.
+- **El neutro se absorbe.** `R_AB ∘ Id_B = R_AB` con el mismo veredicto, la misma cadena y los mismos testigos: un tramo de identidad que sobreviviera haría crecer la traza con saltos que no existieron. Y una identidad **enferma** —`B -> B` en `no_medida`— no se absorbe: un neutro que no certifica nada es un hueco con forma de neutro.
+- **El testigo tiene tres estados, no dos.** `ausencia vigente` (la página que lo prueba es la que llega **y** la cadena sostiene), `ausencia historica` (se probó contra otra página: envejeció el testigo) y `ausencia sin transito` (el testigo no envejeció; lo que falta es el camino). La tercera impide el atajo: con la frontera rota, C puede leer una página cuyo digest coincide con el de A y el testigo encaja por digest mientras la cadena no une los extremos.
+- **`FRONTERA_ROTA` ordena por encima de `divergente`.** Un tramo `divergente` dice que algo cambió; una frontera rota dice que los dos tramos no hablan del mismo objeto, y con eso no hay cadena que componer.
+
+**Lo que esta medición no es:** certifica **continuidad de bytes entre saltos**, no que B aplicara la regla acordada. Un recibo de integridad leído como recibo de corrección es el falso verde con firma. Y la cadena no se abarata por componerla: verificar un salto sigue costando O(página).
 
 ---
 
@@ -317,7 +361,7 @@ Tres cosas que esta agenda mide y un `grep` de exportador no:
 | 27,0–30,0 | `ausente` · `presente` · `no_medida` (los tres en cian) | «Ausencia probada. Presencia declarada. Lo no mirado, dicho.» |
 
 **Animación:** las tres palabras del cierre entran igual que en G3: la serie tiene un solo final visual y no inventa gramática nueva.
-**Cifras:** §10 #11, #12, #13.
+**Cifras:** §11 #11, #12, #13.
 **Falsador:** `python3 -B -m unittest tests.test_ausencia` (27 pruebas) y los recibos de §1.4.
 **Aviso permanente, tercio inferior en gris, mientras dura la fila 21,0–27,0:** `volumen APFS sin distinción de mayúsculas · sonda escribe 0 bytes`.
 
@@ -336,19 +380,38 @@ Tres cosas que esta agenda mide y un `grep` de exportador no:
 | 27,0–30,0 | `ausente` · `presente` · `no_medida` (los tres en cian) | «Ausencia probada. Presencia declarada. Lo demás, no mirado.» |
 
 **Animación:** la de G3 y G6 —la serie tiene un solo final visual y no inventa gramática nueva.
-**Cifras:** §10 #14, #15.
-**Falsador:** `python3 -B -m unittest tests.test_negocio` (9 pruebas) y los recibos de §1.5.
+**Cifras:** §11 #14, #15.
+**Falsador:** `python3 -B -m unittest tests.test_negocio` (13 pruebas) y los recibos de §1.5.
 **Aviso permanente, tercio inferior en gris, mientras dura la fila 21,0–27,0:** `los nombres son de un sujeto escrito por nosotros · ningún cliente ha firmado este manifiesto`.
 
 ---
 
-## 9 · G5 · «Verifícalo sin creerme» — 45 s · cierre
+## 9 · G8 · «La cadena que no se rompe» — 30 s · pieza de composición
+
+**Tesis:** cuando el paquete pasa por manos que no son las del dueño, no basta con dos recibos: hace falta un **recibo compuesto** que nombre a la vez lo que viajó y el punto donde la cadena dejó de hablar del mismo objeto. Es la pieza para quien ya tiene el dato repartido entre un exportador, un worker y un auditor.
+
+| t | pantalla | voz |
+|---|---|---|
+| 0,0–5,0 | `cadena \| A -325c7ca8fb07-> B -325c7ca8fb07-> C` (cian) | «Dos saltos. Un solo objeto.» |
+| 5,0–13,0 | `tramos \| 2 \| peor \| reubicada` + `ausencia vigente \| avila-cita-09-30-sillon1.tsv \| "…09-00…" < … < "montes…"` + `-> reubicada` (ámbar) | «La cita sigue ausente tres nodos después. El testigo viaja con la cadena.» |
+| 13,0–21,0 | `frontera \| rota \| el tramo anterior dejo 325c7ca8fb07 y el siguiente leyo 196b31a91400` + `-> frontera_rota` (ámbar) | «El nodo intermedio cambió el libro. La cadena no cierra, y sin cadena no hay recibo.» |
+| 21,0–27,0 | `ausencia sin transito \| … \| probada contra la pagina final y la cadena no sostiene` + `veredicto \| reubicada \| recalculado sobre 2 tramos \| sostiene si` + `limite \| … no que B hiciera su trabajo` (gris) | «Ni vigente ni histórica: el testigo es el mismo y el camino no.» |
+| 27,0–30,0 | `reubicada` · `frontera_rota` · `no_medida` (los tres en cian) | «Lo que viajó. Lo que se rompió.» |
+
+**Animación:** la de G3, G6 y G7 —tres palabras al cierre, mismo movimiento, misma opacidad—; lo nuevo es el empalme: la línea `frontera` entra **entre** los dos digests, no encima.
+**Cifras:** §11 #16, #17.
+**Falsador:** `python3 -B -m unittest tests.test_composicion` (22 pruebas) y los recibos de §1.6.
+**Aviso permanente, tercio inferior en gris, mientras dura la fila 13,0–21,0:** `continuidad de bytes entre saltos · no que el nodo intermedio hiciera su trabajo`.
+
+---
+
+## 10 · G5 · «Verifícalo sin creerme» — 45 s · cierre
 
 **Tesis:** el producto entero cabe en una línea: *no te pido que me creas, te doy el acto*. La pieza no enseña conclusiones: enseña los comandos y su salida, y deja el teclado al espectador.
 
 | t | pantalla | voz |
 |---|---|---|
-| 0,0–5,0 | `$ git clone …` + `Ran 176 tests` + `OK` | «Un clon público. La suite entera.» |
+| 0,0–5,0 | `$ git clone …` + `Ran 202 tests` + `OK` | «Un clon público. La suite entera.» |
 | 5,0–13,0 | `$ python3 -B examples/verificar_sello.py --manifiesto … --raiz … --check` ⇒ `REPRODUCE | <digest>` | «El sello se re-emite y se compara consigo mismo: si la página no describe este árbol, lo dice.» |
 | 13,0–21,0 | cuatro líneas `real` (gris): `343,61 s` · `164,11 s` · `67,11 s` · `264,35 s` + segunda línea `el mismo acto sobre los mismos bytes` | «Cuatro corridas del mismo acto. Sesenta y siete segundos, o trescientos cuarenta. El coste es de la máquina.» |
 | 21,0–29,0 | `coste | 14 declaradas | 87855 barridas | 87819 hasheadas` (cian) | «Por eso a la página sellada no entra el reloj. Entran los contadores: cuántas declaré, cuántas barrí, cuántas hasheé.» |
@@ -356,12 +419,12 @@ Tres cosas que esta agenda mide y un `grep` de exportador no:
 | 38,0–45,0 | `git clone` + `python3 -B examples/ensayo_escalera.py` (mono, quieto) | «Si mañana esto ya no es verdad, el ensayo falla antes de que nadie tenga que creerme.» |
 
 **Animación:** los cuatro tiempos `real` aparecen como columnas de una misma tabla, no como una gráfica de mejora: no hay tendencia, hay dispersión.
-**Cifras:** §10 #1, #3, #8, #9.
-**Falsador:** los propios comandos, en cámara, desde un clon en frío (§11).
+**Cifras:** §11 #1, #3, #8, #9.
+**Falsador:** los propios comandos, en cámara, desde un clon en frío (§12).
 
 ---
 
-## 10 · Tabla de cifras
+## 11 · Tabla de cifras
 
 | # | cifra | comando que la produce | fecha |
 |---|---|---|---|
@@ -373,13 +436,15 @@ Tres cosas que esta agenda mide y un `grep` de exportador no:
 | 6 | `coste | 2 declaradas | 4 barridas | 4 hasheadas` | ensayo, paso 6/7 | 25-Nov-2026 |
 | 7 | `1 fuera del universo` · `opaco __pycache__/x.pyc` | ensayo, paso 7/7 | 25-Nov-2026 |
 | 8 | `343,61 / 164,11 / 67,11 / 264,35 s` | `/usr/bin/time -p` sobre el acto (§1.2), cuatro veces en cuatro estados de máquina | 24–25 Nov-2026 |
-| 9 | `Ran 176 tests` · `OK` | `python3 -B -m unittest discover -s tests` | 25-Nov-2026 |
+| 9 | `Ran 202 tests` · `OK` | `python3 -B -m unittest discover -s tests` | 25-Nov-2026 |
 | 10 | `redundancia | 5942c9b0… | 1 declaradas | 3 observadas` · `coste | 1 declaradas | 5 barridas | 5 hasheadas` | §1.3 (jq 1.7.1, manifiesto oficial) | 25-Nov-2026 |
 | 11 | `ausencia | .env | ausente` · `testigo | ⊥ < .env < …` · `RC 0` | §1.4 | 25-Nov-2026 |
 | 12 | `ausencia | AGENTS.md | ausente` · `arbol-ausencia | presente` · `-> presente` · `RC 1` | §1.4 | 25-Nov-2026 |
 | 13 | `caso-choque | jq-linux-amd64 | …` · `caso | colapsa-el-caso` · `RC 1` | §1.4 (sujeto jq 1.7.1) | 25-Nov-2026 |
 | 14 | `pagina | 7 filas | canonica` y `… | desordenada` · **mismo** `digest f6d1b109…` | §1.5 | 25-Nov-2026 |
 | 15 | `ausencia | avila-cita-09-30-sillon1.tsv | ausente` · `testigo | "…09-00…" < … < "montes…"` · `coste | 7 declaradas | 7 autenticadas` | §1.5 | 25-Nov-2026 |
+| 16 | `cadena | A -325c7ca8fb07-> B -325c7ca8fb07-> C` · `tramos | 2 | peor | reubicada` · `ausencia vigente | …` | §1.6 | 25-Nov-2026 |
+| 17 | `frontera | rota | … 325c7ca8fb07 … 196b31a91400` · `ausencia sin transito | …` · `veredicto | reubicada | recalculado sobre 2 tramos` | §1.6 | 25-Nov-2026 |
 
 `87819` y `87855` cuentan cosas distintas (rutas del universo / rutas hasheadas, que incluyen las declaradas fuera de él); no se restan entre sí. `206` es suma de longitudes de listas impresas por el acto, no una resta.
 
@@ -387,7 +452,7 @@ La cifra 9 **no se copia al grabar**: la suite crece y el recibo en pantalla es 
 
 ---
 
-## 11 · Falsadores de la serie
+## 12 · Falsadores de la serie
 
 | pieza | qué la falsa | comando |
 |---|---|---|
@@ -397,15 +462,16 @@ La cifra 9 **no se copia al grabar**: la suite crece y el recibo en pantalla es 
 | G5 | el acto no reproduce su sello / el ancla no está vigente | `--check` sobre el acto · `contrafirmar_censo.py --check` |
 | G6 | el mismo `grep` vuelve a distinguir dos verdades, o el caso 21,0–27,0 deja de dar `presente` | `python3 -B -m unittest tests.test_ausencia` · §1.4 |
 | G7 | la cita ausente deja de dar `ausente` RC 0, dos órdenes dejan de dar el mismo digest, o un choque de `pi` deja de detener el acto | `python3 -B -m unittest tests.test_negocio` · §1.5 |
+| G8 | la cadena deja de nombrar el tramo degradado, el neutro deja de absorberse, o una frontera rota vuelve a heredar la ausencia | `python3 -B -m unittest tests.test_composicion` · §1.6 |
 | todas | la suite cae | `python3 -B -m unittest discover -s tests` |
 
 Un guion cuya cifra ya no la produce su comando **no se corrige**: se retira y se re-mide.
 
-**Prerrequisito de grabación, medido el 25-Nov-2026:** el veredicto de ancla necesita **historia completa**. En un `--depth 1` el acto responde `CONTRATO | git no respondió: sin ancla no hay contrafirma` —no miente y no mide—, así que el clon de G5 se hace sin `--depth 1` si la pieza va a enseñar el ancla. La suite y el ensayo sí corren en un clon superficial (`Ran 176 tests` · `OK`, `ENSAYO 7/7 RC 0`).
+**Prerrequisito de grabación, medido el 25-Nov-2026:** el veredicto de ancla necesita **historia completa**. En un `--depth 1` el acto responde `CONTRATO | git no respondió: sin ancla no hay contrafirma` —no miente y no mide—, así que el clon de G5 se hace sin `--depth 1` si la pieza va a enseñar el ancla. La suite y el ensayo sí corren en un clon superficial (`Ran 202 tests` · `OK`, `ENSAYO 7/7 RC 0`).
 
 ---
 
-## 12 · Lo que todavía no hay que grabar
+## 13 · Lo que todavía no hay que grabar
 
 Estas son las lagunas del producto, y por eso no tienen guion:
 
@@ -415,12 +481,13 @@ Estas son las lagunas del producto, y por eso no tienen guion:
 4. **La ausencia dentro del universo del cliente.** El acto prueba ausencia sobre la página y la comprueba contra un árbol que recorre con **seis exclusiones declaradas**; un manifiesto de cliente con exclusiones propias cambia el universo del testigo y sólo está medido sobre el Sello A y jq (`resuelto en` P-60 la mitad del instrumento: `git ls-files` que falla degrada a `no_medida`).
 5. **El sujeto de negocio lo escribimos nosotros.** La agenda de §1.5 es una fixture propia: prueba que el álgebra funciona fuera de un árbol de software, **no** que un manifiesto firmado por un cliente se comporte igual. La proyección `π(k)` es una frontera declarada que el cliente firma ([`AUSENCIA.md` §4.4](AUSENCIA.md)); nadie nos ha firmado una todavía.
 6. **La escalera completa contra un árbol de terceros** (un release público con `SHA256SUMS` nativo) está hecha para `intacta`/`reubicada`/`suplantada`/`divergente`, no para los siete pasos.
+7. **La cadena de un cliente.** La composición se mide entre nodos del mismo dueño y sobre una agenda escrita por nosotros; ninguna cadena real de tres manos ha pasado por `componer`. Y componer no abarata verificar: la cadena de `n` saltos sigue costando O(página) por salto que alguien tenga que rehashear.
 
-Grabar cualquiera de estos seis como si estuviera medido es el único error que este archivo no puede arreglar después.
+Grabar cualquiera de estos siete como si estuviera medido es el único error que este archivo no puede arreglar después.
 
 ---
 
-## 13 · Puente con `letras-video`
+## 14 · Puente con `letras-video`
 
 Cada guion es ya una tabla `(t0, t1, texto, voz)`. El paso a `cues.ts` es mecánico:
 

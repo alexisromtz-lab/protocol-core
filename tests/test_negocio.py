@@ -126,10 +126,19 @@ def _clases(clase: _ast.ClassDef) -> List[str]:
 class TestDenominadorNoSeCuentaAMiMismo(_unittest.TestCase):
     """P-72 · una base que hereda de `TestCase` infla la cuenta de tests."""
 
-    def _censo(self) -> Tuple[Dict[str, Set[str]], Dict[str, Set[str]], Dict[str, bool]]:
-        bases: Dict[str, Set[str]] = {}
-        metodos: Dict[str, Set[str]] = {}
-        hereda_testcase: Dict[str, bool] = {}
+    def _censo(
+        self,
+    ) -> Tuple[Dict[Tuple[str, str], Set[str]], Dict[Tuple[str, str], Set[str]], Dict[Tuple[str, str], bool]]:
+        """La clave es `(archivo, clase)`, no el nombre de la clase.
+
+        Con el nombre suelto, dos clases homonimas en archivos distintos se
+        pisaban en el diccionario y el denominador bajaba sin que faltara un
+        test: el contador que vigila la cuenta se contaba a si mismo mal.
+        """
+
+        bases: Dict[Tuple[str, str], Set[str]] = {}
+        metodos: Dict[Tuple[str, str], Set[str]] = {}
+        hereda_testcase: Dict[Tuple[str, str], bool] = {}
         for nombre in sorted(_os.listdir(_TESTS)):
             if not nombre.endswith(".py"):
                 continue
@@ -137,25 +146,31 @@ class TestDenominadorNoSeCuentaAMiMismo(_unittest.TestCase):
             for nodo in _ast.walk(_ast.parse(fuente, nombre)):
                 if not isinstance(nodo, _ast.ClassDef):
                     continue
+                clave = (nombre, nodo.name)
                 propias = _clases(nodo)
-                bases[nodo.name] = set(propias)
-                metodos[nodo.name] = {
+                bases[clave] = set(propias)
+                metodos[clave] = {
                     n.name
                     for n in nodo.body
                     if isinstance(n, _ast.FunctionDef) and n.name.startswith("test")
                 }
-                hereda_testcase[nodo.name] = any(b.endswith("TestCase") for b in propias)
+                hereda_testcase[clave] = any(b.endswith("TestCase") for b in propias)
 
-        def resuelve(nombre: str, visto: Set[str]) -> bool:
-            if hereda_testcase.get(nombre):
+        def resuelve(archivo: str, nombre: str, visto: Set[Tuple[str, str]]) -> bool:
+            clave = (archivo, nombre)
+            if hereda_testcase.get(clave):
                 return True
-            if nombre in visto:
+            if clave in visto:
                 return False
-            visto.add(nombre)
-            return any(resuelve(b, visto) for b in bases.get(nombre, set()) if b in bases)
+            visto.add(clave)
+            return any(
+                resuelve(archivo, base, visto)
+                for base in bases.get(clave, set())
+                if (archivo, base) in bases
+            )
 
-        for nombre in bases:
-            hereda_testcase[nombre] = resuelve(nombre, set())
+        for archivo, nombre in list(bases):
+            hereda_testcase[(archivo, nombre)] = resuelve(archivo, nombre, set())
         return bases, metodos, hereda_testcase
 
     def test_p72_una_base_que_hereda_no_define_tests(self) -> None:
@@ -164,8 +179,17 @@ class TestDenominadorNoSeCuentaAMiMismo(_unittest.TestCase):
         # publicada deja de ser el numero de preguntas. Un mixin sin `TestCase`
         # no tiene el problema, y es la forma sancionada de parametrizar.
         bases, metodos, hereda = self._censo()
-        usadas = {b for propias in bases.values() for b in propias if b in bases}
-        culpables = sorted((n, sorted(metodos[n])) for n in usadas if hereda[n] and metodos[n])
+        usadas = {
+            (archivo, base)
+            for (archivo, _), propias in bases.items()
+            for base in propias
+            if (archivo, base) in bases
+        }
+        culpables = sorted(
+            ("%s::%s" % clave, sorted(metodos[clave]))
+            for clave in usadas
+            if hereda[clave] and metodos[clave]
+        )
         self.assertEqual([], culpables, "una base que hereda de TestCase no puede traer tests")
 
     def test_p72b_el_conteo_descubierto_es_la_suma_de_los_metodos(self) -> None:
@@ -173,19 +197,27 @@ class TestDenominadorNoSeCuentaAMiMismo(_unittest.TestCase):
         # hoja **mas** los que hereda de un mixin local. Compararlo con la cifra
         # publicada detecta el dia en que un mixin deje de ser mixin.
         bases, metodos, hereda = self._censo()
-        usadas = {b for propias in bases.values() for b in propias if b in bases}
+        usadas = {
+            (archivo, base)
+            for (archivo, _), propias in bases.items()
+            for base in propias
+            if (archivo, base) in bases
+        }
 
-        def efectivos(nombre: str, visto: Set[str]) -> Set[str]:
-            if nombre in visto:
+        def efectivos(archivo: str, nombre: str, visto: Set[Tuple[str, str]]) -> Set[str]:
+            clave = (archivo, nombre)
+            if clave in visto:
                 return set()
-            visto.add(nombre)
-            total = set(metodos.get(nombre, set()))
-            for base in bases.get(nombre, set()):
-                total |= efectivos(base, visto)
+            visto.add(clave)
+            total = set(metodos.get(clave, set()))
+            for base in bases.get(clave, set()):
+                total |= efectivos(archivo, base, visto)
             return total
 
         suma = sum(
-            len(efectivos(n, set())) for n in bases if hereda[n] and n not in usadas
+            len(efectivos(archivo, nombre, set()))
+            for (archivo, nombre) in bases
+            if hereda[(archivo, nombre)] and (archivo, nombre) not in usadas
         )
         suite = _unittest.defaultTestLoader.discover(_TESTS)
         self.assertEqual(suma, suite.countTestCases())
@@ -327,3 +359,84 @@ class TestColacionYMayusculas(_unittest.TestCase):
         dos = _pagina(["B.tsv", "a.tsv", "b.tsv"])
         self.assertEqual(3, len(dos.filas))
         self.assertEqual(["B.tsv", "a.tsv", "b.tsv"], [f.ruta for f in dos.filas])
+
+
+#: El censo de P-83 se genera, no se sortea: dos corridas miden lo mismo.
+_NOMBRES = (
+    "Ávila", "Núñez", "Zúñiga", "Güemes", "Íñigo",
+    "Peña", "Muñoz", "Berríos", "Ocaña", "Cuevas",
+    "Güiza", "Iñárritu", "Zamora", "Núñez", "Álvarez",
+    "Herrera", "Ibáñez", "Ortuño", "Vílchez", "Yáñez",
+    "Cañas", "Dueñas", "Elorza", "Fariñas", "Begoña",
+)
+_NOMBRE_DE_PILA = ("Ana", "Jesús", "Lucía", "Íñigo", "Ramón")
+_RECURSOS = ("sillon1", "sillon2", "sillon3", "sillon4")
+_HORAS = ("09-00", "11-00", "13-00", "15-00", "17-00")
+
+
+def _censo_de_claves() -> Tuple[List[Tuple[str, str, str, str]], ...]:
+    """10 000 citas: 25 apellidos x 20 fechas x 5 horas x 4 recursos."""
+
+    claves = []
+    for indice, apellido in enumerate(_NOMBRES):
+        nombre = "%s %s" % (_NOMBRE_DE_PILA[indice % len(_NOMBRE_DE_PILA)], apellido)
+        for dia in range(20):
+            fecha = "2026-12-%02d" % (dia + 1)
+            for hora in _HORAS:
+                for recurso in _RECURSOS:
+                    claves.append((nombre, fecha, hora, recurso))
+    return tuple(claves), claves  # type: ignore[return-value]
+
+
+class TestCensoDeClavesEnEspanol(_unittest.TestCase):
+    """P-83 · cuantas claves colapsan segun lo que la clave canonica incluya."""
+
+    def test_p83_el_censo_es_determinista_y_su_orden_no_es_el_objeto(self) -> None:
+        claves, _ = _censo_de_claves()
+        self.assertEqual(10000, len(claves))
+        self.assertEqual(len(claves), len(set(claves)))
+
+    def test_p83b_la_clave_corta_colisiona_y_la_completa_no(self) -> None:
+        """Medido: el recurso y la hora no son adorno de la clave, son la clave.
+
+        Si la proyeccion se queda en `(nombre, fecha)`, 9 500 citas de este censo
+        colapsan en 500 claves: cada una se fusiona con las otras 19 que comparten
+        cliente y dia, y el motor ya no puede probar la ausencia de ninguna. Con
+        hora y recurso dentro de la clave, colapsan cero.
+        """
+
+        claves, _ = _censo_de_claves()
+        cortas = {
+            _NEGOCIO.proyectar("%s-%s" % (nombre, fecha)) for nombre, fecha, _, _ in claves
+        }
+        largas = {
+            _NEGOCIO.proyectar("%s-%s-%s-%s" % (nombre, fecha, hora, recurso))
+            for nombre, fecha, hora, recurso in claves
+        }
+        self.assertEqual(500, len(cortas))
+        self.assertEqual(10000, len(largas))
+        self.assertEqual(9500, len(claves) - len(cortas))
+
+    def test_p83c_el_alfabeto_espanol_no_produce_falsos_rechazos(self) -> None:
+        """Cero RC 2 por acentos: tras NFD todo cae dentro de `[a-z0-9._-]`."""
+
+        claves, _ = _censo_de_claves()
+        permitido = set("abcdefghijklmnopqrstuvwxyz0123456789._-")
+        for nombre, fecha, hora, recurso in claves:
+            proyectada = _NEGOCIO.proyectar("%s-%s-%s-%s" % (nombre, fecha, hora, recurso))
+            fuera = set(proyectada) - permitido
+            self.assertFalse(fuera, "%r -> %r deja %r" % (nombre, proyectada, fuera))
+            canonizar(proyectada)  # no levanta: el alfabeto la admite
+
+    def test_p83d_el_mas_y_los_espacios_dobles_son_frontera_declarada(self) -> None:
+        """`+52` no es un acento: `+` no está en el alfabeto y se publica RC 2.
+
+        Y el espacio doble **sí** se pliega, porque los separadores están
+        declarados: dos exportadores que escriben `Ana  Peña` y `Ana Peña` hablan
+        del mismo cliente, y el motor no tiene que adivinarlo dos veces.
+        """
+
+        self.assertEqual("ana-pena", _NEGOCIO.proyectar("Ana  Peña"))
+        self.assertEqual("ana-pena", _NEGOCIO.proyectar("Ana Peña"))
+        with self.assertRaises(ContratoViolado):
+            canonizar(_NEGOCIO.proyectar("+52 55 1234 5678"))

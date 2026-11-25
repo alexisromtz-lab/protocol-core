@@ -1,5 +1,5 @@
 {
-  "afirmacion": "el universo protocol-core.src.protocol cuenta 8 (archivo); la declaracion vigente dice 8; la discrepancia es 0",
+  "afirmacion": "el universo protocol-core.src.protocol cuenta 9 (archivo); la declaracion vigente dice 8; la discrepancia es 1",
   "entradas": [
     {
       "ruta": "src/protocol/__init__.py",
@@ -16,6 +16,10 @@
     {
       "ruta": "src/protocol/ausencia.py",
       "sha256": "8f03796e42439f6798b02e19d137af5958c80d1dbdd8892d3cb094158aecd6f7"
+    },
+    {
+      "ruta": "src/protocol/composicion.py",
+      "sha256": "829bee8b8cff55cc82463612a3b67c37b7442fb678197a665e43c9ba1cda80bd"
     },
     {
       "ruta": "src/protocol/metrics.py",
@@ -63,8 +67,8 @@
   },
   "salida": {
     "ruta": "examples/censo-vigente.txt",
-    "sha256": "908a1cf95d19bd7b5e911b1b9a9df2a1801d851c77f518c620554ec37832cf19"
+    "sha256": "90a3e3c9d5b46cf1ad0f003b990616d76b27f1f8329b5be29900e4f94edb95bc"
   },
-  "veredicto": "conforme",
+  "veredicto": "no_conforme",
   "h_prev": null
 }

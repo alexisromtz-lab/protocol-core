@@ -6,5 +6,5 @@ ventana=no medida: el censo declara movimiento del conjunto, no duracion
 umbral=ninguno: el censo no aplica umbral
 ruta=src/protocol
 declarado=8
-observado=8
-discrepancia=0
+observado=9
+discrepancia=1

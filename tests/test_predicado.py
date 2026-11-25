@@ -105,11 +105,17 @@ from protocol.types import (  # noqa: E402
 #: Subida del 2026-11-25 a 85 líneas y 2 702 bytes: un cuarto artefacto,
 #: `tests/test_negocio.py`, paga la misma regla —cuatro líneas, no tres—. Se
 #: sube midiendo el emitido, no contando a mano.
+#: Subida del 2026-11-25 a 93 líneas y 2 982 bytes: el anillo 4 entró con
+#: **dos** artefactos, no uno —`src/protocol/composicion.py` en el bloque de
+#: código y `tests/test_composicion.py` en el de entradas—, y cada uno paga sus
+#: cuatro líneas. Ocho, no cuatro: la cota se fija con la cifra que el acto
+#: imprimió, y por eso se emite antes de escribirla. La cifra es la del
+#: **archivo**, salto de línea final incluido (2 982, no los 2 981 del texto).
 #: Orden del acto, aprendido el 2026-11-25: la cota se toca **antes** de
 #: emitir. Emitir primero deja la página describiendo un archivo que ya cambió,
 #: y `--check` lo acusa recién en el clon frío, donde ya no se puede arreglar.
-COPTA_LINEAS = 85
-COPTA_BYTES = 2702
+COPTA_LINEAS = 93
+COPTA_BYTES = 2982
 #: Cota del acto de censo. Es más ancha que la de la suite porque lleva 12
 #: referencias vivas en vez de 10; se declara aparte para que una cota no mida
 #: el acto que la escribió (§medición con unidad: cada acto, su número).
