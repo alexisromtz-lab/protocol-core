@@ -10,12 +10,20 @@
       "sha256": "07fa271f86a736acb5bb89ab1cf9fbb53e52e53f9a7188709b7be55a7c339008"
     },
     {
+      "ruta": "tests/test_ausencia.py",
+      "sha256": "5c1cb4336cde7d911510252fdbb066cca6d0fdbbd3be392f98122f3e53e6ba6a"
+    },
+    {
+      "ruta": "tests/test_guiones.py",
+      "sha256": "3cbca4baa2e53294cd662facd19ce8b6c1fbf4b1b81de7b877852235f9fd2e52"
+    },
+    {
       "ruta": "tests/test_metrics.py",
       "sha256": "626176486c07c02e0f3451725b73f2791838b5c5043022f4a4059a4f54d7da6a"
     },
     {
       "ruta": "tests/test_predicado.py",
-      "sha256": "5d3f62caff4df60bfbb1ca102381dbb8e255ad6d2873c36956ec7f056f427d88"
+      "sha256": "5cc32d9b76cfff49b2821a25981d58d6fea65b1040fc4f72a1fd1a2fe1b28325"
     },
     {
       "ruta": "tests/test_ubicacion.py",
@@ -34,6 +42,10 @@
     {
       "ruta": "src/protocol/audit.py",
       "sha256": "f6e95219ca1fb60799027bb8a4ab78f036e11124ed6531d6917454edcbd17744"
+    },
+    {
+      "ruta": "src/protocol/ausencia.py",
+      "sha256": "8f03796e42439f6798b02e19d137af5958c80d1dbdd8892d3cb094158aecd6f7"
     },
     {
       "ruta": "src/protocol/metrics.py",
@@ -62,7 +74,7 @@
   },
   "salida": {
     "ruta": "examples/veredicto-suite.txt",
-    "sha256": "4d525b5d0a3396827980722e696b8df518d48981520bf3404f89d96cb2b45763"
+    "sha256": "2161ace4fba79b2bc8dcbb5171d9af2d4b9f51e88fb2dd0410b7cd1d1cea9c57"
   },
   "veredicto": "conforme",
   "h_prev": null

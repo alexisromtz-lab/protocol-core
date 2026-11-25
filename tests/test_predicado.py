@@ -84,8 +84,26 @@ from protocol.types import (  # noqa: E402
 #: pueda nombrar el artefacto que la causa no se hace, se parte el acto. El
 #: formato cuesta 4 líneas por artefacto: un campo nuevo en cada entrada
 #: rompe esta cota, y eso es lo que la cota vigila.
-COPTA_LINEAS = 73
-COPTA_BYTES = 2300
+#:
+#: Subida del 2026-11-25 a 77 líneas y 2 431 bytes, y los artefactos que la
+#: causan se nombran: `tests/test_ausencia.py` entra en la página porque la
+#: suite lo ejecuta, y `src/protocol/ausencia.py` porque la suite lo importa.
+#: Dos artefactos, ocho líneas: el formato cuesta 4 por artefacto, no 3 — la
+#: subida anterior había declarado 3 y por eso la cota quedó corta. El orden del
+#: anillo 3 no se pagó con un campo nuevo, se pagó con las filas que le tocan.
+#:
+#: Lección del 2026-11-25 (§A2.2 aplicado al instrumento): la cota medía
+#: `_predicado_real()`, una **reconstrucción** de la página, y la reconstrucción
+#: se había separado del acto (otra `afirmacion`, otro `no_medido`): 76 líneas
+#: allí, 77 aquí. La cota pasaba midiendo una página que el acto no emite. Por
+#: eso ahora se mide el artefacto emitido y la reconstrucción sólo tiene que
+#: **coincidir en forma** con él. Una cota sobre una copia no vigila el objeto.
+#: Subida del 2026-11-25 a 81 líneas y 2 567 bytes: un tercer artefacto,
+#: `tests/test_guiones.py`, entra por la misma puerta que las otras dos — la
+#: suite lo ejecuta. Cuatro líneas más, y la cuenta cierra: tres artefactos por
+#: cuatro líneas sobre las 69 de HEAD.
+COPTA_LINEAS = 81
+COPTA_BYTES = 2600
 #: Cota del acto de censo. Es más ancha que la de la suite porque lleva 12
 #: referencias vivas en vez de 10; se declara aparte para que una cota no mida
 #: el acto que la escribió (§medición con unidad: cada acto, su número).
@@ -387,16 +405,36 @@ class TestPagina(_unittest.TestCase):
         )
 
     def test_p17_la_pagina_cabe_y_se_mide(self) -> None:
-        predicado = self._predicado_real()
-        pagina = predicado.pagina()
-        lineas = len(pagina.splitlines())
-        bytes_ = len(pagina.encode("utf-8"))
-        _medicion("P-08 página", (lineas, bytes_))
-        _medicion("P-08 referencias", (len(predicado.entradas), len(predicado.codigo)))
-        _medicion("P-08 digest de la página", predicado.digest().digest[:16])
+        # La cota se mide sobre el artefacto que el acto emitió, no sobre la
+        # reconstrucción: la reconstrucción puede separarse del acto y entonces
+        # la cota vigila una página que nadie publica.
+        ruta_pagina = _os.path.join(_RAIZ, "examples", "predicado-suite.json")
+        with open(ruta_pagina, "r", encoding="utf-8") as flujo:
+            texto = flujo.read()
+        lineas = len(texto.splitlines())
+        bytes_ = len(texto.encode("utf-8"))
+        _medicion("P-08 página emitida", (lineas, bytes_))
         self.assertLessEqual(lineas, COPTA_LINEAS)
         self.assertLessEqual(bytes_, COPTA_BYTES)
+
+        predicado = self._predicado_real()
+        pagina = predicado.pagina()
+        _medicion("P-08 referencias", (len(predicado.entradas), len(predicado.codigo)))
+        _medicion("P-08 digest de la página", predicado.digest().digest[:16])
         self.assertEqual(_json.loads(pagina), predicado.cuerpo())
+
+        # La reconstrucción describe el mismo acto: si su forma diverge del
+        # artefacto, o sobra una entrada en la página o falta en la prueba.
+        cuerpo = _json.loads(texto)
+        self.assertEqual(len(predicado.entradas), len(cuerpo["entradas"]))
+        self.assertEqual(len(predicado.codigo), len(cuerpo["codigo"]))
+        self.assertEqual(
+            [e.ruta.texto for e in predicado.entradas],
+            [e["ruta"] for e in cuerpo["entradas"]],
+        )
+        self.assertEqual(
+            [c.ruta.texto for c in predicado.codigo], [c["ruta"] for c in cuerpo["codigo"]]
+        )
 
     def test_p18_el_tipo_de_predicado_tiene_documento_y_ancla(self) -> None:
         prefijo = "https://github.com/alexisromtz-lab/protocol-core/blob/main/"

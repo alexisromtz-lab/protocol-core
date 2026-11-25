@@ -1,6 +1,6 @@
-# GUIONES — cinco piezas escritas antes de grabar
+# GUIONES — seis piezas escritas antes de grabar
 
-<!-- HUELLA-GUIONES-CON-RECIBO-20261124 -->
+<!-- HUELLA-GUIONES-CON-RECIBO-20261124 --><!-- HUELLA-GUIONES-G6-AUSENCIA-20261125 -->
 
 **Estado:** guiones cerrados · **frames renderizados: 0** · cifras medidas el 25-Nov-2026 sobre `protocol-core` y sobre el Sello A real ([`SHA256SUMS_SELLO_A`](../platino-labs/sellos-fecha-cierta-20261009/SHA256SUMS_SELLO_A)).
 
@@ -10,7 +10,7 @@ Este archivo no es publicidad: es **una página**, en el mismo sentido que `PRED
 
 ## 0 · El contrato del guion — seis reglas
 
-1. **Ninguna cifra en pantalla sin su comando.** Vale para `206 rutas` igual que para `RC 1`. La tabla [§8](#8--tabla-de-cifras) es la fuente; el guion la cita, no la recuerda.
+1. **Ninguna cifra en pantalla sin su comando.** Vale para `206 rutas` igual que para `RC 1`. La tabla [§9](#9--tabla-de-cifras) es la fuente; el guion la cita, no la recuerda.
 2. **El guion no se transcribe: se convoca.** Las líneas que van a pantalla las imprime `examples/ensayo_escalera.py`, no un editor de texto. Si alguien reescribe una línea «para que se lea mejor», el video y el acto ya no son el mismo objeto.
 3. **El guion se ensaya antes de grabarse.** `python3 -B examples/ensayo_escalera.py` ⇒ `ENSAYO | 7/7 | … | RC 0`. Ese RC es el falsador del guion: si el acto cambia, el ensayo lo grita **antes** que la cámara.
 4. **La animación no adelanta.** Una línea aparece completa —como la imprime el acto— y después entra. Nunca se escribe carácter a carácter: escribir sugiere un proceso que el acto no tuvo.
@@ -137,9 +137,57 @@ El digest es el que publica jq: cualquiera lo comprueba contra el release. Y el 
 
 El manifiesto original declara **26 filas** (`2129 B`); el sujeto declara **una**: esto mide una fila contra un árbol, no el release entero. Declararlo es la mitad del resultado, como el dialecto.
 
-**Lo que esta medición no es:** los bytes y el manifiesto son de jq; la **topología de copias la construí yo**. Prueba que el acto cuenta copias no declaradas de bytes ajenos; no prueba cómo se duplica el árbol de un cliente. Eso sigue en §10.
+**Lo que esta medición no es:** los bytes y el manifiesto son de jq; la **topología de copias la construí yo**. Prueba que el acto cuenta copias no declaradas de bytes ajenos; no prueba cómo se duplica el árbol de un cliente. Eso sigue en §11.
 
-El mismo acto tardó **11 ms** sobre 5 rutas y **264,35 s** sobre 87 819 (§1.2). La diferencia no es el acto: es el universo. Es la misma ley de §8 #8 vista desde el otro extremo.
+El mismo acto tardó **11 ms** sobre 5 rutas y **264,35 s** sobre 87 819 (§1.2). La diferencia no es el acto: es el universo. Es la misma ley de §9 #8 vista desde el otro extremo.
+
+### 1.4 · El acto de ausencia — Sello A y jq 1.7.1
+
+G6 no se puede grabar con un `grep`. Lo que prueba ausencia es el **orden** de la página: si dos filas adyacentes dejan a la consulta en medio, la página certifica que no está sin revelar el resto del inventario. Recibos literales, sobre el Sello A real:
+
+```
+$ python3 -B examples/verificar_ausencia.py \
+    --manifiesto ../platino-labs/sellos-fecha-cierta-20261009/SHA256SUMS_SELLO_A \
+    --ausente .env --raiz ../platino-labs
+
+ausencia | .env | ausente | antes de la primera fila
+pagina | 14 filas | canonica | 0 redactadas | digest ad67ece0…
+testigo | ⊥ < .env < "ACTA_DE_CIERRE_DEL_BARRIDO_COGNITIVO_NULOS_EN_FRIO_20261009.md" | posicion 0
+verificado | si | O(1) contra la pagina autenticada
+autenticacion | si | O(n) una vez | 14 filas
+caso | colapsa-el-caso | sonda protocol-core/SPEC.md -> Protocol-core/SPEC.md es el mismo inodo
+arbol-ausencia | ausente | el universo lo indexa y no esta
+-> ausente
+RC 0
+```
+
+```
+$ … --ausente AGENTS.md --raiz ../platino-labs
+
+ausencia | AGENTS.md | ausente | entre las filas 2 y 3
+testigo | "ACTA_GATE_DE_PROTOCOL_CORE_26_PRUEBAS_RC0_20261009.md" < AGENTS.md < "ASIENTO_DE_RETIRO_EXPLICITO_DEL_FRENTE_DE_PATENTES_20261009.md" | posicion 3
+arbol-ausencia | presente | el arbol lo tiene y la pagina no lo declara
+-> presente
+RC 1
+```
+
+Los dos nombres dan `grep -c … → 0` sobre el mismo manifiesto (`probes`: `grep` RC 1 en ambos). **El mismo cero significa dos cosas distintas** y sólo el árbol dice cuál: `.env` no está en ninguna parte; `AGENTS.md` está en el árbol y el manifiesto no lo declara. Un verificador que respondiera con el `grep` habría acertado una vez y fallado la otra con la misma salida.
+
+La tercera medición es la trampa del volumen: sobre jq 1.7.1, con el nombre en mayúsculas, un `grep`/`sha256sum -c` imprimiría verde en APFS porque el sistema de archivos no distingue el caso. El acto lo detecta y lo publica:
+
+```
+$ … --manifiesto /tmp/ajeno/SHA256SUMS_OFICIAL --ausente JQ-LINUX-AMD64 --raiz /tmp/ajeno
+
+ausencia | JQ-LINUX-AMD64 | ausente | antes de la primera fila
+testigo | ⊥ < JQ-LINUX-AMD64 < "jq-linux-amd64" | posicion 0
+caso | colapsa-el-caso | sonda jq-linux-amd64 -> Jq-linux-amd64 es el mismo inodo
+caso-choque | jq-linux-amd64 | la pagina prueba JQ-LINUX-AMD64 y el volumen no distingue jq-linux-amd64
+arbol-ausencia | presente | el arbol lo tiene y la pagina no lo declara
+-> presente
+RC 1
+```
+
+**Lo que estas mediciones no son:** el Sello A y jq son sujetos reales, pero el árbol de jq lo construí yo (dos copias en `vendor/`); el caso de `.env` y `AGENTS.md` es el árbol real de `platino-labs` sin tocar un byte. Ninguna de las tres prueba cómo declara ausencias el manifiesto de un cliente: prueba que el acto **distingue los tres estados con el mismo cero delante**.
 
 ---
 
@@ -167,7 +215,7 @@ El mismo acto tardó **11 ms** sobre 5 rutas y **264,35 s** sobre 87 819 (§1.2)
 | 13,5–15,0 | `protocol-core` | — |
 
 **Animación:** las 206 rutas no se dibujan; se colapsan en un contador. Un árbol de puntos es opcional **sólo** si cada punto es una ruta de la lista (no una ilustración).
-**Cifras:** `206` ⇒ §8 #4 · `14/4/10` ⇒ §8 #3.
+**Cifras:** `206` ⇒ §9 #4 · `14/4/10` ⇒ §9 #3.
 **Falsador:** el comando de §1.2 tiene que seguir dando `10 conforme / 4 reubicado`. Si mañana el Sello A se mueve, este guion no se re-graba: se re-mide.
 
 ---
@@ -185,7 +233,7 @@ El mismo acto tardó **11 ms** sobre 5 rutas y **264,35 s** sobre 87 819 (§1.2)
 | 22,0–28,0 | bloque 4/7 completo | «Un byte de más.» |
 | 28,0–33,0 | bloque 5/7 completo | «Sin manifiesto no hay adjudicación. Código dos, no uno.» |
 | 33,0–39,5 | bloque 6/7 completo | «Copias que nadie declaró: el veredicto no cambia, el dato aparece.» |
-| 39,5–43,0 | bloque 7/7 completo | «Existe en disco y el universo no lo indexa. No es un cero: es `no_medida`.» |
+| 39,5–43,0 | bloque 7/7 completo | «En disco, fuera del universo: `no_medida`.» |
 | 43,0–45,0 | `ENSAYO | 7/7 | RC 0` | «Siete de siete.» |
 
 **Animación:** cada bloque entra como entra en la consola —cabecera, comando, líneas, RC— y se queda 1,5 s antes del siguiente. El bloque anterior **no se borra**: se desplaza. La escalera tiene que verse acumulada.
@@ -208,7 +256,7 @@ El mismo acto tardó **11 ms** sobre 5 rutas y **264,35 s** sobre 87 819 (§1.2)
 | 23,0–30,0 | `opaco` · `no_medida` · `redundancia` (los tres en cian) | «Un instrumento que declara su ceguera es el único que un tercero puede auditar.» |
 
 **Animación:** las tres palabras finales entran una a una. Nada más se mueve en 7 s: es el cierre intelectual de la serie.
-**Cifras:** §8 #2, #5, #6, #7.
+**Cifras:** §9 #2, #5, #6, #7.
 **Falsador:** P-47 (`tests/test_ubicacion.py`) y P-44/P-45 —sin `--completo`, la línea `redundancia` **no puede** aparecer; con él, el veredicto no se mueve.
 
 ---
@@ -225,19 +273,38 @@ El mismo acto tardó **11 ms** sobre 5 rutas y **264,35 s** sobre 87 819 (§1.2)
 | 19,0–25,0 | `14 digests | 206 rutas` (ámbar) + segunda línea `esto sí es mi árbol` | «En el mío: doscientas seis rutas. Ese árbol es mío, no el suyo.» |
 
 **Animación:** el contador sube de 3 a 206 una sola vez, monotónico, sin easing. La segunda línea en gris entra 800 ms después que su principal.
-**Cifras:** §8 #4, #10.
+**Cifras:** §9 #4, #10.
 **Falsador:** §1.3 (la línea `1 declaradas | 3 observadas` sobre jq 1.7.1) y el agregado §1.2.
-**Aviso permanente, tercio inferior en gris, de 6,0 a 19,0:** `bytes y manifiesto: jq 1.7.1 · las copias: mías`. La voz no lo dice (no cabe) y la pieza no lo esconde. Ver §10.
+**Aviso permanente, tercio inferior en gris, de 6,0 a 19,0:** `bytes y manifiesto: jq 1.7.1 · las copias: mías`. La voz no lo dice (no cabe) y la pieza no lo esconde. Ver §11.
 
 ---
 
-## 7 · G5 · «Verifícalo sin creerme» — 45 s · cierre
+## 7 · G6 · «Lo que no está» — 30 s
+
+**Tesis:** la mitad del trabajo de un auditor no es probar lo que hay, es probar lo que **no** hay: que el lote no lleva la clave privada, que el expediente no incluye el registro borrado. Un `grep` no prueba ausencia — prueba que buscó. Lo que prueba ausencia es un **testigo de orden**: dos filas adyacentes que dejan a la consulta en medio.
+
+| t | pantalla | voz |
+|---|---|---|
+| 0,0–5,0 | `$ grep -c '\.env' SHA256SUMS_SELLO_A` → `0` · `$ grep -c 'AGENTS.md' …` → `0` (gris) | «El mismo cero para los dos nombres. Un cero no distingue dos verdades.» |
+| 5,0–13,0 | `testigo | ⊥ < .env < "ACTA_DE_CIERRE…md" | posicion 0` + `verificado | si | O(1) contra la pagina autenticada` + `-> ausente` `RC 0` | «Éste sí falta, y la página lo prueba por sus vecinos: entre el principio y la primera fila no cabe nada. Una consulta.» |
+| 13,0–21,0 | `testigo | "ACTA_GATE…md" < AGENTS.md < "ASIENTO_DE_RETIRO…md" | posicion 3` + `arbol-ausencia | presente | el arbol lo tiene y la pagina no lo declara` + `-> presente` `RC 1` | «Éste está: el manifiesto no lo declara y el árbol lo tiene. Mismo cero, otra verdad.» |
+| 21,0–27,0 | `caso | colapsa-el-caso` + `caso-choque | jq-linux-amd64 | la pagina prueba JQ-LINUX-AMD64 y el volumen no distingue jq-linux-amd64` + `-> presente` `RC 1` | «Y en un volumen que ignora mayúsculas, preguntar por `JQ-LINUX-AMD64` devolvería un verde. Devuelve `presente`.» |
+| 27,0–30,0 | `ausente` · `presente` · `no_medida` (los tres en cian) | «Ausencia probada. Presencia declarada. Lo no mirado, dicho.» |
+
+**Animación:** las tres palabras del cierre entran igual que en G3: la serie tiene un solo final visual y no inventa gramática nueva.
+**Cifras:** §9 #11, #12, #13.
+**Falsador:** `python3 -B -m unittest tests.test_ausencia` (27 pruebas) y los recibos de §1.4.
+**Aviso permanente, tercio inferior en gris, mientras dura la fila 21,0–27,0:** `volumen APFS sin distinción de mayúsculas · sonda escribe 0 bytes`.
+
+---
+
+## 8 · G5 · «Verifícalo sin creerme» — 45 s · cierre
 
 **Tesis:** el producto entero cabe en una línea: *no te pido que me creas, te doy el acto*. La pieza no enseña conclusiones: enseña los comandos y su salida, y deja el teclado al espectador.
 
 | t | pantalla | voz |
 |---|---|---|
-| 0,0–5,0 | `$ git clone …` + `Ran 119 tests` + `OK` | «Un clon público. La suite entera.» |
+| 0,0–5,0 | `$ git clone …` + `Ran 167 tests` + `OK` | «Un clon público. La suite entera.» |
 | 5,0–13,0 | `$ python3 -B examples/verificar_sello.py --manifiesto … --raiz … --check` ⇒ `REPRODUCE | <digest>` | «El sello se re-emite y se compara consigo mismo: si la página no describe este árbol, lo dice.» |
 | 13,0–21,0 | cuatro líneas `real` (gris): `343,61 s` · `164,11 s` · `67,11 s` · `264,35 s` + segunda línea `el mismo acto sobre los mismos bytes` | «Cuatro corridas del mismo acto. Sesenta y siete segundos, o trescientos cuarenta. El coste es de la máquina.» |
 | 21,0–29,0 | `coste | 14 declaradas | 87855 barridas | 87819 hasheadas` (cian) | «Por eso a la página sellada no entra el reloj. Entran los contadores: cuántas declaré, cuántas barrí, cuántas hasheé.» |
@@ -245,12 +312,12 @@ El mismo acto tardó **11 ms** sobre 5 rutas y **264,35 s** sobre 87 819 (§1.2)
 | 38,0–45,0 | `git clone` + `python3 -B examples/ensayo_escalera.py` (mono, quieto) | «Si mañana esto ya no es verdad, el ensayo falla antes de que nadie tenga que creerme.» |
 
 **Animación:** los cuatro tiempos `real` aparecen como columnas de una misma tabla, no como una gráfica de mejora: no hay tendencia, hay dispersión.
-**Cifras:** §8 #1, #3, #8, #9.
-**Falsador:** los propios comandos, en cámara, desde un clon en frío (§9).
+**Cifras:** §9 #1, #3, #8, #9.
+**Falsador:** los propios comandos, en cámara, desde un clon en frío (§10).
 
 ---
 
-## 8 · Tabla de cifras
+## 9 · Tabla de cifras
 
 | # | cifra | comando que la produce | fecha |
 |---|---|---|---|
@@ -262,14 +329,19 @@ El mismo acto tardó **11 ms** sobre 5 rutas y **264,35 s** sobre 87 819 (§1.2)
 | 6 | `coste | 2 declaradas | 4 barridas | 4 hasheadas` | ensayo, paso 6/7 | 25-Nov-2026 |
 | 7 | `1 fuera del universo` · `opaco __pycache__/x.pyc` | ensayo, paso 7/7 | 25-Nov-2026 |
 | 8 | `343,61 / 164,11 / 67,11 / 264,35 s` | `/usr/bin/time -p` sobre el acto (§1.2), cuatro veces en cuatro estados de máquina | 24–25 Nov-2026 |
-| 9 | `Ran 119 tests` · `OK` | `python3 -B -m unittest discover -s tests` | 25-Nov-2026 |
+| 9 | `Ran 167 tests` · `OK` | `python3 -B -m unittest discover -s tests` | 25-Nov-2026 |
 | 10 | `redundancia | 5942c9b0… | 1 declaradas | 3 observadas` · `coste | 1 declaradas | 5 barridas | 5 hasheadas` | §1.3 (jq 1.7.1, manifiesto oficial) | 25-Nov-2026 |
+| 11 | `ausencia | .env | ausente` · `testigo | ⊥ < .env < …` · `RC 0` | §1.4 | 25-Nov-2026 |
+| 12 | `ausencia | AGENTS.md | ausente` · `arbol-ausencia | presente` · `-> presente` · `RC 1` | §1.4 | 25-Nov-2026 |
+| 13 | `caso-choque | jq-linux-amd64 | …` · `caso | colapsa-el-caso` · `RC 1` | §1.4 (sujeto jq 1.7.1) | 25-Nov-2026 |
 
 `87819` y `87855` cuentan cosas distintas (rutas del universo / rutas hasheadas, que incluyen las declaradas fuera de él); no se restan entre sí. `206` es suma de longitudes de listas impresas por el acto, no una resta.
 
+La cifra 9 **no se copia al grabar**: la suite crece y el recibo en pantalla es el que vale. Va respaldada por `tests/test_guiones.py`, que compara el número de esta tabla con `unittest.defaultTestLoader.discover('tests').countTestCases()`; si la suite cambia y la tabla no, la prueba cae. Una cifra de guion sin lector envejece en la copia (A0.7).
+
 ---
 
-## 9 · Falsadores de la serie
+## 10 · Falsadores de la serie
 
 | pieza | qué la falsa | comando |
 |---|---|---|
@@ -277,29 +349,30 @@ El mismo acto tardó **11 ms** sobre 5 rutas y **264,35 s** sobre 87 819 (§1.2)
 | G2, G5 | un paso del ensayo deja de coincidir | `python3 -B examples/ensayo_escalera.py` (RC ≠ 0) |
 | G3 | `--completo` deja de mover el contador o mueve el veredicto | `python3 -B -m unittest tests.test_ubicacion.TestRedundancia` |
 | G5 | el acto no reproduce su sello / el ancla no está vigente | `--check` sobre el acto · `contrafirmar_censo.py --check` |
+| G6 | el mismo `grep` vuelve a distinguir dos verdades, o el caso 21,0–27,0 deja de dar `presente` | `python3 -B -m unittest tests.test_ausencia` · §1.4 |
 | todas | la suite cae | `python3 -B -m unittest discover -s tests` |
 
 Un guion cuya cifra ya no la produce su comando **no se corrige**: se retira y se re-mide.
 
-**Prerrequisito de grabación, medido el 25-Nov-2026:** el veredicto de ancla necesita **historia completa**. En un `--depth 1` el acto responde `CONTRATO | git no respondió: sin ancla no hay contrafirma` —no miente y no mide—, así que el clon de G5 se hace sin `--depth 1` si la pieza va a enseñar el ancla. La suite y el ensayo sí corren en un clon superficial (`Ran 119 tests` · `OK`, `ENSAYO 7/7 RC 0`).
+**Prerrequisito de grabación, medido el 25-Nov-2026:** el veredicto de ancla necesita **historia completa**. En un `--depth 1` el acto responde `CONTRATO | git no respondió: sin ancla no hay contrafirma` —no miente y no mide—, así que el clon de G5 se hace sin `--depth 1` si la pieza va a enseñar el ancla. La suite y el ensayo sí corren en un clon superficial (`Ran 167 tests` · `OK`, `ENSAYO 7/7 RC 0`).
 
 ---
 
-## 10 · Lo que todavía no hay que grabar
+## 11 · Lo que todavía no hay que grabar
 
 Estas son las lagunas del producto, y por eso no tienen guion:
 
 1. **La tasa de duplicación de un árbol de cliente: `NO_MEDIDA`.** Lo medido es el acto sobre bytes ajenos (jq 1.7.1: `1 declaradas | 3 observadas`, §1.3) con **topología propia**. Cuánto se duplica el repositorio de un cliente —la cifra que compraría— no existe todavía. `--completo` la hace **medible**, no medida. Los `k = 14` del Sello A son worktrees del mismo dueño.
 2. **El coste de una máquina de cliente.** Cuatro medidas del mismo acto van de 67 a 344 s, todas en esta máquina. Ninguna es «el tiempo del acto».
 3. **La precedencia entre `suplantada` e `intercambiada`** está fijada sólo en la fixture (P-28).
-4. **La rama de fallo de `git ls-files`** se trata como «fuera del universo» y no tiene falsador propio (sería P-48).
+4. **La ausencia dentro del universo del cliente.** El acto prueba ausencia sobre la página y la comprueba contra un árbol que recorre con **seis exclusiones declaradas**; un manifiesto de cliente con exclusiones propias cambia el universo del testigo y sólo está medido sobre el Sello A y jq (`resuelto en` P-60 la mitad del instrumento: `git ls-files` que falla degrada a `no_medida`).
 5. **La escalera completa contra un árbol de terceros** (un release público con `SHA256SUMS` nativo) está hecha para `intacta`/`reubicada`/`suplantada`/`divergente`, no para los siete pasos.
 
 Grabar cualquiera de estos cinco como si estuviera medido es el único error que este archivo no puede arreglar después.
 
 ---
 
-## 11 · Puente con `letras-video`
+## 12 · Puente con `letras-video`
 
 Cada guion es ya una tabla `(t0, t1, texto, voz)`. El paso a `cues.ts` es mecánico:
 

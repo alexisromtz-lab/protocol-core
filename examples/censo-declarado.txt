@@ -9,12 +9,17 @@
 # discrepancia 1 (página 29ee44d5) al entrar el séptimo módulo del paquete. La
 # discrepancia se cerró declarándola aquí, no re-emitiendo el acto hasta que
 # saliera verde: un acto que se re-emite hasta coincidir no mide nada.
+#
+# 2026-11-25: el anillo 3 entra con `src/protocol/ausencia.py` y el acto midió
+# declarado 7 contra observado 8 con discrepancia 1 (página 23df2ee8). Misma
+# regla, mismo cierre: se declara el 8 aquí y la página del acto que midió la
+# discrepancia queda nombrada por su digest, no sustituida.
 
 ruta=src/protocol
 universo=protocol-core.src.protocol
 unidad=archivo
 motor=python3 -B examples/emitir_censo.py
-t_utc=2026-11-24T20:00:00Z
+t_utc=2026-11-25T15:50:00Z
 ventana=no medida: el censo declara movimiento del conjunto, no duracion
 umbral=ninguno: el censo no aplica umbral
-declarado=7
+declarado=8
