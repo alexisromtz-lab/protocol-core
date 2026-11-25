@@ -252,6 +252,8 @@ $ python3 -B examples/verificar_sello.py --manifiesto <…> --raiz ../platino-la
 
 Un guion cuya cifra ya no la produce su comando **no se corrige**: se retira y se re-mide.
 
+**Prerrequisito de grabación, medido el 25-Nov-2026:** el veredicto de ancla necesita **historia completa**. En un `--depth 1` el acto responde `CONTRATO | git no respondió: sin ancla no hay contrafirma` —no miente y no mide—, así que el clon de G5 se hace sin `--depth 1` si la pieza va a enseñar el ancla. La suite y el ensayo sí corren en un clon superficial (`Ran 119 tests` · `OK`, `ENSAYO 7/7 RC 0`).
+
 ---
 
 ## 10 · Lo que todavía no hay que grabar
