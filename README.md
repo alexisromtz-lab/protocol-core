@@ -377,3 +377,11 @@ Ninguna de las dos usa internet (salvo la mitad Bitcoin del `.ots`), credenciale
 
 **Ninguna cifra empírica viaja sin su comando, su universo declarado y su hora.** Toda cifra de conteo
 caduca al escribirse: su hora es parte de la cifra.
+
+## Field notes
+
+This repository belongs to an audit corpus whose measurements are published as
+field notes. Two of them come from the same work:
+
+- [El contador que sobrevive a su ventana](https://dev.to/alexisromtz7/el-contador-que-sobrevive-a-su-ventana-3p2)
+- [El instrumento que se acusó a sí mismo: 28 hallazgos, 1 CRÍTICO y un mecanismo que no lo sostiene](https://dev.to/alexisromtz7/el-instrumento-que-se-acuso-a-si-mismo-28-hallazgos-1-critico-y-un-mecanismo-que-no-lo-sostiene-5fcf)
