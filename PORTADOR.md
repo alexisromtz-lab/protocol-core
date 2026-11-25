@@ -138,9 +138,11 @@ unidades distintas y cada una va nombrada: 13 bloques y 786 líneas son el mismo
 
 ## 5. Lo que este objeto no hace — lista cerrada
 
-1. **No verifica la firma PGP.** Se salta la envoltura y se publica
-   `firma no verificada`. Verificarla exige una cadena de confianza que este
-   objeto no tiene ni pretende tener.
+1. **No verifica la firma PGP, y desde el anillo 6 tampoco la salta a ciegas.**
+   El sobre se desenvuelve en [`sobre.py`](src/protocol/sobre.py) y se publica
+   `firma no verificada` **con su número de bytes** —o `0 bytes de firma` cuando
+   el artefacto no trae ninguna—. Firma, topologías y falsadores:
+   [`SOBRE.md`](SOBRE.md).
 2. **No admite la convención de escape de `coreutils`** (`\ruta`): la rechaza y
    la nombra. Admitirla obligaría a decidir qué significa una barra invertida en
    una ruta con barra invertida.

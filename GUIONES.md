@@ -10,7 +10,7 @@ Este archivo no es publicidad: es **una página**, en el mismo sentido que `PRED
 
 ## 0 · El contrato del guion — seis reglas
 
-1. **Ninguna cifra en pantalla sin su comando.** Vale para `206 rutas` igual que para `RC 1`. La tabla [§12](#12--tabla-de-cifras) es la fuente; el guion la cita, no la recuerda.
+1. **Ninguna cifra en pantalla sin su comando.** Vale para `206 rutas` igual que para `RC 1`. La tabla [§13](#12--tabla-de-cifras) es la fuente; el guion la cita, no la recuerda.
 2. **El guion no se transcribe: se convoca.** Las líneas que van a pantalla las imprime `examples/ensayo_escalera.py`, no un editor de texto. Si alguien reescribe una línea «para que se lea mejor», el video y el acto ya no son el mismo objeto.
 3. **El guion se ensaya antes de grabarse.** `python3 -B examples/ensayo_escalera.py` ⇒ `ENSAYO | 7/7 | … | RC 0`. Ese RC es el falsador del guion: si el acto cambia, el ensayo lo grita **antes** que la cámara.
 4. **La animación no adelanta.** Una línea aparece completa —como la imprime el acto— y después entra. Nunca se escribe carácter a carácter: escribir sugiere un proceso que el acto no tuvo.
@@ -137,9 +137,9 @@ El digest es el que publica jq: cualquiera lo comprueba contra el release. Y el 
 
 El manifiesto original declara **26 filas** (`2129 B`); el sujeto declara **una**: esto mide una fila contra un árbol, no el release entero. Declararlo es la mitad del resultado, como el dialecto.
 
-**Lo que esta medición no es:** los bytes y el manifiesto son de jq; la **topología de copias la construí yo**. Prueba que el acto cuenta copias no declaradas de bytes ajenos; no prueba cómo se duplica el árbol de un cliente. Eso sigue en §14.
+**Lo que esta medición no es:** los bytes y el manifiesto son de jq; la **topología de copias la construí yo**. Prueba que el acto cuenta copias no declaradas de bytes ajenos; no prueba cómo se duplica el árbol de un cliente. Eso sigue en §15.
 
-El mismo acto tardó **11 ms** sobre 5 rutas y **264,35 s** sobre 87 819 (§1.2). La diferencia no es el acto: es el universo. Es la misma ley de §11 #8 vista desde el otro extremo.
+El mismo acto tardó **11 ms** sobre 5 rutas y **264,35 s** sobre 87 819 (§1.2). La diferencia no es el acto: es el universo. Es la misma ley de §12 #8 vista desde el otro extremo.
 
 ### 1.4 · El acto de ausencia — Sello A y jq 1.7.1
 
@@ -212,7 +212,7 @@ Tres cosas que esta agenda mide y un `grep` de exportador no:
 - **`pi` se aplica antes de que la página exista.** Una ruta con un byte fuera de `A-Za-z0-9._-` no se normaliza a la callada: `ENTRADA INVALIDA | … | componente no admisible como slug`, RC 2. Un acento que se cae sin decirlo es una fila que desaparece.
 - **Dos clientes con la misma `pi` son un cliente.** `Ávila-cita-09-00-sillon1` y `AVILA-CITA-09-00-SILLON1` proyectan a la misma clave y el acto **no sella**: `CONTRATO | colapsa-el-caso: … proyectan a la misma clave 'avila-cita-09-00-sillon1'` · `-> no se emite: una clave que colapsa se resuelve, no se sella` · RC 1. Adivinar cuál de los dos es el bueno sería inventar la respuesta del dueño.
 
-**Lo que esta medición no es:** el manifiesto lo escribimos nosotros. Prueba que el álgebra funciona fuera de un árbol de software; **no** prueba que un manifiesto firmado por un cliente se comporte igual. Eso sigue en §14.
+**Lo que esta medición no es:** el manifiesto lo escribimos nosotros. Prueba que el álgebra funciona fuera de un árbol de software; **no** prueba que un manifiesto firmado por un cliente se comporte igual. Eso sigue en §15.
 
 ---
 
@@ -264,22 +264,27 @@ Todo lo anterior supone que el manifiesto se puede leer. Medido el 25-Nov-2026 s
 
 ```
 portador | deb822 | 772 filas | canonico | digest c0dc59762595
-envoltura | seccion SHA256 | 13 bloques ignorados | firma no verificada
+sobre | ninguno | 0 bytes de firma | no habia nada que verificar
+envoltura | seccion SHA256 | 13 bloques ignorados
 ```
 
 El de Node, que trae las filas en otro orden, publica las dos cosas a la vez —que lo leyó y que lo reordenó—:
 
 ```
 portador | coreutils | 41 filas | reordenado | digest 23aaeb143953
+sobre | ninguno | 0 bytes de firma | no habia nada que verificar
 envoltura | ninguna | 0 normalizaciones
 ```
 
-El de Fedora viene dentro de un mensaje firmado en claro. La envoltura se salta y **se dice** que se salta:
+El de Fedora viene dentro de un mensaje firmado en claro. Desde el anillo 6 el sobre se **desenvuelve**, y se dice cuánto no se comprobó:
 
 ```
 portador | bsd | 1 filas | canonico | digest 9bc34ed33916
-envoltura | pgp | 0 bloques ignorados | firma no verificada
+sobre | firmado_en_claro | 832 bytes de firma | carga bc3ba445957b | sobre f482e55b35f5 | firma no verificada
+envoltura | ninguna | 0 normalizaciones
 ```
+
+**Corrección de esta misma página.** Hasta el anillo 6, las dos primeras salidas de arriba decían `envoltura | … | firma no verificada`, y el `Release` de Debian no tiene **ni un byte** de PGP. La nota del censo que lo justificaba —«la firma PGP final no se verifica»— describía un artefacto que no era el vendoreizado. Un punto ciego inventado es tan grave como un verde falso: al auditor le impide distinguir «no pude verificarlo» de «no había nada que verificar». Las dos líneas se re-midieron y se publican como estaban medidas (§1.8).
 
 Y el testigo del anillo: el mismo archivo de dos filas, dos lecturas, dos digests. El `Release` de Debian es `deb822` **por su espacio inicial**; quitarlo lo convierte en un archivo de `coreutils` cuyas rutas empiezan por el tamaño:
 
@@ -292,6 +297,35 @@ portador | coreutils | 2 filas | canonico | recorte | digest f2ba089a097c
 Sobre el archivo completo esa segunda lectura **no existe**: 58 de sus 772 filas llenan el campo del tamaño y rompen la alineación de `coreutils`. Sobre un extracto de 12 filas, las doce encajan. La ambigüedad no es del formato: es del **ejemplo** que se publica.
 
 **Lo que esta medición no es:** no verifica la firma PGP (`firma no verificada`, y se publica así), no admite la convención de escape `\ruta` de `coreutils`, no acepta SRI en base64, no adivina el nombre de un portador `suelto` y no elige entre dos lecturas: las publica. Atestigua la **línea**, no al autor.
+
+### 1.8 · El sobre — el archivo no es el objeto
+
+El mismo autor, el mismo contenido, tres artefactos descargados de `deb.debian.org` el 25-Nov-2026 a las `19:31:13Z`:
+
+| archivo | bytes | topología | antes del anillo 6 |
+|---|---|---|---|
+| `debian-12.15-Release` | 149 266 | `sin_sobre` | 772 filas, `c0dc59762595` |
+| `debian-12.15-InRelease` | 151 075 | `firmado_en_claro` | **rechazado**: `linea 4: 'Origin: Debian'` |
+| `debian-12.15-Release.gpg` | 1 760 | `firma_pegada` | **0 filas, en silencio** |
+
+Quitado el sobre, el `InRelease` **es** el `Release`: 149 266 bytes cuyo `sha256` es `abcf5882746e0f68…`, el que publica Debian. Las tres topologías, leídas hoy:
+
+```
+sobre | firmado_en_claro | 1759 bytes de firma | carga abcf5882746e | sobre 77737fa4b34f | firma no verificada
+sobre | ninguno | 0 bytes de firma | no habia nada que verificar
+SobreSinCarga: firma pegada de 1759 bytes, sin carga: el manifiesto esta en otro archivo y su nombre no viaja dentro de este
+```
+
+Y las dos vías del mismo objeto publican **la misma página**, que es lo que el cliente compra:
+
+```
+portador | deb822 | 772 filas | canonico | digest c0dc59762595     (Release)
+portador | deb822 | 772 filas | canonico | digest c0dc59762595     (InRelease)
+```
+
+El error que costó una corrida: reconstruir la carga perdiendo el salto de línea final da `149265` bytes y `c8394efad1f4` en vez de `149266` y `abcf5882746e`. Un byte de separador entre la carga y el bloque de firma, y el digest del objeto deja de ser el del autor.
+
+**Lo que esta medición no es:** no verifica la firma —no hay clave pública en este anillo— y por eso `firma no verificada` viaja **con su número de bytes**: 3 de los 10 artefactos del censo tienen firma y 7 publican `0 bytes de firma`. La frecuencia del escape `- ` de RFC 4880 en lo publicado es `0` de `10` y se declara `no_medida`; la transformación se mide por testigo sintético. Detalle: [`SOBRE.md`](SOBRE.md).
 
 ---
 
@@ -319,7 +353,7 @@ Sobre el archivo completo esa segunda lectura **no existe**: 58 de sus 772 filas
 | 13,5–15,0 | `protocol-core` | — |
 
 **Animación:** las 206 rutas no se dibujan; se colapsan en un contador. Un árbol de puntos es opcional **sólo** si cada punto es una ruta de la lista (no una ilustración).
-**Cifras:** `206` ⇒ §11 #4 · `14/4/10` ⇒ §11 #3.
+**Cifras:** `206` ⇒ §12 #4 · `14/4/10` ⇒ §12 #3.
 **Falsador:** el comando de §1.2 tiene que seguir dando `10 conforme / 4 reubicado`. Si mañana el Sello A se mueve, este guion no se re-graba: se re-mide.
 
 ---
@@ -360,7 +394,7 @@ Sobre el archivo completo esa segunda lectura **no existe**: 58 de sus 772 filas
 | 23,0–30,0 | `opaco` · `no_medida` · `redundancia` (los tres en cian) | «Un instrumento que declara su ceguera es el único que un tercero puede auditar.» |
 
 **Animación:** las tres palabras finales entran una a una. Nada más se mueve en 7 s: es el cierre intelectual de la serie.
-**Cifras:** §11 #2, #5, #6, #7.
+**Cifras:** §12 #2, #5, #6, #7.
 **Falsador:** P-47 (`tests/test_ubicacion.py`) y P-44/P-45 —sin `--completo`, la línea `redundancia` **no puede** aparecer; con él, el veredicto no se mueve.
 
 ---
@@ -377,9 +411,9 @@ Sobre el archivo completo esa segunda lectura **no existe**: 58 de sus 772 filas
 | 19,0–25,0 | `14 digests | 206 rutas` (ámbar) + segunda línea `esto sí es mi árbol` | «En el mío: doscientas seis rutas. Ese árbol es mío, no el suyo.» |
 
 **Animación:** el contador sube de 3 a 206 una sola vez, monotónico, sin easing. La segunda línea en gris entra 800 ms después que su principal.
-**Cifras:** §11 #4, #10.
+**Cifras:** §12 #4, #10.
 **Falsador:** §1.3 (la línea `1 declaradas | 3 observadas` sobre jq 1.7.1) y el agregado §1.2.
-**Aviso permanente, tercio inferior en gris, de 6,0 a 19,0:** `bytes y manifiesto: jq 1.7.1 · las copias: mías`. La voz no lo dice (no cabe) y la pieza no lo esconde. Ver §12.
+**Aviso permanente, tercio inferior en gris, de 6,0 a 19,0:** `bytes y manifiesto: jq 1.7.1 · las copias: mías`. La voz no lo dice (no cabe) y la pieza no lo esconde. Ver §13.
 
 ---
 
@@ -396,7 +430,7 @@ Sobre el archivo completo esa segunda lectura **no existe**: 58 de sus 772 filas
 | 27,0–30,0 | `ausente` · `presente` · `no_medida` (los tres en cian) | «Ausencia probada. Presencia declarada. Lo no mirado, dicho.» |
 
 **Animación:** las tres palabras del cierre entran igual que en G3: la serie tiene un solo final visual y no inventa gramática nueva.
-**Cifras:** §12 #11, #12, #13.
+**Cifras:** §13 #11, #12, #13.
 **Falsador:** `python3 -B -m unittest tests.test_ausencia` (27 pruebas) y los recibos de §1.4.
 **Aviso permanente, tercio inferior en gris, mientras dura la fila 21,0–27,0:** `volumen APFS sin distinción de mayúsculas · sonda escribe 0 bytes`.
 
@@ -415,7 +449,7 @@ Sobre el archivo completo esa segunda lectura **no existe**: 58 de sus 772 filas
 | 27,0–30,0 | `ausente` · `presente` · `no_medida` (los tres en cian) | «Ausencia probada. Presencia declarada. Lo demás, no mirado.» |
 
 **Animación:** la de G3 y G6 —la serie tiene un solo final visual y no inventa gramática nueva.
-**Cifras:** §12 #14, #15.
+**Cifras:** §13 #14, #15.
 **Falsador:** `python3 -B -m unittest tests.test_negocio` (13 pruebas) y los recibos de §1.5.
 **Aviso permanente, tercio inferior en gris, mientras dura la fila 21,0–27,0:** `los nombres son de un sujeto escrito por nosotros · ningún cliente ha firmado este manifiesto`.
 
@@ -434,7 +468,7 @@ Sobre el archivo completo esa segunda lectura **no existe**: 58 de sus 772 filas
 | 27,0–30,0 | `reubicada` · `frontera_rota` · `no_medida` (los tres en cian) | «Lo que viajó. Lo que se rompió.» |
 
 **Animación:** la de G3, G6 y G7 —tres palabras al cierre, mismo movimiento, misma opacidad—; lo nuevo es el empalme: la línea `frontera` entra **entre** los dos digests, no encima.
-**Cifras:** §12 #16, #17.
+**Cifras:** §13 #16, #17.
 **Falsador:** `python3 -B -m unittest tests.test_composicion` (22 pruebas) y los recibos de §1.6.
 **Aviso permanente, tercio inferior en gris, mientras dura la fila 13,0–21,0:** `continuidad de bytes entre saltos · no que el nodo intermedio hiciera su trabajo`.
 
@@ -453,19 +487,38 @@ Sobre el archivo completo esa segunda lectura **no existe**: 58 de sus 772 filas
 | 27,0–30,0 | `coreutils` · `bsd` · `deb822` · `suelto` (los cuatro en cian) | «Cuatro gramáticas. Ninguna elegida a ciegas.» |
 
 **Animación:** las tres primeras columnas entran con el movimiento de siempre; lo nuevo es el **tachado** de `881cba55a9d2` en 21,0–27,0 —una sola línea roja que cruza el digest, 200 ms, sin rebote—, porque lo que se retira es una acusación, no un dato.
-**Cifras:** §12 #18, #19.
+**Cifras:** §13 #18, #19.
 **Falsador:** `python3 -B -m unittest tests.test_portador` (21 pruebas) y los ocho artefactos de `examples/portadores/` con su `FUENTES.txt`.
 **Aviso permanente, tercio inferior en gris, mientras dura la fila 21,0–27,0:** `la firma no se verifica · se atestigua la linea, no al autor`.
 
 ---
 
-## 11 · G5 · «Verifícalo sin creerme» — 45 s · cierre
+## 11 · G10 · «El archivo no es el objeto» — 30 s · pieza de sobre
+
+**Tesis:** dos archivos del mismo autor, con los mismos 149 266 bytes dentro, dan **dos digests** —el del archivo y el del objeto— y el cliente paga precisamente por esa distinción. La pieza enseña el `InRelease` de Debian que el lector viejo rechazaba culpando a su contenido, y la firma pegada que se leía como un manifiesto de cero filas.
+
+| t | pantalla | voz |
+|---|---|---|
+| 0,0–5,0 | `sobre \| firmado_en_claro \| 1759 bytes de firma` + `carga abcf5882746e` y `sobre 77737fa4b34f` (cian, dos columnas) | «El mismo archivo. Dos digests.» |
+| 5,0–12,0 | `sobre \| ninguno \| 0 bytes de firma \| no habia nada que verificar` (gris) | «Debian también publica el archivo sin firmar. Digo cuál tengo.» |
+| 12,0–20,0 | `sobre \| firma_pegada \| 1759 bytes de firma \| carga -` + `SobreSinCarga` (ámbar) | «La firma pegada no trae el objeto. Su vínculo es el nombre.» |
+| 20,0–26,0 | `portador \| deb822 \| 772 filas \| canonico \| digest c0dc59762595` dos veces, columnas idénticas | «Dos archivos, una página: setecientas setenta y dos filas.» |
+| 26,0–30,0 | `firma no verificada` (ámbar) + `0 bytes de firma` (gris) | «Lo que no comprobé, con su número de bytes.» |
+
+**Animación:** las dos columnas de 20,0–26,0 se dibujan **a la vez y con el mismo movimiento**, y las dos cifras finales quedan alineadas al carácter; el único remarcado es el `-` de `carga -` en 12,0–20,0, que late una vez y se queda quieto, porque nombra una ausencia y no un error.
+**Cifras:** §13 #20, #21.
+**Falsador:** `python3 -B -m unittest tests.test_sobre` (13 pruebas) y los tres artefactos de Debian en `examples/portadores/`.
+**Aviso permanente, tercio inferior en gris, desde 26,0:** `la firma no se verifica · se mide cuánto no se verificó`.
+
+---
+
+## 12 · G5 · «Verifícalo sin creerme» — 45 s · cierre
 
 **Tesis:** el producto entero cabe en una línea: *no te pido que me creas, te doy el acto*. La pieza no enseña conclusiones: enseña los comandos y su salida, y deja el teclado al espectador.
 
 | t | pantalla | voz |
 |---|---|---|
-| 0,0–5,0 | `$ git clone …` + `Ran 223 tests` + `OK` | «Un clon público. La suite entera.» |
+| 0,0–5,0 | `$ git clone …` + `Ran 236 tests` + `OK` | «Un clon público. La suite entera.» |
 | 5,0–13,0 | `$ python3 -B examples/verificar_sello.py --manifiesto … --raiz … --check` ⇒ `REPRODUCE | <digest>` | «El sello se re-emite y se compara consigo mismo: si la página no describe este árbol, lo dice.» |
 | 13,0–21,0 | cuatro líneas `real` (gris): `343,61 s` · `164,11 s` · `67,11 s` · `264,35 s` + segunda línea `el mismo acto sobre los mismos bytes` | «Cuatro corridas del mismo acto. Sesenta y siete segundos, o trescientos cuarenta. El coste es de la máquina.» |
 | 21,0–29,0 | `coste | 14 declaradas | 87855 barridas | 87819 hasheadas` (cian) | «Por eso a la página sellada no entra el reloj. Entran los contadores: cuántas declaré, cuántas barrí, cuántas hasheé.» |
@@ -473,12 +526,12 @@ Sobre el archivo completo esa segunda lectura **no existe**: 58 de sus 772 filas
 | 38,0–45,0 | `git clone` + `python3 -B examples/ensayo_escalera.py` (mono, quieto) | «Si mañana esto ya no es verdad, el ensayo falla antes de que nadie tenga que creerme.» |
 
 **Animación:** los cuatro tiempos `real` aparecen como columnas de una misma tabla, no como una gráfica de mejora: no hay tendencia, hay dispersión.
-**Cifras:** §12 #1, #3, #8, #9.
-**Falsador:** los propios comandos, en cámara, desde un clon en frío (§13).
+**Cifras:** §13 #1, #3, #8, #9.
+**Falsador:** los propios comandos, en cámara, desde un clon en frío (§14).
 
 ---
 
-## 12 · Tabla de cifras
+## 13 · Tabla de cifras
 
 | # | cifra | comando que la produce | fecha |
 |---|---|---|---|
@@ -490,7 +543,7 @@ Sobre el archivo completo esa segunda lectura **no existe**: 58 de sus 772 filas
 | 6 | `coste | 2 declaradas | 4 barridas | 4 hasheadas` | ensayo, paso 6/7 | 25-Nov-2026 |
 | 7 | `1 fuera del universo` · `opaco __pycache__/x.pyc` | ensayo, paso 7/7 | 25-Nov-2026 |
 | 8 | `343,61 / 164,11 / 67,11 / 264,35 s` | `/usr/bin/time -p` sobre el acto (§1.2), cuatro veces en cuatro estados de máquina | 24–25 Nov-2026 |
-| 9 | `Ran 223 tests` · `OK` | `python3 -B -m unittest discover -s tests` | 25-Nov-2026 |
+| 9 | `Ran 236 tests` · `OK` | `python3 -B -m unittest discover -s tests` | 25-Nov-2026 |
 | 10 | `redundancia | 5942c9b0… | 1 declaradas | 3 observadas` · `coste | 1 declaradas | 5 barridas | 5 hasheadas` | §1.3 (jq 1.7.1, manifiesto oficial) | 25-Nov-2026 |
 | 11 | `ausencia | .env | ausente` · `testigo | ⊥ < .env < …` · `RC 0` | §1.4 | 25-Nov-2026 |
 | 12 | `ausencia | AGENTS.md | ausente` · `arbol-ausencia | presente` · `-> presente` · `RC 1` | §1.4 | 25-Nov-2026 |
@@ -501,6 +554,8 @@ Sobre el archivo completo esa segunda lectura **no existe**: 58 de sus 772 filas
 | 17 | `frontera | rota | … 325c7ca8fb07 … 196b31a91400` · `ausencia sin transito | …` · `veredicto | reubicada | recalculado sobre 2 tramos` | §1.6 | 25-Nov-2026 |
 | 18 | `portador | deb822 | 772 filas | canonico | digest c0dc59762595` · `portador | bsd | 1 filas …` · `portador | coreutils | 41 filas | reordenado | digest 23aaeb143953` | §1.7 · `tests.test_portador` | 25-Nov-2026 |
 | 19 | `deb822 2 filas 7674c4bedf05` y `coreutils 2 filas … recorte f2ba089a097c` sobre **el mismo archivo** · el acusado `881cba55a9d2` | §1.7 | 25-Nov-2026 |
+| 20 | `sobre \| firmado_en_claro \| 1759 bytes de firma \| carga abcf5882746e \| sobre 77737fa4b34f` · `sobre \| ninguno \| 0 bytes de firma` · `SobreSinCarga` sobre `firma_pegada` | §1.8 · `tests.test_sobre` | 25-Nov-2026 |
+| 21 | las dos vías del mismo objeto: `carga 149266 B abcf5882746e` por `Release` y por `InRelease` · el error medido: `149265 B c8394efad1f4` al perder el salto final | §1.8 · §7 de [`SOBRE.md`](SOBRE.md) | 25-Nov-2026 |
 
 `87819` y `87855` cuentan cosas distintas (rutas del universo / rutas hasheadas, que incluyen las declaradas fuera de él); no se restan entre sí. `206` es suma de longitudes de listas impresas por el acto, no una resta.
 
@@ -508,7 +563,7 @@ La cifra 9 **no se copia al grabar**: la suite crece y el recibo en pantalla es 
 
 ---
 
-## 13 · Falsadores de la serie
+## 14 · Falsadores de la serie
 
 | pieza | qué la falsa | comando |
 |---|---|---|
@@ -520,15 +575,16 @@ La cifra 9 **no se copia al grabar**: la suite crece y el recibo en pantalla es 
 | G7 | la cita ausente deja de dar `ausente` RC 0, dos órdenes dejan de dar el mismo digest, o un choque de `pi` deja de detener el acto | `python3 -B -m unittest tests.test_negocio` · §1.5 |
 | G8 | la cadena deja de nombrar el tramo degradado, el neutro deja de absorberse, o una frontera rota vuelve a heredar la ausencia | `python3 -B -m unittest tests.test_composicion` · §1.6 |
 | G9 | un portador real deja de leerse, el archivo intacto vuelve a ser acusado, o un extracto deja de abrir dos lecturas | `python3 -B -m unittest tests.test_portador` · §1.7 |
+| G10 | el sobre deja de dar el `sha256` del `Release`, una `firma_pegada` vuelve a leerse como manifiesto de cero filas, o `firma no verificada` aparece sobre un archivo sin firma | `python3 -B -m unittest tests.test_sobre` · §1.8 |
 | todas | la suite cae | `python3 -B -m unittest discover -s tests` |
 
 Un guion cuya cifra ya no la produce su comando **no se corrige**: se retira y se re-mide.
 
-**Prerrequisito de grabación, medido el 25-Nov-2026:** el veredicto de ancla necesita **historia completa**. En un `--depth 1` el acto responde `CONTRATO | git no respondió: sin ancla no hay contrafirma` —no miente y no mide—, así que el clon de G5 se hace sin `--depth 1` si la pieza va a enseñar el ancla. La suite y el ensayo sí corren en un clon superficial (`Ran 223 tests` · `OK`, `ENSAYO 7/7 RC 0`).
+**Prerrequisito de grabación, medido el 25-Nov-2026:** el veredicto de ancla necesita **historia completa**. En un `--depth 1` el acto responde `CONTRATO | git no respondió: sin ancla no hay contrafirma` —no miente y no mide—, así que el clon de G5 se hace sin `--depth 1` si la pieza va a enseñar el ancla. La suite y el ensayo sí corren en un clon superficial (`Ran 236 tests` · `OK`, `ENSAYO 7/7 RC 0`).
 
 ---
 
-## 14 · Lo que todavía no hay que grabar
+## 15 · Lo que todavía no hay que grabar
 
 Estas son las lagunas del producto, y por eso no tienen guion:
 
@@ -544,7 +600,7 @@ Grabar cualquiera de estos siete como si estuviera medido es el único error que
 
 ---
 
-## 15 · Puente con `letras-video`
+## 16 · Puente con `letras-video`
 
 Cada guion es ya una tabla `(t0, t1, texto, voz)`. El paso a `cues.ts` es mecánico:
 

@@ -285,13 +285,21 @@ class TestLoQueElPortadorNoEscribe(_unittest.TestCase):
 
 class TestLaEnvolturaNoEsElContenido(_unittest.TestCase):
     def test_p90a_la_firma_pgp_se_salta_y_se_declara_no_verificada(self) -> None:
-        """Se atestigua la linea, no el autor: decir lo contrario seria otro veredicto."""
+        """Se atestigua la linea, no el autor: decir lo contrario seria otro veredicto.
+
+        Desde el anillo 6 la envoltura no la salta la gramatica `bsd` sino `sobre`,
+        que la mide: se publican los bytes de firma que si se vieron y el digest de
+        la carga, de modo que el punto ciego queda declarado **con testigo**.
+        """
 
         lectura = leer_sin_declarar(_texto("fedora-41-CHECKSUM"))
         self.assertEqual(lectura.portador, "bsd")
-        self.assertEqual(lectura.envoltura, "pgp")
+        self.assertIsNotNone(lectura.sobre)
+        self.assertEqual(lectura.sobre.topologia, "firmado_en_claro")
+        self.assertGreater(lectura.sobre.bytes_firma, 0)
         self.assertEqual(len(lectura.pares), 1)
         self.assertTrue(any("firma no verificada" in linea for linea in lectura.lineas()))
+        self.assertTrue(any("carga " in linea for linea in lectura.lineas()))
 
     def test_p90b_el_release_encadena_secciones_y_la_cabecera_se_encuentra(self) -> None:
         """`MD5Sum:`, `SHA1:` y `SHA256:` van sin linea en blanco entre ellos.
@@ -353,11 +361,11 @@ class TestElTerceroNoImportaElModulo(_unittest.TestCase):
         self.assertNotIn("protocol", externo.__dict__)
         for archivo, nombre, gramatica, filas, digest in _MEDIDO:
             with self.subTest(archivo=archivo):
-                texto = _texto(archivo)
+                _, carga, _, _ = externo._desenvolver(_texto(archivo))
                 leidas, leido_por, _ = externo._leer_manifiesto(
-                    texto, "auto", nombre or None
+                    carga, "auto", nombre or None
                 )
-                propia = leer(texto, gramatica, nombre or None)
+                propia = leer(_texto(archivo), gramatica, nombre or None)
                 self.assertEqual(leido_por, gramatica)
                 self.assertEqual(len(leidas), filas)
                 canonica = sorted(leidas, key=lambda fila: fila[0].encode("utf-8"))
@@ -375,8 +383,9 @@ class TestElTerceroNoImportaElModulo(_unittest.TestCase):
         )
         for archivo, portador, nombre in casos:
             with self.subTest(archivo=archivo, portador=portador):
+                carga = self._externo()._desenvolver(_texto(archivo))[1]
                 with self.assertRaises(externo.EntradaInvalida):
-                    externo._leer_manifiesto(_texto(archivo), portador, nombre)
+                    externo._leer_manifiesto(carga, portador, nombre)
         codigo, lineas = externo.verificar(
             externo._demo(), None, "cita-09:30-sillon1"
         )

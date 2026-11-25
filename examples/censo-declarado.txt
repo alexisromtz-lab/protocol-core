@@ -21,6 +21,15 @@
 # `ausencia.py`, que el acto anterior había declarado dentro de un universo de
 # 8 cuando ya había 9. Se declara el 10, que es el número medido, no el que
 # habría querido medir.
+#
+# 2026-11-25, mismo día: el anillo 6 entra con `src/protocol/sobre.py`. Aquí la
+# declaración no adivinó nada: `sobre.py` ya estaba en el árbol y en el índice,
+# así que se declara 11 sobre el inventario y el acto mide declarado 11 contra
+# observado 11 con discrepancia 0 (página d41f5d30). Se deja dicho para que
+# nadie lea ese 0 como una concordancia ganada: la página que midió la
+# discrepancia de este anillo no existe, porque no se le dio la oportunidad de
+# medirla. El archivo lo edita una persona: si lo escribiera el emisor, la
+# discrepancia sería siempre 0 y no mediría nada.
 
 ruta=src/protocol
 universo=protocol-core.src.protocol
@@ -29,4 +38,4 @@ motor=python3 -B examples/emitir_censo.py
 t_utc=2026-11-25T15:50:00Z
 ventana=no medida: el censo declara movimiento del conjunto, no duracion
 umbral=ninguno: el censo no aplica umbral
-declarado=10
+declarado=11

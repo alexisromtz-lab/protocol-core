@@ -43,7 +43,9 @@ portador=bsd
   sha256=f482e55b35f5ae93036d29ec09108e397840fa89a15e00c4802469508b11b526
   filas=1
   vendorizado=completo
-  nota=mensaje firmado en claro (PGP): el portador salta la envoltura y publica `firma no verificada`
+  nota=mensaje firmado en claro (PGP): 832 bytes de firma, 0 lineas escapadas. El anillo 6
+       quita el sobre y lee las 180 lineas de carga; la firma se publica como `firma no verificada`
+       con su numero de bytes (anillo 6, SOBRE.md).
 
 portador=deb822
   archivo=debian-12.15-Release
@@ -54,10 +56,46 @@ portador=deb822
   filas=772
   lineas=1558
   vendorizado=completo
-  nota=12 campos de cabecera + la seccion MD5Sum ignorados (13 bloques); la firma PGP final no se verifica.
+  nota=12 campos de cabecera + la seccion MD5Sum ignorados (13 bloques).
        Las secciones van encadenadas sin linea en blanco: la cabecera SHA256: esta en la linea 786 de 1558.
        58 de las 772 filas escriben un tamano de 8 digitos (una sola separacion) y son las que impiden
        que el archivo se lea tambien como coreutils: el archivo se sostiene por el 7,5% de sus filas.
+       ESTE ARCHIVO NO LLEVA FIRMA: 0 bytes de PGP (medido 2026-11-25, anillo 6). La nota anterior
+       de este censo decia «la firma PGP final no se verifica» sobre un archivo que no tiene ninguna:
+       el punto ciego estaba inventado, y `desenvolver` lo publica como `sin sobre | 0 bytes de firma`.
+       El artefacto firmado de este mismo contenido es `debian-12.15-InRelease`.
+
+portador=deb822
+  archivo=debian-12.15-InRelease
+  url=http://deb.debian.org/debian/dists/bookworm/InRelease
+  t_utc=2026-11-25T19:31:13Z
+  bytes=151075
+  sha256=77737fa4b34f2693e982cc9ee35736816c35a7778fc2d326cc1bbf5b301fe1aa
+  filas=772
+  lineas_carga=1559
+  vendorizado=completo
+  nota=EL MISMO OBJETO QUE `debian-12.15-Release`, EN OTRO ARCHIVO: quitado el sobre, la carga son
+       149266 bytes cuyo sha256 es abcf5882746e0f68171f41adbb4ac01b74b49d62d203379befb9265804311a4f,
+       exactamente el sha256 de `debian-12.15-Release` completo. El lector publica la misma pagina
+       (772 filas, digest c0dc59762595) por las dos vias. Antes del anillo 6 este archivo se rechazaba
+       culpando a su carga (`linea 4: 'Origin: Debian'`). Sobre: firmado en claro, 1759 bytes,
+       0 escapadas, 0 espacios finales, 0 CRLF.
+  adyacente=debian-12.15-Release.gpg
+
+portador=ninguno
+  archivo=debian-12.15-Release.gpg
+  url=http://deb.debian.org/debian/dists/bookworm/Release.gpg
+  t_utc=2026-11-25T19:31:13Z
+  bytes=1760
+  sha256=a8365eb9127ca7d85dee26a74318f28fe609d9d3a5af1008329a61b753492b80
+  filas=0
+  vendorizado=completo
+  nota=firma pegada: 1759 bytes de PGP y CERO carga. `portador=ninguno` porque ninguno de los cuatro
+       lo lee: lo que este archivo tiene es una topologia de sobre, no una gramatica. Atestigua a otro
+       archivo y su vinculo es el NOMBRE (`Release.gpg` -> `Release`), que no viaja dentro del artefacto.
+       Devolver 0 filas seria publicar un manifiesto vacio; el veredicto es `SobreSinCarga`. Misma
+       longitud que la firma de `debian-12.15-InRelease` (1759 B) y 1452 de 1732 bytes distintos:
+       son DOS firmas, no una.
 
 portador=deb822
   archivo=debian-12.15-Release-seccion-sha256.txt

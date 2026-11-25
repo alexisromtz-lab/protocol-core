@@ -12,7 +12,7 @@ It exists for one reason: the closing piece (G5) ends with `git clone` on camera
 
 ## 0 · The script contract — six rules
 
-1. **No figure on screen without its command.** True for `206 routes` and for `RC 1`. The table in [§12](#11--figure-table) is the source; the script cites it, it does not remember it.
+1. **No figure on screen without its command.** True for `206 routes` and for `RC 1`. The table in [§13](#11--figure-table) is the source; the script cites it, it does not remember it.
 2. **The script is not transcribed, it is convoked.** The lines that go on screen are printed by `examples/ensayo_escalera.py`, not typed by an editor.
 3. **The script is rehearsed before it is filmed.** `python3 -B examples/ensayo_escalera.py` ⇒ `ENSAYO | 7/7 | … | RC 0`. That RC is the falsifier: if the act changes, the rehearsal shouts before the camera does.
 4. **Animation never runs ahead.** A line appears whole — as the act printed it — and then fades in. Never character by character: typing suggests a process the act did not have.
@@ -54,7 +54,7 @@ Three things this agenda measures that an exporter's `grep` cannot:
 - **`pi` is applied before the page exists.** A route with a byte outside `A-Za-z0-9._-` is not silently normalised: `ENTRADA INVALIDA | … | componente no admisible como slug`, RC 2. A diacritic dropped in silence is a row that disappears.
 - **Two clients with the same `pi` are one client.** `Ávila-cita-09-00-sillon1` and `AVILA-CITA-09-00-SILLON1` project onto the same key and the act **refuses to seal**: `CONTRATO | colapsa-el-caso: … proyectan a la misma clave` · `-> no se emite: una clave que colapsa se resuelve, no se sella` · RC 1. Guessing which one is right would be inventing the owner's answer.
 
-**What this measurement is not:** we wrote the manifest. It proves the algebra works outside a software tree; it does **not** prove that a manifest signed by a client behaves the same way. That remains open (see [`GUIONES.md` §14](GUIONES.md)).
+**What this measurement is not:** we wrote the manifest. It proves the algebra works outside a software tree; it does **not** prove that a manifest signed by a client behaves the same way. That remains open (see [`GUIONES.md` §15](GUIONES.md)).
 
 ---
 
@@ -106,22 +106,27 @@ Everything above assumes the manifest can be read. Measured on 25-Nov-2026 over 
 
 ```
 portador | deb822 | 772 filas | canonico | digest c0dc59762595
-envoltura | seccion SHA256 | 13 bloques ignorados | firma no verificada
+sobre | ninguno | 0 bytes de firma | no habia nada que verificar
+envoltura | seccion SHA256 | 13 bloques ignorados
 ```
 
 Node's, which ships its rows in another order, publishes both facts at once —that it read it and that it reordered it—:
 
 ```
 portador | coreutils | 41 filas | reordenado | digest 23aaeb143953
+sobre | ninguno | 0 bytes de firma | no habia nada que verificar
 envoltura | ninguna | 0 normalizaciones
 ```
 
-Fedora's arrives inside a clearsigned message. The envelope is skipped and **said** to be skipped:
+Fedora's arrives inside a clearsigned message. Since ring 6 the envelope is **unwrapped**, and how much went unchecked is stated:
 
 ```
 portador | bsd | 1 filas | canonico | digest 9bc34ed33916
-envoltura | pgp | 0 bloques ignorados | firma no verificada
+sobre | firmado_en_claro | 832 bytes de firma | carga bc3ba445957b | sobre f482e55b35f5 | firma no verificada
+envoltura | ninguna | 0 normalizaciones
 ```
+
+**A correction on this very page.** Until ring 6 the first two outputs above ended in `firma no verificada`, and Debian's `Release` does not hold **a single byte** of PGP. The census note that justified it —"the final PGP signature is not verified"— described an artifact that was not the vendored one. An invented blind spot is as bad as a false green: it stops the auditor from telling "I could not verify it" from "there was nothing to verify". Both lines were re-measured and are published as measured (§1.8).
 
 And the witness of the ring: the same two-row file, two readings, two digests. Debian's `Release` is `deb822` **because of its leading space**; remove it and the file becomes a `coreutils` file whose paths begin with the size:
 
@@ -134,6 +139,35 @@ portador | coreutils | 2 filas | canonico | recorte | digest f2ba089a097c
 Over the whole file that second reading **does not exist**: 58 of its 772 rows fill the size field and break `coreutils` alignment. Over a 12-row slice, all twelve fit. The ambiguity is not in the format: it is in the **example** that gets published.
 
 **What this measurement is not:** it does not verify the PGP signature (`firma no verificada`, and it says so), it does not accept `coreutils`' `\path` escape convention, it does not accept base64 SRI, it does not guess the filename of a `suelto` carrier, and it does not choose between two readings: it publishes them. It attests the **line**, not the author.
+
+### 1.8 · The envelope — the file is not the object
+
+Same author, same content, three artifacts downloaded from `deb.debian.org` on 25-Nov-2026 at `19:31:13Z`:
+
+| file | bytes | topology | before ring 6 |
+|---|---|---|---|
+| `debian-12.15-Release` | 149 266 | `sin_sobre` | 772 rows, `c0dc59762595` |
+| `debian-12.15-InRelease` | 151 075 | `firmado_en_claro` | **refused**: `linea 4: 'Origin: Debian'` |
+| `debian-12.15-Release.gpg` | 1 760 | `firma_pegada` | **0 rows, silently** |
+
+Once the envelope is removed, `InRelease` **is** `Release`: 149 266 bytes whose `sha256` is `abcf5882746e0f68…`, the one Debian publishes. The three topologies, read today:
+
+```
+sobre | firmado_en_claro | 1759 bytes de firma | carga abcf5882746e | sobre 77737fa4b34f | firma no verificada
+sobre | ninguno | 0 bytes de firma | no habia nada que verificar
+SobreSinCarga: firma pegada de 1759 bytes, sin carga: el manifiesto esta en otro archivo y su nombre no viaja dentro de este
+```
+
+And the two paths of the same object publish **the same page**, which is what the client buys:
+
+```
+portador | deb822 | 772 filas | canonico | digest c0dc59762595     (Release)
+portador | deb822 | 772 filas | canonico | digest c0dc59762595     (InRelease)
+```
+
+The mistake that cost one run: rebuilding the payload while losing the final newline gives `149265` bytes and `c8394efad1f4` instead of `149266` and `abcf5882746e`. One separator byte between payload and signature block, and the digest of the object stops being the author's.
+
+**What this measurement is not:** it does not verify the signature —there is no public key in this ring— and that is why `firma no verificada` travels **with its byte count**: 3 of the 10 census artifacts carry a signature and 7 publish `0 bytes de firma`. The frequency of RFC 4880's `- ` escape in published material is `0` of `10` and is declared `no_medida`; the transformation is measured by synthetic witness. Detail: [`SOBRE.md`](SOBRE.md).
 
 ---
 
@@ -160,7 +194,7 @@ Over the whole file that second reading **does not exist**: 58 of its 772 rows f
 | 10,5–13,5 | `reubicado <acta> -> 14 caminos` + `RC 0` | «And it picks no destination for you.» |
 | 13,5–15,0 | `protocol-core` | — |
 
-**Figures:** `206` ⇒ §11 #4 · `14/4/10` ⇒ §11 #3.
+**Figures:** `206` ⇒ §12 #4 · `14/4/10` ⇒ §12 #3.
 **Falsifier:** the command in [`GUIONES.md` §1.2](GUIONES.md) must still print `10 conforme / 4 reubicado`. If the seal moves, the piece is re-measured, not re-filmed.
 
 ---
@@ -197,7 +231,7 @@ Over the whole file that second reading **does not exist**: 58 of its 772 rows f
 | 17,0–23,0 | `RC 1` | «Not a bug. The program saying where it stopped looking.» |
 | 23,0–30,0 | `opaco` · `no_medida` · `redundancia` (all cyan) | «An instrument that declares its blindness is auditable.» |
 
-**Figures:** §11 #2, #5, #6, #7.
+**Figures:** §12 #2, #5, #6, #7.
 **Falsifier:** P-47 together with P-44/P-45 — without `--completo` the `redundancia` line **cannot** appear; with it, the verdict does not move.
 
 ---
@@ -213,7 +247,7 @@ Over the whole file that second reading **does not exist**: 58 of its 772 rows f
 | 13,0–19,0 | `1 conforme / 0 reubicado / 0 diverge / 0 opaco -> intacta` + `RC 0` | «Verdict unchanged. The copy is a datum.» |
 | 19,0–25,0 | `14 digests \| 206 rutas` (amber) + second line `esto sí es mi árbol` | «In mine: two hundred and six routes.» |
 
-**Figures:** §11 #4, #10.
+**Figures:** §12 #4, #10.
 **Falsifier:** [`GUIONES.md` §1.3](GUIONES.md) — the line `1 declaradas \| 3 observadas` over jq 1.7.1.
 **Permanent lower third, grey, 6,0–19,0:** `bytes y manifiesto: jq 1.7.1 · las copias: mías`. The voice does not say it; the piece does not hide it.
 
@@ -231,7 +265,7 @@ Over the whole file that second reading **does not exist**: 58 of its 772 rows f
 | 21,0–27,0 | `caso \| colapsa-el-caso` + `caso-choque \| jq-linux-amd64 \| …` + `-> presente` `RC 1` | «Case-blind volume, uppercase name: still `presente`.» |
 | 27,0–30,0 | `ausente` · `presente` · `no_medida` (all cyan) | «Absence proved. Presence declared. The rest said.» |
 
-**Figures:** §12 #11, #12, #13.
+**Figures:** §13 #11, #12, #13.
 **Falsifier:** `python3 -B -m unittest tests.test_ausencia` (27 tests) and the receipts in [`GUIONES.md` §1.4](GUIONES.md).
 
 ---
@@ -249,7 +283,7 @@ Over the whole file that second reading **does not exist**: 58 of its 772 rows f
 | 27,0–30,0 | `ausente` · `presente` · `no_medida` (all three in cyan) | "Absence proven. Presence declared. The rest, unmeasured." |
 
 **Animation:** the same as G3 and G6 — the series has one visual ending and does not invent new grammar.
-**Figures:** §12 #14, #15.
+**Figures:** §13 #14, #15.
 **Falsifier:** `python3 -B -m unittest tests.test_negocio` (13 tests) and the receipts in [`GUIONES.md` §1.5](GUIONES.md).
 **Permanent note, lower third in grey, while the 21,0–27,0 row is up:** `our own subject, not a client's · no client has signed this manifest`.
 
@@ -268,7 +302,7 @@ Over the whole file that second reading **does not exist**: 58 of its 772 rows f
 | 27,0–30,0 | `reubicada` · `frontera_rota` · `no_medida` (all three in cyan) | "What travelled. What broke." |
 
 **Animation:** the one from G3, G6 and G7 —three words at the close, same movement, same opacity—; the new move is the joint: the `frontera` line enters **between** the two digests, not on top.
-**Figures:** §12 #16, #17.
+**Figures:** §13 #16, #17.
 **Falsifier:** `python3 -B -m unittest tests.test_composicion` (22 tests) and the receipts in [`GUIONES.md` §1.6](GUIONES.md).
 **Permanent note, lower third in grey, while the 13,0–21,0 row is up:** `byte continuity across hops · not that the middle node did its job`.
 
@@ -287,19 +321,38 @@ Over the whole file that second reading **does not exist**: 58 of its 772 rows f
 | 27,0–30,0 | `coreutils` · `bsd` · `deb822` · `suelto` (all four in cyan) | "Four grammars. None chosen blindly." |
 
 **Animation:** the first three columns enter with the usual movement; the new move is the **strike-through** of `881cba55a9d2` at 21,0–27,0 —one red line crossing the digest, 200 ms, no bounce—, because what is being withdrawn is an accusation, not a datum.
-**Figures:** §12 #18, #19.
+**Figures:** §13 #18, #19.
 **Falsifier:** `python3 -B -m unittest tests.test_portador` (21 tests) and the eight artifacts in `examples/portadores/` with their `FUENTES.txt`.
 **Permanent note, lower third in grey, while the 21,0–27,0 row is up:** `the signature is not verified · the line is attested, not the author`.
 
 ---
 
-## 11 · G5 · "Verify it without believing me" — 45 s · closing
+## 11 · G10 · "The file is not the object" — 30 s · envelope piece
+
+**Thesis:** two files from the same author, with the same 149 266 bytes inside, give **two digests** —the file's and the object's— and that distinction is exactly what the client pays for. The piece shows Debian's `InRelease`, which the old reader refused while blaming its content, and the detached signature that used to read as a zero-row manifest.
+
+| t | screen | voice |
+|---|---|---|
+| 0,0–5,0 | `sobre \| firmado_en_claro \| 1759 bytes de firma` + `carga abcf5882746e` and `sobre 77737fa4b34f` (cyan, two columns) | "The same file. Two digests." |
+| 5,0–12,0 | `sobre \| ninguno \| 0 bytes de firma \| no habia nada que verificar` (grey) | "Debian publishes it unsigned too. I say which one I hold." |
+| 12,0–20,0 | `sobre \| firma_pegada \| 1759 bytes de firma \| carga -` + `SobreSinCarga` (amber) | "A detached signature carries no object. Its link is the name." |
+| 20,0–26,0 | `portador \| deb822 \| 772 filas \| canonico \| digest c0dc59762595` twice, identical columns | "Two files, one page: seven hundred and seventy-two rows." |
+| 26,0–30,0 | `firma no verificada` (amber) + `0 bytes de firma` (grey) | "What I did not check, with its byte count." |
+
+**Animation:** the two columns of 20,0–26,0 are drawn **at the same time and with the same motion**, and the two final figures stay character-aligned; the only highlight is the `-` of `carga -` at 12,0–20,0, which pulses once and then holds still, because it names an absence and not an error.
+**Figures:** [`GUIONES.md` §13 #20, #21](GUIONES.md).
+**Falsifier:** `python3 -B -m unittest tests.test_sobre` (13 tests) and the three Debian artifacts in `examples/portadores/`.
+**Permanent notice, lower third in grey, from 26,0:** `the signature is not verified · how much was not verified is measured`.
+
+---
+
+## 12 · G5 · "Verify it without believing me" — 45 s · closing
 
 **Thesis:** the whole product fits in one line: *I am not asking you to believe me, I am giving you the act.* The piece shows no conclusions — it shows the commands and their output, and leaves the keyboard to the viewer.
 
 | t | screen | voice |
 |---|---|---|
-| 0,0–5,0 | `$ git clone …` + `Ran 223 tests` + `OK` | «A public clone. The whole suite.» |
+| 0,0–5,0 | `$ git clone …` + `Ran 236 tests` + `OK` | «A public clone. The whole suite.» |
 | 5,0–13,0 | `$ python3 -B examples/verificar_sello.py --manifiesto … --check` ⇒ `REPRODUCE \| <digest>` | «Re-emitted and compared to itself.» |
 | 13,0–21,0 | four grey `real` lines: `343,61 s` · `164,11 s` · `67,11 s` · `264,35 s` | «Four runs. Sixty-seven seconds, or three hundred.» |
 | 21,0–29,0 | `coste \| 14 declaradas \| 87855 barridas \| 87819 hasheadas` (cyan) | «So the clock stays out. Counters go in.» |
@@ -307,12 +360,12 @@ Over the whole file that second reading **does not exist**: 58 of its 772 rows f
 | 38,0–45,0 | `git clone` + `python3 -B examples/ensayo_escalera.py` (monospace, still) | «If this stops being true, the rehearsal fails first.» |
 
 **Animation:** the four `real` timings appear as columns of one table, not as a trend line: there is no trend, there is dispersion.
-**Figures:** §12 #1, #3, #8, #9.
-**Falsifier:** the commands themselves, on camera, from a cold clone (§13).
+**Figures:** §13 #1, #3, #8, #9.
+**Falsifier:** the commands themselves, on camera, from a cold clone (§14).
 
 ---
 
-## 12 · Figure table
+## 13 · Figure table
 
 | # | figure | command that produces it | date |
 |---|---|---|---|
@@ -324,7 +377,7 @@ Over the whole file that second reading **does not exist**: 58 of its 772 rows f
 | 6 | `coste \| 2 declaradas \| 4 barridas \| 4 hasheadas` | ensayo, step 6/7 | 25-Nov-2026 |
 | 7 | `1 fuera del universo` · `opaco __pycache__/x.pyc` | ensayo, step 7/7 | 25-Nov-2026 |
 | 8 | `343,61 / 164,11 / 67,11 / 264,35 s` | `/usr/bin/time -p` over the act, four machine states | 24–25 Nov-2026 |
-| 9 | `Ran 223 tests` · `OK` | `python3 -B -m unittest discover -s tests` | 25-Nov-2026 |
+| 9 | `Ran 236 tests` · `OK` | `python3 -B -m unittest discover -s tests` | 25-Nov-2026 |
 | 10 | `redundancia \| 5942c9b0… \| 1 declaradas \| 3 observadas` | [`GUIONES.md` §1.3](GUIONES.md) (jq 1.7.1, official manifest) | 25-Nov-2026 |
 | 11 | `ausencia \| .env \| ausente` · `testigo \| ⊥ < .env < …` · `RC 0` | [`GUIONES.md` §1.4](GUIONES.md) | 25-Nov-2026 |
 | 12 | `ausencia \| AGENTS.md \| ausente` · `arbol-ausencia \| presente` · `RC 1` | [`GUIONES.md` §1.4](GUIONES.md) | 25-Nov-2026 |
@@ -335,12 +388,14 @@ Over the whole file that second reading **does not exist**: 58 of its 772 rows f
 | 17 | `frontera \| rota \| … 325c7ca8fb07 … 196b31a91400` · `ausencia sin transito \| …` · `veredicto \| reubicada \| recalculado sobre 2 tramos` | [`GUIONES.md` §1.6](GUIONES.md) | 25-Nov-2026 |
 | 18 | `portador \| deb822 \| 772 filas \| canonico \| digest c0dc59762595` · `portador \| bsd \| 1 filas …` · `portador \| coreutils \| 41 filas \| reordenado \| digest 23aaeb143953` | [`GUIONES.md` §1.7](GUIONES.md) · `tests.test_portador` | 25-Nov-2026 |
 | 19 | `deb822 2 filas 7674c4bedf05` and `coreutils 2 filas … recorte f2ba089a097c` over **the same file** · the accused `881cba55a9d2` | [`GUIONES.md` §1.7](GUIONES.md) | 25-Nov-2026 |
+| 20 | `sobre \| firmado_en_claro \| 1759 bytes de firma \| carga abcf5882746e \| sobre 77737fa4b34f` · `sobre \| ninguno \| 0 bytes de firma` · `SobreSinCarga` over `firma_pegada` | [`GUIONES.md` §1.8](GUIONES.md) · `tests.test_sobre` | 25-Nov-2026 |
+| 21 | the two paths of one object: `carga 149266 B abcf5882746e` through `Release` and through `InRelease` · the measured mistake: `149265 B c8394efad1f4` when the final newline is dropped | [`GUIONES.md` §1.8](GUIONES.md) · §7 of [`SOBRE.md`](SOBRE.md) | 25-Nov-2026 |
 
 `87819` and `87855` count different sets (swept routes / hashed routes, which include declared routes outside the universe); they are not subtracted from each other. `206` is a sum of list lengths printed by the act, not a subtraction.
 
 ---
 
-## 13 · Falsifiers of the series
+## 14 · Falsifiers of the series
 
 | piece | what falsifies it | command |
 |---|---|---|
@@ -351,6 +406,7 @@ Over the whole file that second reading **does not exist**: 58 of its 772 rows f
 | G7 | the absent appointment stops printing `ausente` RC 0, two orders stop sharing one digest, or a `pi` collision stops halting the act | `python3 -B -m unittest tests.test_negocio` |
 | G8 | the chain stops naming the degraded hop, the neutral stops being absorbed, or a broken frontier inherits the absence again | `python3 -B -m unittest tests.test_composicion` |
 | G9 | a real carrier stops being read, the intact file gets accused again, or a slice stops opening two readings | `python3 -B -m unittest tests.test_portador` |
+| G10 | the envelope stops yielding `Release`'s `sha256`, a `firma_pegada` reads as a zero-row manifest again, or `firma no verificada` appears over a file with no signature | `python3 -B -m unittest tests.test_sobre` |
 | all | the suite falls | `python3 -B -m unittest discover -s tests` |
 
 A script whose figure is no longer produced by its command **is not fixed**: it is withdrawn and re-measured.
@@ -359,7 +415,7 @@ Both pages are checked by `tests/test_guiones.py`: same section numbering, same 
 
 ---
 
-## 14 · What must not be filmed yet
+## 15 · What must not be filmed yet
 
 1. **The duplication rate of a client tree: `NO_MEDIDA`.** What is measured is the act over foreign bytes (jq 1.7.1) with a **self-built** copy topology. The `k = 14` copies of the Sello A are worktrees of the same owner.
 2. **The cost on a client machine.** Four runs of the same act range from 67 to 344 s, all on this machine. None of them is "the time of the act".
@@ -373,6 +429,6 @@ Filming any of these seven as if measured is the only mistake this file cannot r
 
 ---
 
-## 15 · Bridge with `letras-video`
+## 16 · Bridge with `letras-video`
 
-Each piece is a `cues.ts` file: `t` in, `t` out, the exact string, and the color. The render is deterministic, so the same cues produce the same MP4 — and the MP4 can be its own subject in G5. Full bridge in [`GUIONES.md` §15](GUIONES.md).
+Each piece is a `cues.ts` file: `t` in, `t` out, the exact string, and the color. The render is deterministic, so the same cues produce the same MP4 — and the MP4 can be its own subject in G5. Full bridge in [`GUIONES.md` §16](GUIONES.md).

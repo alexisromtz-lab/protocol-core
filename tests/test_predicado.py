@@ -120,6 +120,13 @@ from protocol.types import (  # noqa: E402
 #: paga sus cuatro líneas sobre las 93 de HEAD. El acto imprimió 101 líneas y
 #: **3 255** bytes: la predicción de líneas acertó y la de bytes sobró por uno,
 #: que es lo que se declara. La cota se queda en 3 256.
+#: Subida del 2026-11-25 a 109 líneas y 3 530 bytes, pre-registrada **antes** de
+#: emitir: el anillo 6 entra con dos artefactos —`tests/test_sobre.py` en el
+#: bloque de entradas y `src/protocol/sobre.py` en el de código— y cada uno paga
+#: sus cuatro líneas sobre las 101 de HEAD. La predicción de bytes sale de lo que
+#: costaron los ocho del anillo 4 (274 B, ≈34 B por entrada). Si el acto escribe
+#: más, se sube con la cifra medida y se declara la diferencia; si escribe menos,
+#: la cota se queda donde la predicción la puso.
 #:
 #: El acto es un punto fijo, y por eso se corre dos veces. La página emitida es
 #: **entrada** de la suite que la emite: la primera pasada escribe una página que
@@ -129,8 +136,8 @@ from protocol.types import (  # noqa: E402
 #: primera no se esconde, se nombra —es la página que midió el desfase—. Un acto
 #: que se emitiera una sola vez publicaría un veredicto sobre un árbol que ya no
 #: es el que describe.
-COPTA_LINEAS = 101
-COPTA_BYTES = 3256
+COPTA_LINEAS = 109
+COPTA_BYTES = 3530
 #: Cota del acto de censo. Es más ancha que la de la suite porque lleva 12
 #: referencias vivas en vez de 10; se declara aparte para que una cota no mida
 #: el acto que la escribió (§medición con unidad: cada acto, su número).
@@ -140,8 +147,15 @@ COPTA_BYTES = 3256
 #: la pasada que midió la discrepancia 2, y 2 621 en la que la cerró: la
 #: `afirmacion` de la segunda es más corta. La cota se queda en la mayor de las
 #: dos, que es la que el acto puede llegar a escribir.
-COPTA_CENSO_LINEAS = 78
-COPTA_CENSO_BYTES = 2623
+#: Subida del 2026-11-25 a 82 líneas y 2 755 bytes, pre-registrada antes de
+#: emitir: `src/protocol/sobre.py` es una entrada más, y una entrada de este
+#: acto son cuatro líneas de JSON (132 B, medidos sobre las tres anteriores).
+#: El acto imprimió 82 líneas —la predicción acertó— y **2 756** bytes: la de
+#: bytes se quedó corta por uno, y por eso la cota se queda en **2 757**, que es
+#: lo que el archivo pesa con su salto final. Se declara la diferencia en vez de
+#: re-emitir hasta que la predicción cuadre.
+COPTA_CENSO_LINEAS = 82
+COPTA_CENSO_BYTES = 2757
 
 H_A = Hash(ALGORITMO, "a" * 64)
 H_B = Hash(ALGORITMO, "b" * 64)

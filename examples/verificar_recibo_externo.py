@@ -22,6 +22,15 @@ mismas de punta a punta; **no comprueba que el nodo intermedio hiciera su
 trabajo**. Un recibo certifica continuidad de bytes, no correccion de la
 transformacion: quien transformo pudo aplicar el cambio equivocado y firmarlo.
 
+EL SOBRE. Un manifiesto de tercero puede venir firmado en claro (`BEGIN PGP
+SIGNED MESSAGE`), en cuyo caso el archivo y el objeto son **dos** cosas: el
+digest del archivo no es el de la carga. Se desenvuelve aqui, reimplementando
+RFC 4880 §7.1 (linea que empieza por `-` viene escapada como `- `), y se
+publican los dos digests. Medido el 2026-11-25: sin desenvolver, el
+`InRelease` de Debian se leia bien **por casualidad** —la cabecera del sobre
+caia en el mismo cubo que los comentarios— y el verificador no podia decir que
+parte del archivo habia medido.
+
 Codigo de salida:
 
 - `0` la prueba cierra.
@@ -118,6 +127,67 @@ _RE_GRAMATICA = {
 _RE_SECCION = _re.compile(r"^[A-Za-z][A-Za-z0-9]*:[ \t]*$")
 _RE_CAMPO = _re.compile(r"^[A-Za-z][A-Za-z0-9-]*: \S.*$")
 _SUFIJOS_SUELTOS: Tuple[str, ...] = (".sha256", ".sha256sum", ".sum", ".txt")
+
+_INICIO_CLARO = "-----BEGIN PGP SIGNED MESSAGE-----"
+_INICIO_FIRMA = "-----BEGIN PGP SIGNATURE-----"
+_FIN_FIRMA = "-----END PGP SIGNATURE-----"
+
+
+def _desenvolver(texto: str) -> Tuple[str, str, int, int]:
+    """`(topologia, carga, bytes de firma, escapadas)`; independiente del generador.
+
+    Tres topologias, medidas sobre el mismo autor publicando el mismo contenido:
+    `sin_sobre` (nada que desenvolver), `firmado_en_claro` (el objeto va dentro)
+    y `firma_pegada` (el objeto esta en otro archivo y **su nombre no viaja**).
+
+    La carga conserva su salto final: en el armadura ese salto es el separador
+    de la linea `-----BEGIN PGP SIGNATURE-----`, y perderlo cambia el digest del
+    objeto por un byte (medido: 149 265 contra 149 266 en el `InRelease` de Debian).
+    """
+
+    lineas = texto.split("\n")
+    peladas = [l.rstrip() for l in lineas]
+    claros = [i for i, l in enumerate(peladas) if l == _INICIO_CLARO]
+    firmas = [i for i, l in enumerate(peladas) if l == _INICIO_FIRMA]
+    if not claros and not firmas:
+        return "sin_sobre", texto, 0, 0
+    if not claros:
+        bloque = _sin_cola(lineas[firmas[0] :])
+        return "firma_pegada", "", len("\n".join(bloque).encode()), 0
+    cuerpo = lineas[claros[0] + 1 :]
+    # La cabecera del mensaje en claro son lineas `Clave: valor` hasta la primera en blanco.
+    while cuerpo and cuerpo[0].strip() and _RE_CAMPO.match(cuerpo[0].strip()):
+        cuerpo = cuerpo[1:]
+    if cuerpo and not cuerpo[0].strip():
+        cuerpo = cuerpo[1:]
+    corte = next(
+        (i for i, l in enumerate(cuerpo) if l.strip() in (_INICIO_FIRMA, _FIN_FIRMA)), len(cuerpo)
+    )
+    escapadas = 0
+    carga = []
+    for linea in cuerpo[:corte]:
+        if linea.startswith("- "):
+            escapadas += 1
+            carga.append(linea[2:])
+        elif linea.startswith("-"):
+            escapadas += 1
+            carga.append(linea[1:])
+        else:
+            carga.append(linea.rstrip())
+    cuerpo_carga = "\n".join(carga)
+    if cuerpo_carga and not cuerpo_carga.endswith("\n"):
+        cuerpo_carga += "\n"
+    bloque = _sin_cola(cuerpo[corte:])
+    return "firmado_en_claro", cuerpo_carga, len("\n".join(bloque).encode()), escapadas
+
+
+def _sin_cola(lineas: Sequence[str]) -> List[str]:
+    """El bloque de firma sin las lineas vacias que lo siguen: `BEGIN`..`END`."""
+
+    bloque = list(lineas)
+    while bloque and not bloque[-1].strip():
+        bloque.pop()
+    return bloque
 
 
 def _pares(
@@ -342,7 +412,24 @@ def verificar(
             peor, len(tramos), "si" if peor in SOSTIENEN else "no"))
 
     if manifiesto is not None and ultima:
-        crudas, leido_por, ignoradas = _leer_manifiesto(manifiesto, portador, nombre)
+        topologia, carga, bytes_firma, escapadas = _desenvolver(manifiesto)
+        if topologia == "firma_pegada":
+            raise EntradaInvalida(
+                "firma pegada de %d bytes y cero carga: el manifiesto esta en otro archivo "
+                "y su nombre no viaja dentro de este" % (bytes_firma,)
+            )
+        if topologia != "sin_sobre":
+            lineas.append(
+                "sobre | %s | %d bytes de firma | %d escapadas | firma no verificada | archivo %s | carga %s"
+                % (
+                    topologia,
+                    bytes_firma,
+                    escapadas,
+                    _hashlib.sha256(manifiesto.encode("utf-8", "surrogateescape")).hexdigest()[:12],
+                    _hashlib.sha256(carga.encode("utf-8", "surrogateescape")).hexdigest()[:12],
+                )
+            )
+        crudas, leido_por, ignoradas = _leer_manifiesto(carga, portador, nombre)
         ordenado = all(a[0].encode() < b[0].encode() for a, b in zip(crudas, crudas[1:]))
         canonica = sorted(crudas, key=lambda fila: fila[0].encode("utf-8"))
         d_manifiesto = _digest_de_pagina(canonica, "manifiesto")

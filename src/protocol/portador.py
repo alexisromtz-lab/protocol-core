@@ -44,6 +44,8 @@ import re
 from dataclasses import dataclass
 from typing import List, Optional, Sequence, Tuple
 
+from .sobre import Sobre, desenvolver, leer_sobre
+
 #: Anchura del digest admitido. El manifiesto sellado no usa anchuras truncadas.
 ANCHURA = 64
 
@@ -130,6 +132,7 @@ class Lectura:
     crlf: int = 0
     recorte: bool = False
     fuente: str = ""
+    sobre: Optional[Sobre] = None
 
     def __post_init__(self) -> None:
         if self.portador not in GRAMATICAS:
@@ -158,9 +161,11 @@ class Lectura:
                 self.digest()[:12],
             )
         ]
+        if self.sobre is not None:
+            salida.extend(self.sobre.lineas())
         if self.envoltura:
             salida.append(
-                "envoltura | %s | %d bloques ignorados | firma no verificada"
+                "envoltura | %s | %d bloques ignorados"
                 % (self.envoltura, self.ignoradas)
             )
         elif self.ignoradas:
@@ -354,8 +359,12 @@ def _lineas(texto: str) -> List[str]:
     return crudas
 
 
-def _tabula(portador: str, texto: str, nombre: Optional[str]) -> Optional[Lectura]:
-    utiles, envoltura, ignoradas, comentarios, crlf = _cuerpo(portador, _lineas(texto))
+def _tabula(
+    portador: str, carga: str, nombre: Optional[str], sobre: Optional[Sobre] = None
+) -> Optional[Lectura]:
+    if sobre is None:
+        sobre = leer_sobre(carga)
+    utiles, envoltura, ignoradas, comentarios, crlf = _cuerpo(portador, _lineas(carga))
     pares = _empareja(portador, utiles, nombre)
     if pares is None:
         return None
@@ -377,6 +386,7 @@ def _tabula(portador: str, texto: str, nombre: Optional[str]) -> Optional[Lectur
         prefijadas=prefijadas,
         crlf=crlf,
         fuente=nombre or "",
+        sobre=sobre,
     )
 
 
@@ -412,7 +422,7 @@ def dialecto_ajeno(linea: str) -> str:
 
 
 def _candidatos(
-    texto: str, nombre: Optional[str]
+    texto: str, nombre: Optional[str], sobre: Optional[Sobre] = None
 ) -> Tuple[Tuple[str, ...], Tuple[PortadorIncompleto, ...]]:
     """Los portadores que explican el archivo y los que lo explican pero están incompletos."""
 
@@ -420,7 +430,7 @@ def _candidatos(
     incompletos = []
     for portador in GRAMATICAS:
         try:
-            if _tabula(portador, texto, nombre) is not None:
+            if _tabula(portador, texto, nombre, sobre) is not None:
                 salida.append(portador)
         except PortadorIncompleto as exc:
             incompletos.append(exc)
@@ -430,7 +440,8 @@ def _candidatos(
 def facultades(texto: str, nombre: Optional[str] = None) -> Tuple[str, ...]:
     """Los portadores declarados que explican **todas** las líneas del archivo."""
 
-    return _candidatos(texto, nombre)[0]
+    carga, sobre = desenvolver(texto)
+    return _candidatos(carga, nombre, sobre)[0]
 
 
 def detectar(texto: str, nombre: Optional[str] = None) -> str:
@@ -441,7 +452,8 @@ def detectar(texto: str, nombre: Optional[str] = None) -> str:
     puede publicar como si fuera el archivo.
     """
 
-    posibles, incompletos = _candidatos(texto, nombre)
+    carga, sobre = desenvolver(texto)
+    posibles, incompletos = _candidatos(carga, nombre, sobre)
     if len(posibles) == 1:
         return posibles[0]
     if len(posibles) > 1:
@@ -449,11 +461,11 @@ def detectar(texto: str, nombre: Optional[str] = None) -> str:
     if incompletos:
         # El archivo sí se explica: lo que falta es el dato que su portador no escribe.
         raise incompletos[0]
-    for numero, cruda in enumerate(_lineas(texto), start=1):
+    for numero, cruda in enumerate(_lineas(carga), start=1):
         linea, _ = _sin_cr(cruda)
         if linea.strip() == "" or linea.strip().startswith("#") or linea.strip().startswith("Hash:"):
             continue
-        if linea == _PGP_INICIO or linea.startswith("-----"):
+        if linea.startswith("-----"):
             continue
         raise PortadorDesconocido(numero, linea, dialecto_ajeno(linea))
     raise PortadorDesconocido(1, "", "el archivo no trae ninguna línea de manifiesto")
@@ -464,10 +476,11 @@ def leer(texto: str, portador: str, nombre: Optional[str] = None) -> Lectura:
 
     if portador not in GRAMATICAS:
         raise PortadorDesconocido(0, portador, "portador no declarado en GRAMATICAS")
-    lectura = _tabula(portador, texto, nombre)
+    carga, sobre = desenvolver(texto)
+    lectura = _tabula(portador, carga, nombre, sobre)
     if lectura is not None:
         return lectura
-    utiles = _cuerpo(portador, _lineas(texto))[0]
+    utiles = _cuerpo(portador, _lineas(carga))[0]
     patron = _LINEA[portador]
     for numero, linea in utiles:
         if not patron.match(linea):
@@ -505,12 +518,14 @@ def recortes(texto: str, nombre: Optional[str] = None) -> Tuple[Lectura, ...]:
     no una sospecha: dos digests del mismo nombre, para que se vean los dos.
     """
 
-    propio = set(facultades(texto, nombre))
+    carga, _ = desenvolver(texto)
+    recortada = _recortado(carga)
+    propio = set(facultades(carga, nombre))
     alternativas = []
-    for portador in facultades(_recortado(texto), nombre):
+    for portador in facultades(recortada, nombre):
         if portador in propio:
             continue
-        lectura = _tabula(portador, _recortado(texto), nombre)
+        lectura = _tabula(portador, recortada, nombre)
         if lectura is None:
             continue
         alternativas.append(
@@ -524,6 +539,7 @@ def recortes(texto: str, nombre: Optional[str] = None) -> Tuple[Lectura, ...]:
                 crlf=lectura.crlf,
                 recorte=True,
                 fuente=lectura.fuente,
+                sobre=lectura.sobre,
             )
         )
     return tuple(alternativas)

@@ -1,5 +1,5 @@
 {
-  "afirmacion": "el universo protocol-core.src.protocol cuenta 10 (archivo); la declaracion vigente dice 10; la discrepancia es 0",
+  "afirmacion": "el universo protocol-core.src.protocol cuenta 11 (archivo); la declaracion vigente dice 11; la discrepancia es 0",
   "entradas": [
     {
       "ruta": "src/protocol/__init__.py",
@@ -27,11 +27,15 @@
     },
     {
       "ruta": "src/protocol/portador.py",
-      "sha256": "4a651909a11f2347448cfb304acc29ecc0031b6b6b23139aee3ac41d53174a03"
+      "sha256": "89bc0aacf9722303a3484c8488f4fdc41708c7140d956c268d2751c74bb0f825"
     },
     {
       "ruta": "src/protocol/predicado.py",
       "sha256": "389b0485f0df6219590ae67ec863dabbe301723c1889925e4fdef5a47308f651"
+    },
+    {
+      "ruta": "src/protocol/sobre.py",
+      "sha256": "758bfa1df60157d1e3706ffd94b3d1e0ed0e6a973bafc875534da62d409a6140"
     },
     {
       "ruta": "src/protocol/types.py",
@@ -71,7 +75,7 @@
   },
   "salida": {
     "ruta": "examples/censo-vigente.txt",
-    "sha256": "e63465558d319480af29202370f20312be1892a62ada07cf4f2285ec2239c8c8"
+    "sha256": "4e1ee11388a3b6bc98871f32421eb97917b709d46e7d14a50aabe92e7f82cb9e"
   },
   "veredicto": "conforme",
   "h_prev": null
