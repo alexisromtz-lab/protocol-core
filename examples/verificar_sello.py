@@ -35,11 +35,13 @@ rutas declaradas (sin barrido) | ...`— y lo que costó en contadores, no en
 segundos: `coste | N declaradas | B barridas | H hasheadas`. Un cronómetro no
 reproduce y la página tiene que reproducir bit a bit, así que la duración va al
 stream de medición (`MEDICION | reloj de duracion`) y nunca al recibo. Medido el
-2026-11-24 sobre el Sello A de platino-labs: 87 813 caminos barridos para
-adjudicar 14 filas, de las que 10 se sostienen en su sitio, `real 343,61 s` con
-`57,71 s` de CPU: cuatro quintos del coste son espera de I/O, y por eso la vía
-rápida no es un adorno. Con las 14 rutas intactas el mismo acto se decide sin
-tocar el universo.
+2026-11-24 sobre el Sello A de platino-labs, desde un clon público y sin nada más
+corriendo: 87 816 caminos barridos para adjudicar 14 filas, de las que 10 se
+sostienen en su sitio, `real 164,11 s` con `24,14 s` de CPU — cinco sextos del
+coste son espera de I/O, y por eso la vía rápida no es un adorno. Con las 14
+rutas intactas el mismo acto se decide sin tocar el universo. (Una medición
+anterior del mismo sujeto dio `real 343,61 s` porque corría en paralelo con la
+suite: el reloj medía la máquina, no el acto.)
 
 El recibo se **publica en stdout** con cualquier sujeto, no sólo con la fixture.
 Un acto que se vende por acto tiene que entregar el recibo: quien pide la
@@ -117,8 +119,8 @@ def _referencias(relativas: tuple) -> tuple:
     return tuple(entradas)
 
 
-def _universo_git(raiz: str) -> tuple:
-    """Las rutas versionadas, si `raiz` es la raíz del árbol. Si no, `None`."""
+def _raiz_git(raiz: str):
+    """La raíz del árbol git, si `raiz` lo es exactamente. Si no, `None`."""
 
     try:
         tope = _subprocess.run(
@@ -134,6 +136,14 @@ def _universo_git(raiz: str) -> tuple:
     declarado = tope.stdout.decode("utf-8", "replace").strip()
     if not declarado or _os.path.realpath(declarado) != _os.path.realpath(raiz):
         return None
+    return raiz
+
+
+def _universo_git(raiz: str) -> tuple:
+    """Las rutas versionadas, si `raiz` es la raíz del árbol. Si no, `None`."""
+
+    if _raiz_git(raiz) is None:
+        return None
     listado = _subprocess.run(
         ["git", "-C", raiz, "ls-files", "-z"],
         stdout=_subprocess.PIPE,
@@ -144,6 +154,47 @@ def _universo_git(raiz: str) -> tuple:
         return None
     crudo = listado.stdout.decode("utf-8", "surrogateescape")
     return tuple(ruta for ruta in crudo.split("\x00") if ruta)
+
+
+def _regimen(raiz: str, modo: str) -> str:
+    """Qué universo se barrería, sin barrerlo: `git` o `caminata`."""
+
+    if modo in ("auto", "git"):
+        if _raiz_git(raiz) is not None:
+            return "git"
+        if modo == "git":
+            raise SystemExit("--universo git exige que --raiz sea la raiz de un arbol git")
+    return "caminata"
+
+
+def _dentro_del_universo(raiz: str, rutas, modo: str) -> bool:
+    """¿El universo que se barrería indexa estas rutas? Se pregunta, no se supone.
+
+    La vía rápida certifica bytes sin consultar el universo, y el universo tiene
+    borde: `.git` y `__pycache__` quedan fuera de la caminata, y en `git
+    ls-files` lo no versionado no está. Un acto que certifique una ruta que su
+    propio universo no indexa da dos veredictos sobre los mismos bytes —uno por
+    régimen— y entonces el veredicto no es del sujeto, es del camino.
+    """
+
+    if not rutas:
+        return True
+    if _regimen(raiz, modo) == "caminata":
+        return all(
+            not any(segmento in EXCLUSIONES for segmento in ruta.split("/")[:-1])
+            for ruta in rutas
+        )
+    listado = _subprocess.run(
+        ["git", "-C", raiz, "ls-files", "-z", "--"] + list(rutas),
+        stdout=_subprocess.PIPE,
+        stderr=_subprocess.DEVNULL,
+        check=False,
+    )
+    if listado.returncode != 0:
+        return False
+    crudo = listado.stdout.decode("utf-8", "surrogateescape")
+    versionadas = {ruta for ruta in crudo.split("\x00") if ruta}
+    return versionadas.issuperset(rutas)
 
 
 def _universo_caminata(raiz: str) -> tuple:
@@ -168,12 +219,11 @@ def _universo(raiz: str, modo: str = "auto") -> tuple:
 
     if modo not in ("auto", "git", "disco"):
         raise SystemExit("--universo admite auto, git o disco")
-    if modo in ("auto", "git"):
+    if _regimen(raiz, modo) == "git":
         por_git = _universo_git(raiz)
         if por_git is not None:
             return por_git, "git ls-files"
-        if modo == "git":
-            raise SystemExit("--universo git exige que --raiz sea la raiz de un arbol git")
+        raise SystemExit("--universo git exige que --raiz sea la raiz de un arbol git")
     return _universo_caminata(raiz), "caminata con %d exclusiones" % len(EXCLUSIONES)
 
 
@@ -280,8 +330,15 @@ def main(argv: tuple) -> int:
     declaradas = manifiesto.filas
     # El barrido del universo es una continuación y no un peaje: `intacta` se
     # decide con las rutas declaradas, y sólo cuando alguna deja de sostenerse
-    # hace falta el universo para nombrar un destino.
-    directa = adjudicar_por_rutas(declaradas, raiz)
+    # hace falta el universo para nombrar un destino. Pero el universo tiene
+    # borde, y una ruta fuera de ese borde no se puede certificar sin barrer:
+    # el régimen no puede cambiar el veredicto sobre los mismos bytes.
+    declaradas_utiles = [d.ruta for d in declaradas if not d.opaca]
+    directa = (
+        adjudicar_por_rutas(declaradas, raiz)
+        if _dentro_del_universo(raiz, declaradas_utiles, modo)
+        else None
+    )
     barrido = directa is None
     if barrido:
         rutas, fuente = _universo(raiz, modo)

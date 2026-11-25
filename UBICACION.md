@@ -138,11 +138,16 @@ adjudicar sólo funciona en el árbol donde se escribió el verificador.
 `INTACTA` vive en la sub-σ-álgebra que generan las rutas declaradas: si las `N`
 rutas del manifiesto miden su digest en su sitio, no hay nada que el barrido
 pueda añadir salvo coste. Medido el 2026-11-24 sobre el Sello A de `platino-labs`
-(14 filas, 87 813 caminos): `real 343,61 s`, de los que `57,71 s` son CPU — cuatro
-quintos del reloj son espera de I/O. Con las 14 rutas intactas el mismo acto se
-decide en milisegundos y lo declara: `universo | 14 rutas | rutas declaradas (sin
-barrido) | 0 fuera del universo` y `coste | 14 declaradas | 0 barridas | 14
-hasheadas`.
+desde un clon público y con la máquina quieta (14 filas, 87 816 caminos): `real
+164,11 s`, de los que `24,14 s` son CPU — cinco sextos del reloj son espera de
+I/O. Con las 14 rutas intactas el mismo acto se decide en milisegundos y lo
+declara: `universo | 14 rutas | rutas declaradas (sin barrido) | 0 fuera del
+universo` y `coste | 14 declaradas | 0 barridas | 14 hasheadas`.
+
+La misma medición, tomada veinte minutos antes **en paralelo con la suite**,
+daba `real 343,61 s` y `57,71 s` de CPU: el doble. No es que el acto fuese más
+caro, es que el reloj medía la máquina. Dos cifras del mismo sujeto no se
+promedian: la contaminada se publica con su causa y la limpia se usa.
 
 La vía rápida **no puede** adjudicar nada más. Devuelve `None` —no un veredicto—
 en cuanto una fila deja de sostenerse, porque sin universo no hay dónde mirar:
@@ -154,6 +159,20 @@ en cuanto una fila deja de sostenerse, porque sin universo no hay dónde mirar:
   `INTACTA`: `∀ p ∈ ∅` es verdadero y no certifica nada.
 - una ruta que se resuelve fuera de `--raiz` (escape `..`, enlace externo) ⇒
   `None`: no se lee, y no se adjudica con lo que no se leyó.
+
+**El régimen no puede cambiar el veredicto sobre los mismos bytes.** La vía
+rápida sólo puede certificar `INTACTA` si el universo que *sería* barrido indexa
+las `N` rutas declaradas; si el régimen las excluye, la fila sería `OPACO` en el
+barrido y `INTACTA` por la puerta de atrás. La pertenencia se **pregunta** —un
+segmento de `EXCLUSIONES` en modo caminata, `git ls-files` en modo git— nunca se
+supone. Medido el 2026-11-24 con un `.git/configuracion` declarado en un
+repositorio de una sola confirmación: antes del cierre, la misma materia daba
+`2 conforme -> INTACTA` (`coste | 2 declaradas | 0 barridas`) por la vía rápida y
+`1 opaco -> NO_MEDIDA` al forzar el barrido. Después, `__pycache__/x.pyc`
+declarado da `1 opaco -> NO_MEDIDA` en los dos regímenes, y lo dice con la misma
+línea de testigo: `opaco __pycache__/x.pyc (la ruta existe en disco y el
+universo declarado no la indexa)`. Falsadores: P-45. Un veredicto que depende
+del camino elegido no es un veredicto sobre el objeto.
 
 Lo que la vía rápida **no publica** es `k_obs`. El recibo lo dice con una laguna
 —`sin barrido del universo: … y k observado no se publica`— para que `INTACTA`

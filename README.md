@@ -305,11 +305,13 @@ P-41, dos casos por `subprocess` sobre un sujeto temporal.
 **El universo es una continuación, no un peaje.** Si las rutas declaradas se
 sostienen, el acto no barre: `INTACTA` vive en la σ-álgebra que generan esas
 rutas y el barrido sólo añadiría coste. Medido el 2026-11-24 sobre el Sello A de
-`platino-labs` —14 filas, 87 813 caminos— `real 343,61 s` con `57,71 s` de CPU:
-cuatro quintos del reloj son espera de I/O para adjudicar 14 filas, de las que 10
-se sostienen en su sitio. Con las 14 intactas el mismo acto se decide en
-milisegundos. El recibo declara en cuál de los dos regímenes decidió y lo que
-costó en contadores, no en segundos:
+`platino-labs` desde un clon público y con la máquina quieta —14 filas, 87 816
+caminos— `real 164,11 s` con `24,14 s` de CPU: cinco sextos del reloj son espera
+de I/O para adjudicar 14 filas, de las que 10 se sostienen en su sitio. (La misma
+medición tomada en paralelo con la suite daba el doble: `343,61 s`. El reloj
+medía la máquina.) Con las 14 intactas el mismo acto se decide en milisegundos.
+El recibo declara en cuál de los dos regímenes decidió y lo que costó en
+contadores, no en segundos:
 
 ```
 universo | 14 rutas | rutas declaradas (sin barrido) | 0 fuera del universo
@@ -323,6 +325,13 @@ cuanto una fila deja de sostenerse, porque sin universo no hay dónde mirar un
 `REUBICADO` ni contra qué probar un `DIVERGE`. Un manifiesto vacío tampoco es
 `INTACTA`: `∀ p ∈ ∅` es verdadero y no certifica nada. Publica `UBICACION.md`
 §3.0.1. Falsadores: P-43, seis casos.
+
+**El régimen no puede cambiar el veredicto.** La vía rápida sólo certifica si el
+universo que *sería* barrido indexa las rutas declaradas; la pertenencia se
+pregunta al régimen (segmento excluido, `git ls-files`), no se supone. Sin esa
+pregunta, una ruta que el barrido llamaría `OPACO` pasaba `INTACTA` por la puerta
+de atrás: medido, `2 conforme -> INTACTA` frente a `1 opaco -> NO_MEDIDA` sobre la
+misma materia. Falsadores: P-44, P-45.
 
 **La ley bipartita `k_decl × k_obs`** cierra el cuadro sin casos especiales: `2×2`
 en las mismas rutas ⇒ `INTACTA` (jq 1.7.1); `1×14` en otras ⇒ `REUBICADA` con las

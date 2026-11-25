@@ -1010,7 +1010,7 @@ class TestRegimenDelRecibo(_unittest.TestCase):
         with open(self.manifiesto, "w", encoding="utf-8") as flujo:
             flujo.write("%s  a.md\n" % _sha256(b"uno\n"))
 
-    def _correr(self):
+    def _correr(self, modo: str = "disco"):
         return _subprocess.run(
             [
                 _sys.executable,
@@ -1021,7 +1021,7 @@ class TestRegimenDelRecibo(_unittest.TestCase):
                 "--raiz",
                 self.raiz,
                 "--universo",
-                "disco",
+                modo,
             ],
             cwd=_RAIZ,
             stdout=_subprocess.PIPE,
@@ -1053,6 +1053,49 @@ class TestRegimenDelRecibo(_unittest.TestCase):
         self.assertNotIn("(sin barrido)", salida)
         self.assertRegex(salida, r"coste \| 1 declaradas \| [1-9][0-9]* barridas \| ")
         self.assertIn("1 reubicado", salida)
+
+    def test_p45_una_ruta_que_el_universo_no_indexa_no_se_certifica(self) -> None:
+        """El régimen no puede cambiar el veredicto sobre los mismos bytes.
+
+        Medido antes de este falsador: un manifiesto que declaraba
+        `__pycache__/x.pyc` salía `INTACTA` por la vía rápida —dos rutas, cero
+        barridas— y `no_medida` al barrer, porque `.git` y `__pycache__` quedan
+        fuera del universo. Dos veredictos sobre los mismos bytes: el veredicto
+        no era del sujeto, era del camino.
+        """
+
+        _os.makedirs(_os.path.join(self.raiz, "__pycache__"))
+        with open(_os.path.join(self.raiz, "__pycache__", "x.pyc"), "wb") as flujo:
+            flujo.write(b"pc\n")
+        with open(self.manifiesto, "a", encoding="utf-8") as flujo:
+            flujo.write("%s  __pycache__/x.pyc\n" % _sha256(b"pc\n"))
+
+        corrida = self._correr()
+        salida = corrida.stdout.decode("utf-8", "replace")
+        _medicion("P-45 fuera del universo", salida.splitlines()[0])
+
+        self.assertEqual(1, corrida.returncode, salida)
+        self.assertNotIn("(sin barrido)", salida)
+        self.assertIn("1 opaco", salida)
+        self.assertIn("no_medida", salida)
+
+    def test_p45_git_no_certifica_lo_que_no_versiona(self) -> None:
+        """En `git ls-files` lo no versionado tampoco está: mismo borde, otro régimen."""
+
+        _subprocess.run(["git", "init", "-q", self.raiz], check=True)
+        _subprocess.run(["git", "-C", self.raiz, "add", "a.md"], check=True)
+        with open(_os.path.join(self.raiz, "suelto.md"), "wb") as flujo:
+            flujo.write(b"suelto\n")
+        with open(self.manifiesto, "a", encoding="utf-8") as flujo:
+            flujo.write("%s  suelto.md\n" % _sha256(b"suelto\n"))
+
+        corrida = self._correr("auto")
+        salida = corrida.stdout.decode("utf-8", "replace")
+        _medicion("P-45 git sin versionar", salida.splitlines()[0])
+
+        self.assertEqual(1, corrida.returncode, salida)
+        self.assertIn("git ls-files", salida)
+        self.assertIn("1 opaco", salida)
 
 
 if __name__ == "__main__":
