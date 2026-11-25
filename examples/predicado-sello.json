@@ -25,7 +25,7 @@
   "codigo": [
     {
       "ruta": "examples/verificar_sello.py",
-      "sha256": "220bf382f078c6b32347765456e4635fce07e1c10f61cf0fd0a26907803b40d5"
+      "sha256": "8cb5579300d6b8a63ab5a0ae6b6e8e056bd0afd358790dcad93be7b2aed8423d"
     },
     {
       "ruta": "src/protocol/predicado.py",
@@ -37,7 +37,7 @@
     },
     {
       "ruta": "src/protocol/ubicacion.py",
-      "sha256": "cf3d5d3387561eba6cdd01cf7d22f27ad02a164ee49c049504cf7cb51486f302"
+      "sha256": "226b99e4ddece9b081fcbab10c5aebc1792a4963d02e79149c0e39be92f74747"
     }
   ],
   "entorno": {

@@ -1098,5 +1098,113 @@ class TestRegimenDelRecibo(_unittest.TestCase):
         self.assertIn("1 opaco", salida)
 
 
+class TestRedundancia(_unittest.TestCase):
+    """P-46 · las copias que nadie declaró se publican, y no cambian el veredicto.
+
+    La fibra publica `k_decl`: cuántas rutas declara el manifiesto para un
+    digest. La redundancia publica la diferencia `k_obs - k_decl`: cuántas
+    encontró el árbol y nadie declaró. Un artefacto intacto que además vive en
+    catorce sitios no está roto —y por eso el veredicto no se toca—, pero dos
+    copias idénticas hoy son dos candidatas a separarse mañana, y el recibo que
+    lo calla deja al lector sin el dato que más le importa.
+
+    Para ver la línea hace falta el barrido: la vía rápida construye su índice
+    sólo con las rutas declaradas, así que `k_obs == k_decl` por construcción.
+    Se fuerza el barrido declarando una fila fantasma, y se comprueba que la
+    copia de más **no rescata ni condena**: el veredicto sigue hablando de la
+    fila que falta.
+    """
+
+    DIGEST = _sha256(b"uno\n")
+
+    def setUp(self) -> None:
+        self.raiz = _tempfile.mkdtemp()
+        self.addCleanup(_shutil.rmtree, self.raiz, True)
+        self.manifiesto = _os.path.join(self.raiz, "SHA256SUMS")
+        for ruta in ("a.md", "b.md"):
+            with open(_os.path.join(self.raiz, ruta), "wb") as flujo:
+                flujo.write(b"uno\n")
+        with open(self.manifiesto, "w", encoding="utf-8") as flujo:
+            flujo.write("%s  a.md\n%s  b.md\n" % (self.DIGEST, self.DIGEST))
+
+    def _fantasma(self) -> None:
+        """Una fila declarada cuyos bytes no están en ninguna parte: fuerza el barrido."""
+
+        with open(self.manifiesto, "a", encoding="utf-8") as flujo:
+            flujo.write("%s  z.md\n" % _sha256(b"fantasma\n"))
+
+    def _copia(self) -> None:
+        _os.mkdir(_os.path.join(self.raiz, "copia"))
+        with open(_os.path.join(self.raiz, "copia", "c.md"), "wb") as flujo:
+            flujo.write(b"uno\n")
+
+    def _correr(self, modo: str = "disco"):
+        return _subprocess.run(
+            [
+                _sys.executable,
+                "-B",
+                _os.path.join(_RAIZ, "examples", "verificar_sello.py"),
+                "--manifiesto",
+                self.manifiesto,
+                "--raiz",
+                self.raiz,
+                "--universo",
+                modo,
+            ],
+            cwd=_RAIZ,
+            stdout=_subprocess.PIPE,
+            stderr=_subprocess.STDOUT,
+            check=False,
+        )
+
+    def test_p46_la_copia_declarada_dos_veces_no_es_redundancia(self) -> None:
+        """`k_obs == k_decl` barrido: la fibra declarada no es una copia de más."""
+
+        self._fantasma()
+        corrida = self._correr()
+        salida = corrida.stdout.decode("utf-8", "replace")
+        _medicion("P-46 fibra declarada", [ln for ln in salida.splitlines() if ln.startswith(("fibra", "adjudicacion"))])
+
+        self.assertEqual(1, corrida.returncode, salida)
+        self.assertIn("fibra | %s | 2 declaradas | 2 conformes" % self.DIGEST, salida)
+        self.assertNotIn("redundancia |", salida)
+
+    def test_p46_la_copia_no_declarada_se_publica_y_no_adjudica(self) -> None:
+        """Un tercer camino con los mismos bytes: el dato entra, el veredicto no cambia."""
+
+        self._fantasma()
+        self._copia()
+        corrida = self._correr()
+        salida = corrida.stdout.decode("utf-8", "replace")
+        _medicion("P-46 copia no declarada", [ln for ln in salida.splitlines() if ln.startswith(("redundancia", "adjudicacion"))])
+
+        self.assertEqual(1, corrida.returncode, salida)
+        self.assertIn("1 diverge", salida)
+        self.assertIn("-> divergente", salida)
+        self.assertIn(
+            "redundancia | %s | 2 declaradas | 3 observadas | a.md, b.md, copia/c.md"
+            % self.DIGEST,
+            salida,
+        )
+
+    def test_p46_la_via_rapida_no_cuenta_lo_que_no_declaro(self) -> None:
+        """Sin barrido no hay `k_obs`: la línea no se emite, y no es un cero.
+
+        Es la ceguera propia del régimen rápido, publicada como ausencia y no
+        como `0 observadas`. Quien necesite el recuento de copias pide el
+        barrido; quien pida la compuerta rápida recibe la compuerta rápida.
+        """
+
+        self._copia()
+        corrida = self._correr()
+        salida = corrida.stdout.decode("utf-8", "replace")
+        _medicion("P-46 via rapida", salida.splitlines()[0])
+
+        self.assertEqual(0, corrida.returncode, salida)
+        self.assertIn("(sin barrido)", salida)
+        self.assertIn("-> intacta", salida)
+        self.assertNotIn("redundancia |", salida)
+
+
 if __name__ == "__main__":
     _unittest.main(verbosity=2)

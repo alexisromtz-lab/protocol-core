@@ -35,13 +35,13 @@ rutas declaradas (sin barrido) | ...`— y lo que costó en contadores, no en
 segundos: `coste | N declaradas | B barridas | H hasheadas`. Un cronómetro no
 reproduce y la página tiene que reproducir bit a bit, así que la duración va al
 stream de medición (`MEDICION | reloj de duracion`) y nunca al recibo. Medido el
-2026-11-24 sobre el Sello A de platino-labs, desde un clon público y sin nada más
-corriendo: 87 816 caminos barridos para adjudicar 14 filas, de las que 10 se
-sostienen en su sitio, `real 164,11 s` con `24,14 s` de CPU — cinco sextos del
-coste son espera de I/O, y por eso la vía rápida no es un adorno. Con las 14
-rutas intactas el mismo acto se decide sin tocar el universo. (Una medición
-anterior del mismo sujeto dio `real 343,61 s` porque corría en paralelo con la
-suite: el reloj medía la máquina, no el acto.)
+2026-11-24 sobre el Sello A de platino-labs, con las mismas 14 filas y los mismos
+87 817 caminos: `real 343,61 s` corriendo en paralelo con la suite, `164,11 s`
+con la caché de página fría y `67,11 s` con la caché caliente. El reloj del mismo
+acto sobre los mismos bytes varía ×5 sin que un byte cambie — por eso el recibo
+publica contadores y no segundos: `declaradas`, `barridas` y `hasheadas` sí son
+del objeto; la duración es de la máquina. Con las 14 rutas intactas el acto se
+decide sin tocar el universo.
 
 El recibo se **publica en stdout** con cualquier sujeto, no sólo con la fixture.
 Un acto que se vende por acto tiene que entregar el recibo: quien pide la
@@ -235,6 +235,11 @@ def _salida(adjudicacion, indice, fuente: str, barridas: int, declaradas: int) -
     ]
     lineas.extend(adjudicacion.testigos())
     lineas.extend(adjudicacion.fibras())
+    # La fibra declara cuántas rutas tiene un digest; la redundancia publica las
+    # que nadie declaró. Son el mismo objeto visto desde el manifiesto y desde el
+    # árbol, y la segunda no cambia el veredicto: dos copias idénticas hoy son la
+    # divergencia de mañana, y quien lee el recibo tiene derecho a saberlo.
+    lineas.extend(adjudicacion.redundancias(indice))
     # El coste va en el recibo porque una afirmación de coste en prosa no se
     # puede refutar y estos tres números sí. Son contadores, no reloj: un
     # cronómetro nunca reproduce, y la página tiene que reproducir bit a bit.

@@ -138,16 +138,23 @@ adjudicar sólo funciona en el árbol donde se escribió el verificador.
 `INTACTA` vive en la sub-σ-álgebra que generan las rutas declaradas: si las `N`
 rutas del manifiesto miden su digest en su sitio, no hay nada que el barrido
 pueda añadir salvo coste. Medido el 2026-11-24 sobre el Sello A de `platino-labs`
-desde un clon público y con la máquina quieta (14 filas, 87 816 caminos): `real
-164,11 s`, de los que `24,14 s` son CPU — cinco sextos del reloj son espera de
-I/O. Con las 14 rutas intactas el mismo acto se decide en milisegundos y lo
-declara: `universo | 14 rutas | rutas declaradas (sin barrido) | 0 fuera del
-universo` y `coste | 14 declaradas | 0 barridas | 14 hasheadas`.
+(14 filas, 87 817 caminos), tres veces sobre los mismos bytes:
 
-La misma medición, tomada veinte minutos antes **en paralelo con la suite**,
-daba `real 343,61 s` y `57,71 s` de CPU: el doble. No es que el acto fuese más
-caro, es que el reloj medía la máquina. Dos cifras del mismo sujeto no se
-promedian: la contaminada se publica con su causa y la limpia se usa.
+| medición | `real` | estado de la máquina |
+|---|---|---|
+| 343,61 s | en paralelo con la suite | el reloj medía otra carga |
+| 164,11 s | caché de página fría · `24,14 s` de CPU | cinco sextos son espera de I/O |
+| 67,11 s | caché de página caliente | el mismo trabajo, ya leído |
+
+**×5 sin que un byte cambie.** El coste del barrido no es una propiedad del acto:
+es un estado de la máquina, y por eso no entra al recibo. Lo que sí es del objeto
+son los contadores —`declaradas`, `barridas`, `hasheadas`—, y ésos son los que la
+página publica. Un recibo que promete «verifica en segundos» afirma sobre el
+lector, no sobre el artefacto.
+
+Con las 14 rutas intactas el mismo acto se decide en milisegundos y lo declara:
+`universo | 14 rutas | rutas declaradas (sin barrido) | 0 fuera del universo` y
+`coste | 14 declaradas | 0 barridas | 14 hasheadas`.
 
 La vía rápida **no puede** adjudicar nada más. Devuelve `None` —no un veredicto—
 en cuanto una fila deja de sostenerse, porque sin universo no hay dónde mirar:
@@ -177,6 +184,29 @@ del camino elegido no es un veredicto sobre el objeto.
 Lo que la vía rápida **no publica** es `k_obs`. El recibo lo dice con una laguna
 —`sin barrido del universo: … y k observado no se publica`— para que `INTACTA`
 sin barrido no se lea como una afirmación sobre copias que nadie contó.
+
+### 3.0.2 La redundancia se publica y no adjudica
+
+La fibra es el mismo objeto visto desde el manifiesto (`k_decl`) y desde el árbol
+(`k_obs`). Cuando `k_obs > k_decl` hay copias que **nadie declaró**:
+
+```
+redundancia | <digest> | 2 declaradas | 3 observadas | a.md, b.md, copia/c.md
+```
+
+La línea **no toca el veredicto**. La claim del acto es sobre los bytes
+declarados, y un artefacto intacto que además vive en catorce sitios no está
+roto. Pero dos copias idénticas hoy son dos candidatas a separarse mañana —la
+duplicación es la fase latente de la divergencia— y un recibo que la calla deja
+al lector sin el dato que más le importa cuando cinco agentes escriben en
+paralelo sobre el mismo árbol.
+
+Se emite sólo con el índice observado delante, y sólo para filas `CONFORME`: una
+reubicación ya publica sus `k` caminos en el testigo, y bajo la vía rápida
+`k_obs == k_decl` por construcción, de modo que la línea **no aparece**. Su
+ausencia ahí no es un cero: es que nadie contó. Falsadores: P-46, tres casos,
+uno de ellos probando que la copia de más ni rescata ni condena a la fila que
+falta.
 
 **La lectura inestable no es una divergencia.** Un digest calculado mientras otro
 proceso escribía no es el digest de ningún estado del archivo: es un híbrido que

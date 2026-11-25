@@ -666,6 +666,39 @@ class Adjudicacion:
             )
         return tuple(lineas)
 
+    def redundancias(self, indice: Indice) -> Tuple[str, ...]:
+        """Las filas que están en su sitio **y además** viven en otras rutas.
+
+        `k_decl` es lo que el manifiesto declara; `k_obs` lo que el índice
+        encontró. Con `k_obs > k_decl` el artefacto está intacto y el veredicto
+        no cambia —la claim es sobre los bytes declarados—, pero hay copias que
+        nadie declaró: la duplicación que precede a la divergencia, porque dos
+        copias idénticas hoy son dos candidatas a separarse mañana. Se publica
+        como dato y nunca como veredicto.
+
+        Sólo mira filas `CONFORME`. Una reubicación ya publica sus k caminos en
+        el testigo; repetirlos aquí afirmaría lo mismo dos veces desde el mismo
+        índice. Y bajo la vía rápida el índice se construyó sólo con las rutas
+        declaradas —`k_obs == k_decl` por construcción—, de modo que esta línea
+        no se emite: no es que no haya copias, es que nadie las contó.
+        """
+
+        declaradas_por_digest: Dict[str, int] = {}
+        for j in self.juicios:
+            if j.estado is not EstadoDeEntrada.OPACO:
+                declaradas_por_digest[j.h.digest] = declaradas_por_digest.get(j.h.digest, 0) + 1
+        lineas: List[str] = []
+        for digest in sorted(declaradas_por_digest):
+            k_decl = declaradas_por_digest[digest]
+            k_obs = indice.multiplicidad(digest)
+            if k_obs <= k_decl:
+                continue
+            lineas.append(
+                "redundancia | %s | %d declaradas | %d observadas | %s"
+                % (digest, k_decl, k_obs, ", ".join(indice.rutas_con(digest)))
+            )
+        return tuple(lineas)
+
     def resumen(self) -> str:
         partes = [
             "%d %s" % (self.cuenta(EstadoDeEntrada.CONFORME), EstadoDeEntrada.CONFORME.value),
