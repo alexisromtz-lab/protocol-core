@@ -162,6 +162,33 @@ Dos consecuencias que se declaran porque un tercero las va a encontrar:
   acto que la emite informa `RANCIO` y devuelve RC 1 hasta que se re-ancle; un
   acto que lo callara sería el falso verde que este formato existe para impedir.
 
+## 5.quater El acto es su propio punto fijo: dos pasadas
+
+`examples/emitir_predicado.py` corre la suite y hashea `tests/` y `src/protocol/`
+para escribir `examples/predicado-suite.json`. La página que escribe está dentro
+del universo que hashea: es **entrada** del acto que la emite. De ahí que una
+sola pasada no pueda certificar nada:
+
+1. La primera pasada corre la suite cuando la página todavía describe el árbol
+   anterior. La suite lo acusa —una prueba compara la página con la
+   reconstrucción— y el veredicto reducido sale rojo **por su propia causa**.
+2. La segunda pasada corre sobre la página que la primera dejó. Ya no hay
+   desfase, la suite sale verde y el veredicto reducido que se publica es el de
+   esta corrida.
+
+Se publica el digest de la segunda. El de la primera no se esconde: es la página
+que midió el desfase, y su digest se nombra en el acta. Un acto que se emitiera
+una sola vez publicaría un veredicto sobre un árbol que ya no es el que describe,
+que es la definición de un falso verde en la dirección peligrosa.
+
+**Por qué esto no es «re-emitir hasta que salga verde».** El criterio de parada
+no es el color: es la reproducción. `--check` vuelve a correr el acto entero y
+compara la página byte a byte; si el árbol cambió desde la emisión, diverge y
+devuelve RC 1 aunque el veredicto fuera verde. Un acto que se repitiera hasta
+coincidir con una cifra deseada no mediría nada; éste se repite hasta que la
+página y el árbol son el mismo objeto, y el segundo término no lo elige quien
+emite.
+
 ## 6. Proyección a in-toto Statement v1
 
 El predicado no compite con el estándar; se monta encima. La proyección es

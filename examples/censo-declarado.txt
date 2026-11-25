@@ -14,6 +14,13 @@
 # declarado 7 contra observado 8 con discrepancia 1 (página 23df2ee8). Misma
 # regla, mismo cierre: se declara el 8 aquí y la página del acto que midió la
 # discrepancia queda nombrada por su digest, no sustituida.
+#
+# 2026-11-25, mismo día: el anillo 5 entra con `src/protocol/portador.py` y el
+# acto midió declarado 8 contra observado 10 con discrepancia 2 (página
+# 2d445fb4). La diferencia son dos archivos y se nombran: el módulo nuevo y
+# `ausencia.py`, que el acto anterior había declarado dentro de un universo de
+# 8 cuando ya había 9. Se declara el 10, que es el número medido, no el que
+# habría querido medir.
 
 ruta=src/protocol
 universo=protocol-core.src.protocol
@@ -22,4 +29,4 @@ motor=python3 -B examples/emitir_censo.py
 t_utc=2026-11-25T15:50:00Z
 ventana=no medida: el censo declara movimiento del conjunto, no duracion
 umbral=ninguno: el censo no aplica umbral
-declarado=8
+declarado=10

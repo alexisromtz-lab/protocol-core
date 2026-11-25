@@ -114,13 +114,34 @@ from protocol.types import (  # noqa: E402
 #: Orden del acto, aprendido el 2026-11-25: la cota se toca **antes** de
 #: emitir. Emitir primero deja la página describiendo un archivo que ya cambió,
 #: y `--check` lo acusa recién en el clon frío, donde ya no se puede arreglar.
-COPTA_LINEAS = 93
-COPTA_BYTES = 2982
+#: Subida del 2026-11-25 a 101 líneas y 3 256 bytes, pre-registrada **antes** de
+#: emitir: el anillo 5 entra con dos artefactos —`tests/test_portador.py` en el
+#: bloque de entradas y `src/protocol/portador.py` en el de código— y cada uno
+#: paga sus cuatro líneas sobre las 93 de HEAD. El acto imprimió 101 líneas y
+#: **3 255** bytes: la predicción de líneas acertó y la de bytes sobró por uno,
+#: que es lo que se declara. La cota se queda en 3 256.
+#:
+#: El acto es un punto fijo, y por eso se corre dos veces. La página emitida es
+#: **entrada** de la suite que la emite: la primera pasada escribe una página que
+#: la corrida de esa misma pasada todavía no leyó, y el veredicto que reduce es
+#: rojo por su propia causa. La segunda pasada corre sobre la página que la
+#: primera dejó y reduce verde. Se publica el digest de la segunda; el de la
+#: primera no se esconde, se nombra —es la página que midió el desfase—. Un acto
+#: que se emitiera una sola vez publicaría un veredicto sobre un árbol que ya no
+#: es el que describe.
+COPTA_LINEAS = 101
+COPTA_BYTES = 3256
 #: Cota del acto de censo. Es más ancha que la de la suite porque lleva 12
 #: referencias vivas en vez de 10; se declara aparte para que una cota no mida
 #: el acto que la escribió (§medición con unidad: cada acto, su número).
-COPTA_CENSO_LINEAS = 80
-COPTA_CENSO_BYTES = 2600
+#: Subida del 2026-11-25 a 78 líneas y 2 625 bytes, pre-registrada antes de
+#: emitir: una entrada más (`src/protocol/portador.py`) y la `afirmacion` que
+#: pasa de discrepancia 1 a 0. El acto imprimió 78 líneas y **2 623** bytes en
+#: la pasada que midió la discrepancia 2, y 2 621 en la que la cerró: la
+#: `afirmacion` de la segunda es más corta. La cota se queda en la mayor de las
+#: dos, que es la que el acto puede llegar a escribir.
+COPTA_CENSO_LINEAS = 78
+COPTA_CENSO_BYTES = 2623
 
 H_A = Hash(ALGORITMO, "a" * 64)
 H_B = Hash(ALGORITMO, "b" * 64)

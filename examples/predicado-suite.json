@@ -30,8 +30,12 @@
       "sha256": "076b93a6a6ab48e0674f8ad346ae0094a3dfb39e8f5b6c60caceb1570c35bdbf"
     },
     {
+      "ruta": "tests/test_portador.py",
+      "sha256": "48691e301f3b44ccde7cf9b2893c2c68153a459327493dccdb54ab0cf7402029"
+    },
+    {
       "ruta": "tests/test_predicado.py",
-      "sha256": "3ba74f27c8411a396b3cdaf36a6d0619cfc9e3980540506002fb224f3545b5c5"
+      "sha256": "36889e04e2c40f15e57d0c5c51a7b02fb70cdfcf8e95235b6458706e1a7128b7"
     },
     {
       "ruta": "tests/test_ubicacion.py",
@@ -64,6 +68,10 @@
       "sha256": "b0ffe59125d335352eeea25bc90e6765807bab67fc59f58d7c44f4dff062a767"
     },
     {
+      "ruta": "src/protocol/portador.py",
+      "sha256": "4a651909a11f2347448cfb304acc29ecc0031b6b6b23139aee3ac41d53174a03"
+    },
+    {
       "ruta": "src/protocol/predicado.py",
       "sha256": "389b0485f0df6219590ae67ec863dabbe301723c1889925e4fdef5a47308f651"
     },
@@ -86,7 +94,7 @@
   },
   "salida": {
     "ruta": "examples/veredicto-suite.txt",
-    "sha256": "729ba0ffab1ea7dd8d2fd6e20a41510c8202c10fde7ceffa264310141b9b18d6"
+    "sha256": "7b59634192564ac173015cb6b75ae684b549de0a14a506cacce3c1f7e024d600"
   },
   "veredicto": "conforme",
   "h_prev": null

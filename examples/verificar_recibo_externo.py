@@ -34,6 +34,7 @@ from __future__ import annotations
 
 import hashlib as _hashlib
 import json as _json
+import re as _re
 import sys as _sys
 from typing import Dict, List, Optional, Sequence, Tuple
 
@@ -102,6 +103,120 @@ def _digest_de_pagina(filas: Sequence[Tuple[str, str, str]], donde: str) -> str:
     return _hashlib.sha256(texto.encode("utf-8")).hexdigest()
 
 
+#: Las cuatro gramaticas, reescritas aqui desde su descripcion y no importadas:
+#: dos modulos que importan el mismo patron siempre coinciden, y la coincidencia
+#: seria entonces una tautologia. Son disjuntas por la columna donde exigen el
+#: separador —`coreutils` en la 65 sin espacio delante, `deb822` con un espacio
+#: delante, `bsd` con parentesis y `suelto` con la linea entera.
+GRAMATICAS: Tuple[str, ...] = ("coreutils", "bsd", "deb822", "suelto")
+_RE_GRAMATICA = {
+    "coreutils": _re.compile(r"^([0-9a-f]{64}) [ *](\S.*)$"),
+    "bsd": _re.compile(r"^SHA256 \((.+)\) = ([0-9a-f]{64})$"),
+    "deb822": _re.compile(r"^ ([0-9a-f]{64}) +([0-9]+) (\S.*)$"),
+    "suelto": _re.compile(r"^([0-9a-f]{64})$"),
+}
+_RE_SECCION = _re.compile(r"^[A-Za-z][A-Za-z0-9]*:[ \t]*$")
+_RE_CAMPO = _re.compile(r"^[A-Za-z][A-Za-z0-9-]*: \S.*$")
+_SUFIJOS_SUELTOS: Tuple[str, ...] = (".sha256", ".sha256sum", ".sum", ".txt")
+
+
+def _pares(
+    portador: str, texto: str, nombre: Optional[str]
+) -> Optional[Tuple[List[Tuple[str, str, str]], int]]:
+    """Las filas y cuantas lineas quedaron fuera de la gramatica, o `None`.
+
+    `ignoradas` no es un adorno: un manifiesto del que se ignora la mitad no se
+    ha leido, se ha supuesto, y el numero que lo acompania es lo que permite al
+    tercero ver que se supuso.
+    """
+
+    filas: List[Tuple[str, str, str]] = []
+    ignoradas = 0
+    seccion: Optional[str] = None
+    for cruda in texto.split("\n"):
+        linea = cruda[:-1] if cruda.endswith("\r") else cruda
+        pelada = linea.strip()
+        if not pelada:
+            continue
+        if pelada.startswith("-----BEGIN PGP SIGNATURE"):
+            # El sobre de firma no es manifiesto: no se verifica, y se dice.
+            ignoradas += 1
+            break
+        if pelada.startswith("#") or pelada.startswith("-----") or pelada.startswith("Hash:"):
+            ignoradas += 1
+            continue
+        if _RE_SECCION.match(pelada):
+            seccion = pelada
+            ignoradas += 1
+            continue
+        if _RE_CAMPO.match(pelada):
+            # Campo del preambulo deb822 (`Origin: Debian`): no es fila.
+            ignoradas += 1
+            continue
+        hallado = _RE_GRAMATICA[portador].match(linea)
+        if portador == "deb822":
+            if seccion not in (None, "SHA256:"):
+                # Fila de otro algoritmo: no es de esta gramatica, y se cuenta.
+                ignoradas += 1
+                continue
+            if not hallado:
+                return None
+            digest, _, ruta = hallado.groups()
+        elif portador == "coreutils":
+            if not hallado:
+                return None
+            digest, ruta = hallado.groups()
+        elif portador == "bsd":
+            if not hallado:
+                return None
+            ruta, digest = hallado.groups()
+        else:
+            if not hallado:
+                return None
+            if not nombre:
+                return None
+            digest = hallado.group(1)
+            ruta = nombre
+            for sufijo in _SUFIJOS_SUELTOS:
+                if ruta.endswith(sufijo):
+                    ruta = ruta[: -len(sufijo)]
+                    break
+        filas.append((ruta, digest, ""))
+    if not filas:
+        return None
+    return filas, ignoradas
+
+
+def _leer_manifiesto(
+    texto: str, declarado: str, nombre: Optional[str]
+) -> Tuple[List[Tuple[str, str, str]], str, int]:
+    """El portador declarado, o el unico que lo explica. Dos lecturas no se eligen."""
+
+    if declarado not in ("auto",) + GRAMATICAS:
+        raise EntradaInvalida("portador no declarado: %r" % (declarado,))
+    if declarado == "suelto" and not nombre:
+        raise EntradaInvalida("el portador suelto no escribe el nombre de la ruta: pase --nombre")
+    if declarado != "auto":
+        leido = _pares(declarado, texto, nombre)
+        if leido is None:
+            raise EntradaInvalida("el manifiesto no es %s" % (declarado,))
+        return leido[0], declarado, leido[1]
+    lecturas = {}
+    for uno in GRAMATICAS:
+        leido = _pares(uno, texto, nombre)
+        if leido is not None:
+            lecturas[uno] = leido
+    if not lecturas:
+        raise EntradaInvalida("ninguna de las cuatro gramaticas explica el manifiesto")
+    if len(lecturas) > 1:
+        raise EntradaInvalida(
+            "el manifiesto abre %d lecturas (%s): declare --portador"
+            % (len(lecturas), ", ".join(sorted(lecturas)))
+        )
+    unico = next(iter(lecturas))
+    return lecturas[unico][0], unico, lecturas[unico][1]
+
+
 def _vecinos(filas: Sequence[Tuple[str, str, str]], consulta: str) -> Dict[str, object]:
     """La consulta negativa, resuelta sin creerse nada del testigo declarado."""
 
@@ -124,7 +239,13 @@ def _vecinos(filas: Sequence[Tuple[str, str, str]], consulta: str) -> Dict[str, 
     return {"estado": "ausente", "anterior": anterior, "siguiente": siguiente, "posicion": posicion}
 
 
-def verificar(recibo: Dict[str, object], manifiesto: Optional[str], ausente: Optional[str]) -> Tuple[int, List[str]]:
+def verificar(
+    recibo: Dict[str, object],
+    manifiesto: Optional[str],
+    ausente: Optional[str],
+    portador: str = "auto",
+    nombre: Optional[str] = None,
+) -> Tuple[int, List[str]]:
     lineas: List[str] = []
     fallos = 0
     tramos = recibo.get("tramos")
@@ -221,18 +342,13 @@ def verificar(recibo: Dict[str, object], manifiesto: Optional[str], ausente: Opt
             peor, len(tramos), "si" if peor in SOSTIENEN else "no"))
 
     if manifiesto is not None and ultima:
-        crudas = []
-        for numero, linea in enumerate(manifiesto.splitlines(), 1):
-            if not linea.strip():
-                continue
-            partes = linea.split("  ", 1)
-            if len(partes) != 2:
-                raise EntradaInvalida("linea %d del manifiesto sin dos columnas" % numero)
-            crudas.append((partes[1], partes[0], ""))
+        crudas, leido_por, ignoradas = _leer_manifiesto(manifiesto, portador, nombre)
         ordenado = all(a[0].encode() < b[0].encode() for a, b in zip(crudas, crudas[1:]))
         canonica = sorted(crudas, key=lambda fila: fila[0].encode("utf-8"))
         d_manifiesto = _digest_de_pagina(canonica, "manifiesto")
         ultimo = _digest_de_pagina(ultima, "ultima")
+        lineas.append("portador | %s | %d filas | %d lineas fuera de la gramatica" % (
+            leido_por, len(crudas), ignoradas))
         if d_manifiesto != ultimo:
             fallos += 1
             lineas.append("manifiesto | no reproduce la ultima pagina | %s | %s" % (d_manifiesto[:12], ultimo[:12]))
@@ -276,7 +392,10 @@ def main(argv: Sequence[str]) -> int:
             print(linea)
         return codigo
     if "--recibo" not in argumentos:
-        print("uso: verificar_recibo_externo.py --recibo RECIBO.json [--manifiesto F] [--ausente RUTA]")
+        print(
+            "uso: verificar_recibo_externo.py --recibo RECIBO.json [--manifiesto F]"
+            " [--ausente RUTA] [--portador auto|coreutils|bsd|deb822|suelto] [--nombre F]"
+        )
         return 2
     ruta = argumentos[argumentos.index("--recibo") + 1]
     manifiesto = None
@@ -286,10 +405,16 @@ def main(argv: Sequence[str]) -> int:
             manifiesto = flujo.read()
     if "--ausente" in argumentos:
         ausente = argumentos[argumentos.index("--ausente") + 1]
+    portador = "auto"
+    nombre = None
+    if "--portador" in argumentos:
+        portador = argumentos[argumentos.index("--portador") + 1]
+    if "--nombre" in argumentos:
+        nombre = argumentos[argumentos.index("--nombre") + 1]
     try:
         with open(ruta, "r", encoding="utf-8") as flujo:
             datos = _json.load(flujo)
-        codigo, lineas = verificar(datos, manifiesto, ausente)
+        codigo, lineas = verificar(datos, manifiesto, ausente, portador, nombre)
     except EntradaInvalida as fallo:
         print("entrada-invalida | %s" % fallo)
         return 2

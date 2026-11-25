@@ -1,0 +1,97 @@
+# Portadores de terceros vendorizados — 2026-11-25T19:00Z
+#
+# Cada línea de `sha256=` es el digest del artefacto COMPLETO tal como se descargó,
+# no del recorte vendorizado. La columna `filas` es lo que el artefacto completo
+# escribe; la última columna, lo que se guardó aquí. Un recorte sin su cifra de
+# origen es una copia sin sujeto.
+
+portador=coreutils
+  archivo=jq-1.7.1-sha256sum.txt
+  url=https://github.com/jqlang/jq/releases/download/jq-1.7.1/sha256sum.txt
+  t_utc=2026-11-25T18:59:59Z
+  bytes=2129
+  sha256=f1f692fe9f923a4f5c6741729fb5931212ebccfff976225feb7a2ccec8635da4
+  filas=26
+  vendorizado=completo
+  nota=el digest canónico del portador coincide con el sha256 del archivo: ya venía canónico
+
+portador=coreutils
+  archivo=node-v22.11.0-SHASUMS256.txt
+  url=https://nodejs.org/dist/v22.11.0/SHASUMS256.txt
+  t_utc=2026-11-25T18:59:59Z
+  bytes=3777
+  sha256=dddf2b497e71a131348716f78662c9fd51b9a30f808d5c5b81e7f3c7824a83fb
+  filas=41
+  vendorizado=completo
+  nota=no viene ordenado: el portador publica `reordenado` y un digest distinto del sha256 del archivo
+
+portador=coreutils
+  archivo=gh-2.62.0-checksums.txt
+  url=https://github.com/cli/cli/releases/download/v2.62.0/gh_2.62.0_checksums.txt
+  t_utc=2026-11-25T19:00:00Z
+  bytes=1856
+  sha256=89dc6f5225aa0c70d6f90950f5246225afff2f423f3d242f7d8813fe9993af4d
+  filas=20
+  vendorizado=completo
+  nota=canónico
+
+portador=bsd
+  archivo=fedora-41-CHECKSUM
+  url=https://download.fedoraproject.org/pub/fedora/linux/releases/41/Workstation/x86_64/iso/Fedora-Workstation-41-1.4-x86_64-CHECKSUM
+  t_utc=2026-11-25T19:00:20Z
+  bytes=1062
+  sha256=f482e55b35f5ae93036d29ec09108e397840fa89a15e00c4802469508b11b526
+  filas=1
+  vendorizado=completo
+  nota=mensaje firmado en claro (PGP): el portador salta la envoltura y publica `firma no verificada`
+
+portador=deb822
+  archivo=debian-12.15-Release
+  url=http://deb.debian.org/debian/dists/bookworm/Release
+  t_utc=2026-11-25T19:00:20Z
+  bytes=149266
+  sha256=abcf5882746e0f68171f41adbb4ac01b74b49d62d203379befb9265804311a4f
+  filas=772
+  lineas=1558
+  vendorizado=completo
+  nota=12 campos de cabecera + la seccion MD5Sum ignorados (13 bloques); la firma PGP final no se verifica.
+       Las secciones van encadenadas sin linea en blanco: la cabecera SHA256: esta en la linea 786 de 1558.
+       58 de las 772 filas escriben un tamano de 8 digitos (una sola separacion) y son las que impiden
+       que el archivo se lea tambien como coreutils: el archivo se sostiene por el 7,5% de sus filas.
+
+portador=deb822
+  archivo=debian-12.15-Release-seccion-sha256.txt
+  url=(extracto de las 12 primeras filas del anterior)
+  t_utc=2026-11-25T19:00:20Z
+  bytes=1188
+  sha256=9a508f3e117564637890bf0348f0fb31a78afd754b36d0e7a176a90dfed05283
+  filas=12
+  vendorizado=completo (es un extracto por construccion)
+  nota=testigo del recorte, y el unico: sobre estas 12 filas TODOS los tamanos traen relleno,
+       asi que quitar el espacio inicial abre una segunda lectura como coreutils con las rutas
+       empezando por el tamano: deb822=04f72099f9bc contra coreutils=ef481308e7cf, mismo archivo,
+       dos digests. Un extracto pequeno del mismo archivo que el completo no es ambiguo.
+
+portador=deb822
+  archivo=deb822-pequeno.txt
+  url=(sintetico: registro del falso rojo medido)
+  t_utc=2026-11-25T19:00:20Z
+  bytes=191
+  sha256=881cba55a9d267b17680b0419c178bd3d25e67f287336f9ea58ddee606280ce8
+  filas=2
+  vendorizado=completo
+  nota=es el archivo que el verificador externo ACUSO de alterado (RC 1, `no reproduce la
+       ultima pagina | 881cba55a9d2 | 7674c4bedf05`): 881cba55a9d2 es el sha256 de este mismo
+       archivo. El anillo 5 lo lee como deb822 y lo deja de acusar. Es tambien testigo del
+       recorte: quitar el espacio inicial abre una segunda lectura como coreutils, con las
+       rutas empezando por el tamano y un digest distinto (f2ba089a097c).
+
+portador=suelto
+  archivo=go-1.23.3.sha256
+  url=https://go.dev/dl/go1.23.3.darwin-arm64.tar.gz.sha256
+  t_utc=2026-11-25T19:00:20Z
+  bytes=64
+  sha256=50536eeaacb3e1f28d1f63f305aca484a39e00541d77e70a2359c4cc1d0a0a8a
+  filas=1
+  vendorizado=completo
+  nota=no escribe la ruta: sin nombre de archivo el portador esta incompleto, no adivina
