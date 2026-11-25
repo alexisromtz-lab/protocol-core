@@ -208,6 +208,17 @@ ausencia ahí no es un cero: es que nadie contó. Falsadores: P-46, tres casos,
 uno de ellos probando que la copia de más ni rescata ni condena a la fila que
 falta.
 
+**`--completo` es la pregunta que la vía rápida no puede contestar.** «¿Siguen los
+bytes declarados?» y «¿cuántas copias de estos bytes hay?» comparten sujeto y
+necesitan universos distintos: la primera se decide con las rutas declaradas, la
+segunda necesita el árbol, porque una copia que nadie declaró sólo existe fuera
+del manifiesto. Con `--completo` el acto barre aunque la vía rápida bastara, y el
+recibo publica en cuál de los dos regímenes se decidió (`universo | N rutas |
+caminata con 6 exclusiones` frente a `rutas declaradas (sin barrido)`), así que el
+modo nunca viaja implícito. El veredicto no cambia: en un árbol sano sigue siendo
+`intacta`. Falsador: P-47, donde el mismo sujeto sin la bandera da `intacta` sin
+recuento y con la bandera da `intacta` con `3 observadas`.
+
 **La lectura inestable no es una divergencia.** Un digest calculado mientras otro
 proceso escribía no es el digest de ningún estado del archivo: es un híbrido que
 nunca existió entero en disco. Se mide `fstat` antes y después de leer y, si

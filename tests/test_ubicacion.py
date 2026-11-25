@@ -1138,7 +1138,7 @@ class TestRedundancia(_unittest.TestCase):
         with open(_os.path.join(self.raiz, "copia", "c.md"), "wb") as flujo:
             flujo.write(b"uno\n")
 
-    def _correr(self, modo: str = "disco"):
+    def _correr(self, modo: str = "disco", extra: tuple = ()):
         return _subprocess.run(
             [
                 _sys.executable,
@@ -1150,7 +1150,8 @@ class TestRedundancia(_unittest.TestCase):
                 self.raiz,
                 "--universo",
                 modo,
-            ],
+            ]
+            + list(extra),
             cwd=_RAIZ,
             stdout=_subprocess.PIPE,
             stderr=_subprocess.STDOUT,
@@ -1204,6 +1205,31 @@ class TestRedundancia(_unittest.TestCase):
         self.assertIn("(sin barrido)", salida)
         self.assertIn("-> intacta", salida)
         self.assertNotIn("redundancia |", salida)
+
+    def test_p47_el_barrido_pedido_publica_la_copia_fuera_del_manifiesto(self) -> None:
+        """P-47 · `--completo` separa «¿está?» de «¿cuántas copias hay?».
+
+        La vía rápida contesta la primera pregunta y **no puede** contestar la
+        segunda: su índice se construyó con las rutas declaradas y `k_obs` es
+        igual a `k_decl` por construcción. Pedir el barrido es pedir la segunda
+        sobre el mismo sujeto, y el veredicto no se mueve —`intacta`— porque una
+        copia que nadie declaró ni rescata ni condena lo declarado. Sin la
+        bandera, la ausencia de la línea es ceguera; con ella, es un recuento.
+        """
+
+        self._copia()
+        corrida = self._correr(extra=("--completo",))
+        salida = corrida.stdout.decode("utf-8", "replace")
+        _medicion("P-47 barrido pedido", salida.splitlines())
+
+        self.assertEqual(0, corrida.returncode, salida)
+        self.assertNotIn("(sin barrido)", salida)
+        self.assertIn("-> intacta", salida)
+        self.assertIn(
+            "redundancia | %s | 2 declaradas | 3 observadas | a.md, b.md, copia/c.md"
+            % self.DIGEST,
+            salida,
+        )
 
 
 if __name__ == "__main__":

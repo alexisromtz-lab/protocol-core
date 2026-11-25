@@ -43,6 +43,14 @@ publica contadores y no segundos: `declaradas`, `barridas` y `hasheadas` sí son
 del objeto; la duración es de la máquina. Con las 14 rutas intactas el acto se
 decide sin tocar el universo.
 
+`--completo` separa dos preguntas que comparten sujeto. La primera —¿siguen los
+bytes declarados en algún sitio?— la contesta la vía rápida con las rutas
+declaradas. La segunda —¿cuántas copias de estos bytes hay en el árbol?— necesita
+el universo, porque una copia que nadie declaró sólo existe fuera del manifiesto.
+Con `--completo` el acto barre aunque la vía rápida bastara, y entonces
+`redundancia` puede dispararse; sin él, la ausencia de esa línea no es un cero:
+es que nadie contó.
+
 El recibo se **publica en stdout** con cualquier sujeto, no sólo con la fixture.
 Un acto que se vende por acto tiene que entregar el recibo: quien pide la
 verificación se lleva estas líneas, y su página es el sha256 de ellas.
@@ -339,9 +347,16 @@ def main(argv: tuple) -> int:
     # borde, y una ruta fuera de ese borde no se puede certificar sin barrer:
     # el régimen no puede cambiar el veredicto sobre los mismos bytes.
     declaradas_utiles = [d.ruta for d in declaradas if not d.opaca]
+    # `--completo` separa dos preguntas sobre el mismo sujeto: la vía rápida
+    # contesta si los bytes declarados siguen ahí; contar copias que el manifiesto
+    # no declara exige el universo, y esa línea sólo se emite con el índice
+    # observado delante. El recibo publica en cuál de los dos regímenes se decidió
+    # (`universo | ... | sin barrido` frente a la fuente barrida), así que el modo
+    # no viaja implícito.
+    completo = "--completo" in argv
     directa = (
         adjudicar_por_rutas(declaradas, raiz)
-        if _dentro_del_universo(raiz, declaradas_utiles, modo)
+        if not completo and _dentro_del_universo(raiz, declaradas_utiles, modo)
         else None
     )
     barrido = directa is None

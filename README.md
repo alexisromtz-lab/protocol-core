@@ -342,6 +342,13 @@ delante —bajo la vía rápida no es un cero, es que nadie contó— y sólo pa
 `CONFORME`, porque una reubicación ya publica sus `k` caminos en el testigo.
 Publica `UBICACION.md` §3.0.2. Falsadores: P-46, tres casos.
 
+**`--completo` pide la segunda pregunta.** Contar copias exige barrer: la vía
+rápida construye su índice con las rutas declaradas y no puede ver lo que el
+manifiesto no nombra. La bandera fuerza el barrido sobre un sujeto sano y deja el
+veredicto donde estaba (`intacta`), porque una copia no declarada ni rescata ni
+condena. El recibo declara el régimen en su primera línea, así que el modo no
+viaja implícito. Falsador: P-47.
+
 **La ley bipartita `k_decl × k_obs`** cierra el cuadro sin casos especiales: `2×2`
 en las mismas rutas ⇒ `INTACTA` (jq 1.7.1); `1×14` en otras ⇒ `REUBICADA` con las
 14 publicadas (Sello A, 13 `.worktrees/` + la raíz); `1×1` cruzada ⇒
