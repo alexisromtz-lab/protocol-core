@@ -27,7 +27,7 @@
     },
     {
       "ruta": "tests/test_predicado.py",
-      "sha256": "5cc32d9b76cfff49b2821a25981d58d6fea65b1040fc4f72a1fd1a2fe1b28325"
+      "sha256": "9f57a2373686b5745c25569320981e6500b7254bc423863d43b34db85bd97999"
     },
     {
       "ruta": "tests/test_ubicacion.py",
@@ -78,7 +78,7 @@
   },
   "salida": {
     "ruta": "examples/veredicto-suite.txt",
-    "sha256": "8d9f54339c25f4fae083f1d46210726e583b9850218e6eaba58f7b98736a39ed"
+    "sha256": "747a1293521b2da7cda0d5b8adb0d20cbe020459c5e89d245e1bfc1923c6532a"
   },
   "veredicto": "conforme",
   "h_prev": null

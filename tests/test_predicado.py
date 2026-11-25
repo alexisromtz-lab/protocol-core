@@ -105,6 +105,9 @@ from protocol.types import (  # noqa: E402
 #: Subida del 2026-11-25 a 85 líneas y 2 702 bytes: un cuarto artefacto,
 #: `tests/test_negocio.py`, paga la misma regla —cuatro líneas, no tres—. Se
 #: sube midiendo el emitido, no contando a mano.
+#: Orden del acto, aprendido el 2026-11-25: la cota se toca **antes** de
+#: emitir. Emitir primero deja la página describiendo un archivo que ya cambió,
+#: y `--check` lo acusa recién en el clon frío, donde ya no se puede arreglar.
 COPTA_LINEAS = 85
 COPTA_BYTES = 2702
 #: Cota del acto de censo. Es más ancha que la de la suite porque lleva 12

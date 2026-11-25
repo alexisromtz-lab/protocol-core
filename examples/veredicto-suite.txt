@@ -1,2 +1,2 @@
 Ran 176 tests
-FAILED (failures=1)
+OK
