@@ -491,6 +491,38 @@ class TestActoDeSello(_unittest.TestCase):
     PAGINA = _os.path.join(_RAIZ, "examples", "predicado-sello.json")
     SALIDA = _os.path.join(_RAIZ, "examples", "veredicto-sello.txt")
 
+    def _correr_check(self) -> tuple:
+        corrida = _subprocess.run(
+            [_sys.executable, "-B", _os.path.join(_RAIZ, "examples", "verificar_sello.py"), "--check"],
+            cwd=_RAIZ,
+            stdout=_subprocess.PIPE,
+            stderr=_subprocess.STDOUT,
+            check=False,
+        )
+        return corrida.returncode, corrida.stdout.decode("utf-8", "replace")
+
+    def _con_pagina_alterada(self, alterar) -> tuple:
+        """Corre el acto contra una página alterada y devuelve `(RC, salida)`.
+
+        La fixture se restaura por `addCleanup`, que corre también cuando la
+        prueba falla: un sujeto que queda movido convierte el rojo siguiente en
+        un rojo ajeno.
+        """
+
+        with open(self.PAGINA, "rb") as flujo:
+            original = flujo.read()
+
+        def restaurar() -> None:
+            with open(self.PAGINA, "wb") as flujo:
+                flujo.write(original)
+
+        self.addCleanup(restaurar)
+        cuerpo = _json.loads(original.decode("utf-8"))
+        alterar(cuerpo)
+        with open(self.PAGINA, "wb") as flujo:
+            flujo.write((_json.dumps(cuerpo, indent=2, ensure_ascii=False) + "\n").encode("utf-8"))
+        return self._correr_check()
+
     def test_p32_la_pagina_del_sello_cabe_y_declara_su_universo(self) -> None:
         with open(self.PAGINA, "r", encoding="utf-8") as flujo:
             texto = flujo.read()
@@ -528,17 +560,50 @@ class TestActoDeSello(_unittest.TestCase):
         self.assertEqual("no_conforme", cuerpo["veredicto"])
 
     def test_p32_el_acto_reproduce_su_pagina(self) -> None:
-        corrida = _subprocess.run(
-            [_sys.executable, "-B", _os.path.join(_RAIZ, "examples", "verificar_sello.py"), "--check"],
-            cwd=_RAIZ,
-            stdout=_subprocess.PIPE,
-            stderr=_subprocess.STDOUT,
-            check=False,
-        )
-        crudo = corrida.stdout.decode("utf-8", "replace")
-        _medicion("P-32 RC del acto", corrida.returncode)
-        self.assertEqual(0, corrida.returncode, crudo)
+        rc, crudo = self._correr_check()
+        _medicion("P-32 RC del acto", rc)
+        self.assertEqual(0, rc, crudo)
         self.assertIn("REPRODUCE", crudo)
+
+    def test_p32_el_entorno_del_acto_no_condena_el_arbol(self) -> None:
+        """Otro intérprete no es otro árbol: la página se reproduce.
+
+        La página publica `plataforma` y `runtime`, que son del observador. Un
+        rojo por eso acusaría al objeto de un cambio ocurrido en la regla con la
+        que se mide, y el acto se volvería verde sólo bajo el intérprete que lo
+        firmó.
+        """
+
+        def otro_interprete(cuerpo: dict) -> None:
+            cuerpo["entorno"]["runtime"] = "CPython 0.0.0"
+
+        rc, crudo = self._con_pagina_alterada(otro_interprete)
+        _medicion("P-32 RC con otro intérprete", rc)
+        self.assertEqual(0, rc, crudo)
+        self.assertIn("REPRODUCE", crudo)
+        self.assertIn("entorno del acto", crudo)
+
+    def test_p32_una_entrada_movida_si_condena_la_pagina(self) -> None:
+        """Normalizar el entorno no puede absolver un byte del árbol."""
+
+        def mover_entrada(cuerpo: dict) -> None:
+            cuerpo["entradas"][0]["sha256"] = "0" * 64
+
+        rc, crudo = self._con_pagina_alterada(mover_entrada)
+        _medicion("P-32 RC con entrada movida", rc)
+        self.assertEqual(1, rc, crudo)
+        self.assertIn("DIVERGE", crudo)
+
+    def test_p32_la_laguna_no_viaja_en_el_entorno_normalizado(self) -> None:
+        """`no_medido` vive en el entorno y no se normaliza: es lo que el acto confiesa."""
+
+        def borrar_laguna(cuerpo: dict) -> None:
+            cuerpo["entorno"]["no_medido"] = []
+
+        rc, crudo = self._con_pagina_alterada(borrar_laguna)
+        _medicion("P-32 RC con laguna borrada", rc)
+        self.assertEqual(1, rc, crudo)
+        self.assertIn("DIVERGE", crudo)
 
 
 class TestLagunaYNoPerdida(_unittest.TestCase):

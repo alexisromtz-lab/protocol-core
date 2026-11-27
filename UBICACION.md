@@ -338,8 +338,35 @@ que existe.
 
     python3 -B examples/verificar_sello.py --check
 
-Lee `examples/predicado-sello.json`, recompone la página y la compara **entera**
-contra la emitida. RC 0 = reproduce; RC 1 = diverge; RC 2 = no hay página previa.
+Lee `examples/predicado-sello.json`, recompone la página y la compara contra la
+emitida. RC 0 = reproduce; RC 1 = diverge; RC 2 = no hay página previa.
+
+### 6.1 La única excepción es el entorno del acto, y son dos campos
+
+`plataforma` y `runtime` son del observador, no del sujeto: el mismo árbol medido
+con otro intérprete produce la misma salida y **otra** página. Compararla entera
+convertiría esa diferencia en una condena del árbol, y el acto se volvería verde
+sólo bajo el intérprete que lo firmó: un rojo por el entorno condena y un verde
+por el entorno absuelve, y ninguno de los dos midió el árbol.
+
+El acto normaliza esos dos campos y compara **el resto byte a byte**. Todo lo
+demás condena: un digest movido en `entradas` es del árbol y sale `DIVERGE`; una
+fila borrada de `entorno.no_medido` también, porque la laguna es lo que el acto
+confiesa y normalizarla le dejaría absolverse de su propia confesión.
+
+La reproducción no elige identidad: publica las dos.
+
+    MEDICION | pagina reproducida | modulo el entorno del acto
+    MEDICION | entorno del acto | firmada en darwin/CPython 3.11.15 | reproducida en darwin/CPython 3.9.6
+    MEDICION | digest del acto declarado | <sha256 de la pagina firmada>
+    MEDICION | digest de este acto | <sha256 de la pagina de esta corrida>
+    REPRODUCE | <sha256 de la pagina firmada>
+
+`REPRODUCE` nombra el acto **firmado**, no el de la corrida de turno: publicar el
+nombre de quien reproduce daría dos identidades al mismo acto según la máquina.
+Medido el 27-Nov-2026: la página sellada bajo `CPython 3.11.15` reproduce bajo
+`CPython 3.9.6` con RC 0, y la suite deja `examples/predicado-sello.json`
+byte-idéntico (`c32f548b…`) bajo los dos intérpretes. Falsador: P-32.
 
 La fixture `examples/sello-de-muestra/` tiene un caso de cada estado y está
 escrita a mano: los digests son los del sello y el árbol es el de hoy, y la

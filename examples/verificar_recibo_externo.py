@@ -6,12 +6,30 @@ Uso:
     python3 -B examples/verificar_recibo_externo.py --recibo recibo.json \\
         --manifiesto SHA256SUMS --ausente "cita-09:00-sillon1"
     python3 -B examples/verificar_recibo_externo.py --recibo recibo.json --demo
+    python3 -B examples/verificar_recibo_externo.py --recibo recibo.json \\
+        --regla regla-A-B.txt --regla regla-B-C.txt      # un --regla por tramo, en orden
+    python3 -B examples/verificar_recibo_externo.py --recibo recibo.json --exigir-regla
 
 QUE PRUEBA. Que un recibo se pueda cerrar **sin ejecutar el codigo que lo
 produjo**. El verificador no importa `protocol`: reescribe por su cuenta el
 formato canonico, el digest de pagina, la tabla de degradacion y la busqueda de
 vecinos. Si los dos coinciden es porque el formato esta escrito y no porque los
 dos llamen a la misma funcion; si divergen, el desacuerdo es el hallazgo.
+
+LA REGLA, Y POR QUE BASTA CON UN DIGEST POR TRAMO. Una cadena de paginas
+inventadas pero coherentes consigo mismas —cada tramo declara el digest de sus
+propias filas, la frontera cierra porque el falsificador reusa la misma pagina en
+el nodo comun— cierra hoy con RC 0 sin probar nada del mundo: prueba que el que
+la escribio sabe multiplicar por si mismo. `sha256_entrada` **no** se anade como
+campo aparte: la entrada de `B` ya se recalcula de las filas de `B` y se compara
+con la salida de `A` (la frontera), de modo que un campo `sha256_entrada` seria
+una copia *declarada* de una cantidad *recalculada*: la version debil de lo que
+ya se mide. Lo que falta es la **regla**: el digest del artefacto que dice que
+transformacion convierte `A` en `B`, declarado fuera del testigo de `B`. Un
+`sha256_regla` sin el artefacto delante es otro numero que se cree a si mismo,
+asi que el tercero lo coteja contra el archivo que le pasan con `--regla`
+(uno por tramo, en orden). Un recibo `recibo-de-composicion/2` exige esa regla
+por construccion; `--exigir-regla` se la exige tambien a un `/1`.
 
 QUE RECIBE. Solo el JSON del recibo (que lleva sus paginas dentro) y, si se le
 da, el manifiesto publicado. Nada mas: ni el arbol, ni el generador, ni la
@@ -315,12 +333,20 @@ def verificar(
     ausente: Optional[str],
     portador: str = "auto",
     nombre: Optional[str] = None,
+    reglas: Sequence[str] = (),
+    exigir_regla: bool = False,
 ) -> Tuple[int, List[str]]:
     lineas: List[str] = []
     fallos = 0
     tramos = recibo.get("tramos")
     if not isinstance(tramos, list) or not tramos:
         raise EntradaInvalida("el recibo no trae tramos")
+    if reglas and len(reglas) != len(tramos):
+        raise EntradaInvalida(
+            "se aportaron %d reglas para %d tramos: una por salto y en orden"
+            % (len(reglas), len(tramos))
+        )
+    ata = 0
     ultima: List[Tuple[str, str, str]] = []
     previo_destino: Optional[str] = None
     for indice, tramo in enumerate(tramos):
@@ -332,6 +358,43 @@ def verificar(
         d_destino = _digest_de_pagina(destino, "destino") if destino else ""
         veredicto = str(tramo.get("veredicto", ""))
         _rango(veredicto)
+        declarada_regla = str(tramo.get("sha256_regla", "") or "")
+        if declarada_regla and (
+            len(declarada_regla) != 64
+            or any(c not in "0123456789abcdef" for c in declarada_regla)
+        ):
+            raise EntradaInvalida(
+                "digest de regla no hexadecimal de 64 en el tramo %d" % indice
+            )
+        if exigir_regla and not declarada_regla:
+            fallos += 1
+            lineas.append(
+                "regla | %s->%s | REGLA_NO_DECLARADA | el tramo no ata su transformacion a una regla declarada fuera"
+                % (tramo.get("origen"), tramo.get("destino"))
+            )
+        elif declarada_regla:
+            if indice >= len(reglas):
+                fallos += 1
+                lineas.append(
+                    "regla | %s->%s | REGLA_NO_APORTADA | declara %s y el tercero no trae el artefacto"
+                    % (tramo.get("origen"), tramo.get("destino"), declarada_regla[:12])
+                )
+            else:
+                calculada = _hashlib.sha256(
+                    reglas[indice].encode("utf-8", "surrogateescape")
+                ).hexdigest()
+                if calculada != declarada_regla:
+                    fallos += 1
+                    lineas.append(
+                        "regla | %s->%s | REGLA_NO_COINCIDE | declarada %s | artefacto %s"
+                        % (tramo.get("origen"), tramo.get("destino"), declarada_regla[:12], calculada[:12])
+                    )
+                else:
+                    ata += 1
+                    lineas.append(
+                        "regla | %s->%s | ata la transformacion a %s"
+                        % (tramo.get("origen"), tramo.get("destino"), calculada[:12])
+                    )
         declarado_origen = str(tramo.get("digest_origen", ""))
         declarado_destino = str(tramo.get("digest_destino", ""))
         if declarado_origen != d_origen:
@@ -454,6 +517,10 @@ def verificar(
                     vecino.get("anterior"), ausente, vecino.get("siguiente")))
 
     lineas.append("limite | el verificador comprueba que las paginas encadenadas son las mismas; no que B hiciera su trabajo")
+    if ata:
+        lineas.append(
+            "limite | la regla ata %d tramo(s) a un artefacto declarado fuera; no prueba que B aplicara esa regla" % ata
+        )
     return (0 if fallos == 0 else 1), lineas
 
 
@@ -482,6 +549,7 @@ def main(argv: Sequence[str]) -> int:
         print(
             "uso: verificar_recibo_externo.py --recibo RECIBO.json [--manifiesto F]"
             " [--ausente RUTA] [--portador auto|coreutils|bsd|deb822|suelto] [--nombre F]"
+            " [--regla F ...] [--exigir-regla]"
         )
         return 2
     ruta = argumentos[argumentos.index("--recibo") + 1]
@@ -498,10 +566,26 @@ def main(argv: Sequence[str]) -> int:
         portador = argumentos[argumentos.index("--portador") + 1]
     if "--nombre" in argumentos:
         nombre = argumentos[argumentos.index("--nombre") + 1]
+    # `--regla` se repite; el orden de aparicion es el orden de los tramos.
+    reglas: List[str] = []
+    posicion = 0
+    while posicion < len(argumentos):
+        if argumentos[posicion] == "--regla":
+            if posicion + 1 >= len(argumentos):
+                print("entrada-invalida | --regla sin archivo")
+                return 2
+            with open(argumentos[posicion + 1], "r", encoding="utf-8", errors="surrogateescape") as flujo:
+                reglas.append(flujo.read())
+            posicion += 2
+        else:
+            posicion += 1
+    exigir_regla = "--exigir-regla" in argumentos
     try:
         with open(ruta, "r", encoding="utf-8") as flujo:
             datos = _json.load(flujo)
-        codigo, lineas = verificar(datos, manifiesto, ausente, portador, nombre)
+        if not exigir_regla and isinstance(datos, dict):
+            exigir_regla = str(datos.get("formato", "")) == "recibo-de-composicion/2"
+        codigo, lineas = verificar(datos, manifiesto, ausente, portador, nombre, reglas, exigir_regla)
     except EntradaInvalida as fallo:
         print("entrada-invalida | %s" % fallo)
         return 2
