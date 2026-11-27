@@ -19,7 +19,7 @@
     },
     {
       "ruta": "src/protocol/composicion.py",
-      "sha256": "829bee8b8cff55cc82463612a3b67c37b7442fb678197a665e43c9ba1cda80bd"
+      "sha256": "4c05f5a8a2be758138daa3a29b63644122f2cd1c2d87d6c36027fd88258cebd5"
     },
     {
       "ruta": "src/protocol/conservacion.py",

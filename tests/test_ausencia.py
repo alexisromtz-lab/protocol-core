@@ -51,7 +51,7 @@ from protocol.ausencia import (  # noqa: E402
     consultar,
     pagina_desde_manifiesto,
     raiz_merkle,
-    testigo_merkle,
+    testigo_merkle as fabricar_testigo_merkle,
     verificar,
     verificar_merkle,
 )
@@ -236,7 +236,7 @@ class TestMerkle(_unittest.TestCase):
 
     def test_p55_testigo_verifica_contra_la_raiz(self) -> None:
         pagina = self._pagina_grande()
-        t = testigo_merkle(pagina, "r04c.md")
+        t = fabricar_testigo_merkle(pagina, "r04c.md")
         self.assertIs(VeredictoDeAusencia.AUSENTE, t.estado)
         self.assertEqual(9, t.tamano)
         self.assertTrue(verificar_merkle(t))
@@ -247,7 +247,7 @@ class TestMerkle(_unittest.TestCase):
 
     def test_p55b_hoja_alterada_no_llega_a_la_raiz(self) -> None:
         pagina = self._pagina_grande()
-        t = testigo_merkle(pagina, "r04c.md")
+        t = fabricar_testigo_merkle(pagina, "r04c.md")
         ruta, _ = t.hoja_siguiente
         falso = type(t)(
             consulta=t.consulta,
@@ -264,7 +264,7 @@ class TestMerkle(_unittest.TestCase):
 
     def test_p55c_raiz_ajena_y_presencia_no_pasan(self) -> None:
         pagina = self._pagina_grande()
-        t = testigo_merkle(pagina, "r04c.md")
+        t = fabricar_testigo_merkle(pagina, "r04c.md")
         otra = _pagina(["r%02d.md" % i for i in range(8)] + ["s99.md"])
         ajena = type(t)(
             consulta=t.consulta,
@@ -278,7 +278,7 @@ class TestMerkle(_unittest.TestCase):
             camino_siguiente=t.camino_siguiente,
         )
         self.assertFalse(verificar_merkle(ajena))
-        presente = testigo_merkle(pagina, "r03.md")
+        presente = fabricar_testigo_merkle(pagina, "r03.md")
         self.assertIs(VeredictoDeAusencia.PRESENTE, presente.estado)
         self.assertFalse(verificar_merkle(presente))
 
@@ -290,7 +290,7 @@ class TestMerkle(_unittest.TestCase):
         b = _pagina(["c.md", "b.md", "a.md"])
         self.assertEqual(a.digest, b.digest)
         self.assertEqual(raiz_merkle(a), raiz_merkle(b))
-        self.assertTrue(verificar_merkle(testigo_merkle(a, "b1.md")))
+        self.assertTrue(verificar_merkle(fabricar_testigo_merkle(a, "b1.md")))
 
 
 class _Acto(_unittest.TestCase):

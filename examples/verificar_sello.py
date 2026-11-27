@@ -86,7 +86,7 @@ PAGINA = _os.path.join(EJEMPLOS, "predicado-sello.json")
 
 _sys.path.insert(0, _os.path.join(RAIZ, "src"))
 
-from protocol.predicado import Entorno, Predicado, VeredictoReclamado  # noqa: E402
+from protocol.predicado import Entorno, Predicado, VeredictoReclamado, canonizar  # noqa: E402
 from protocol.types import (  # noqa: E402
     ALGORITMO,
     ContratoViolado,
@@ -116,6 +116,47 @@ EXCLUSIONES = (
 
 def _medicion(etiqueta: str, valor: object) -> None:
     print("MEDICION | %s | %s" % (etiqueta, valor))
+
+
+def _pagina_firmada(previa: bytes):
+    """El acto que la pagina previa declara: su digest, no el de este acto.
+
+    Con el entorno normalizado, el nombre que se publica tiene que ser el de la
+    pagina firmada. Publicar el de la corrida de turno daría dos identidades al
+    mismo acto según el intérprete que lo reproduzca.
+    """
+
+    return Hash(
+        algoritmo=ALGORITMO,
+        digest=_hashlib.sha256(canonizar(_json.loads(previa.decode("utf-8")))).hexdigest(),
+    )
+
+
+def _entorno_del_acto(previa: bytes, actual: str):
+    """La pagina previa y la actual son la misma salvo el entorno del acto.
+
+    La pagina publica `plataforma` y `runtime`, y esos dos campos son del
+    observador, no del objeto: el mismo arbol medido con otro interprete produce
+    la misma salida y otra pagina. Devuelve `(firmado, corriente)` cuando, una vez
+    normalizado el entorno, los dos documentos coinciden byte a byte, y `None` en
+    cualquier otro caso: una entrada movida no es el entorno, es el objeto, y esa
+    si condena la pagina.
+    """
+
+    try:
+        previo = _json.loads(previa.decode("utf-8"))
+    except (ValueError, UnicodeDecodeError):
+        return None
+    if not isinstance(previo, dict) or not isinstance(previo.get("entorno"), dict):
+        return None
+    firmado = (previo["entorno"].get("plataforma"), previo["entorno"].get("runtime"))
+    corriente = (_sys.platform, "CPython %d.%d.%d" % _sys.version_info[:3])
+    if firmado == corriente:
+        return None
+    previo["entorno"] = dict(previo["entorno"], plataforma=corriente[0], runtime=corriente[1])
+    if _json.dumps(previo, indent=2, ensure_ascii=False) != actual:
+        return None
+    return firmado, corriente
 
 
 def _referencias(relativas: tuple) -> tuple:
@@ -417,14 +458,29 @@ def main(argv: tuple) -> int:
             salida_previa = flujo.read()
         with open(PAGINA, "rb") as flujo:
             pagina_previa = flujo.read()
+        actual = (pagina + "\n").encode("utf-8")
         _medicion("salida reproducida", salida_previa == salida)
-        _medicion("pagina reproducida", pagina_previa == (pagina + "\n").encode("utf-8"))
-        if salida_previa != salida or pagina_previa != (pagina + "\n").encode("utf-8"):
-            print("DIVERGE | la pagina declarada no describe este arbol")
-            return 1
-        print("REPRODUCE | %s" % digest.digest)
-        _medicion("veredicto declarado", _json.loads(pagina_previa.decode("utf-8"))["veredicto"])
-        return 0
+        if salida_previa == salida and pagina_previa == actual:
+            _medicion("pagina reproducida", True)
+            print("REPRODUCE | %s" % digest.digest)
+            _medicion("veredicto declarado", _json.loads(pagina_previa.decode("utf-8"))["veredicto"])
+            return 0
+        # El entorno del acto no se confunde con el arbol: si lo unico que cambia
+        # es la regla con la que se mide, la pagina se reproduce y el cambio se
+        # publica en vez de condenar un objeto que nadie toco.
+        entorno = _entorno_del_acto(pagina_previa, pagina) if salida_previa == salida else None
+        if entorno is not None:
+            firmada = _pagina_firmada(pagina_previa)
+            _medicion("pagina reproducida", "modulo el entorno del acto")
+            _medicion("entorno del acto", "firmada en %s/%s | reproducida en %s/%s" % (entorno[0] + entorno[1]))
+            _medicion("digest del acto declarado", firmada.digest)
+            _medicion("digest de este acto", digest.digest)
+            print("REPRODUCE | %s" % firmada.digest)
+            _medicion("veredicto declarado", _json.loads(pagina_previa.decode("utf-8"))["veredicto"])
+            return 0
+        _medicion("pagina reproducida", False)
+        print("DIVERGE | la pagina declarada no describe este arbol")
+        return 1
 
     es_fixture = (
         _os.path.realpath(raiz) == _os.path.realpath(MUESTRA)
