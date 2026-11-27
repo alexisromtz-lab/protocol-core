@@ -11,15 +11,15 @@
     },
     {
       "ruta": "tests/test_ausencia.py",
-      "sha256": "5c1cb4336cde7d911510252fdbb066cca6d0fdbbd3be392f98122f3e53e6ba6a"
+      "sha256": "1933e3e0ed3ae8cdb3ee93e431e1a129828e700fa2280ffa8f3ede5ff33f95ef"
     },
     {
       "ruta": "tests/test_composicion.py",
-      "sha256": "25b840b43ea123d7d790b95dfa63e79085dd63bba486c2f958fa6eb05bf26111"
+      "sha256": "879a3144df402a2ca4a77bfee90c85eb14e5dc9e269916e447566d5dd9eebc69"
     },
     {
       "ruta": "tests/test_conservacion.py",
-      "sha256": "7e4d94d4b141721ad7b748ef9d13cb30dc46b8ce5e9d01003c4489569d7dc98b"
+      "sha256": "fdd745d5a06398c2729c716898c4be24783d9f73527a62a08ec3d89a9d007fb1"
     },
     {
       "ruta": "tests/test_guiones.py",
@@ -51,7 +51,7 @@
     },
     {
       "ruta": "tests/test_ubicacion.py",
-      "sha256": "ba9cdf65522ca2fc09111398c368c7beafb2d36c38dbcad153e8c136fb72a366"
+      "sha256": "4ef334485f729321c45214761e66c146de0c4d7ea5fe9d6acf97574a898f6fff"
     },
     {
       "ruta": "tests/test_version.py",
@@ -81,7 +81,7 @@
     },
     {
       "ruta": "src/protocol/composicion.py",
-      "sha256": "829bee8b8cff55cc82463612a3b67c37b7442fb678197a665e43c9ba1cda80bd"
+      "sha256": "4c05f5a8a2be758138daa3a29b63644122f2cd1c2d87d6c36027fd88258cebd5"
     },
     {
       "ruta": "src/protocol/conservacion.py",
@@ -122,7 +122,7 @@
   },
   "salida": {
     "ruta": "examples/veredicto-suite.txt",
-    "sha256": "78966815dfacf0f0fe788e68d69a0347f6e6557811284b5b8171ea54e749b3fb"
+    "sha256": "f4d121ea323c6ae9450094339abe8a4865733c3a5cdcf3b7ff94a586ea0fcc2b"
   },
   "veredicto": "conforme",
   "h_prev": null
