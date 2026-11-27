@@ -633,7 +633,7 @@ La cifra 9 **no se copia al grabar**: la suite crece y el recibo en pantalla es 
 
 Un guion cuya cifra ya no la produce su comando **no se corrige**: se retira y se re-mide.
 
-**Prerrequisito de grabación, medido el 25-Nov-2026:** el veredicto de ancla necesita **historia completa**. En un `--depth 1` el acto responde `CONTRATO | git no respondió: sin ancla no hay contrafirma` —no miente y no mide—, así que el clon de G5 se hace sin `--depth 1` si la pieza va a enseñar el ancla. La suite y el ensayo sí corren en un clon superficial (re-medido el 27-Nov-2026: `Ran 285 tests` · `OK`, `ENSAYO 7/7 RC 0`).
+**Prerrequisito de grabación, medido el 25-Nov-2026:** el veredicto de ancla necesita **historia completa**. En un `--depth 1` el acto responde `CONTRATO | git no respondió: sin ancla no hay contrafirma` —no miente y no mide—, así que el clon de G5 se hace sin `--depth 1` si la pieza va a enseñar el ancla. El ensayo sí corre en un clon superficial (`ENSAYO | 7/7 | … | RC 0`, re-medido el 27-Nov-2026); la suite no: su censo de etiquetas exige las etiquetas publicadas, un `--depth 1` sólo trae las que apuntan a la punta, y el censo sin universo acusa la ausencia en vez de dar un verde vacío.
 
 ---
 

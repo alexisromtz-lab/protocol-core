@@ -47,7 +47,7 @@
     },
     {
       "ruta": "tests/test_tag_version.py",
-      "sha256": "985f5a04a6ab302b6a19725a9f597de33d8289f53a37aa29c43ee6ac97a5e29f"
+      "sha256": "a1c96aa42835dfea35fa6c87f5cd6b64269d943c86a80d477792f10226812342"
     },
     {
       "ruta": "tests/test_ubicacion.py",

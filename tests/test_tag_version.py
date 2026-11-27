@@ -133,7 +133,10 @@ class TestElParEtiquetaArbol(_Base):
         self.assertEqual(codigo, 2 if faltan else 0, "%s\ncommits de lapida ausentes: %r" % (salida, faltan))
         self.assertTrue(
             [fila for fila in datos["filas"] if fila["veredicto"] == "COINCIDE"],
-            "un censo sin ninguna coincidencia no mide nada",
+            "un censo sin ninguna coincidencia no mide nada: este clon no trae las "
+            "etiquetas publicadas —`--depth 1` solo viaja con las que apuntan a la "
+            "punta—, asi que el universo del censo es vacio y no hay verde que dar; "
+            "se mide con un `git clone` completo",
         )
 
     def test_p108b_la_etiqueta_que_coincide_coincide(self):
