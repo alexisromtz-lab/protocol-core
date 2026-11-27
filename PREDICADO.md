@@ -189,6 +189,13 @@ coincidir con una cifra deseada no mediría nada; éste se repite hasta que la
 página y el árbol son el mismo objeto, y el segundo término no lo elige quien
 emite.
 
+La única excepción admisible a «byte a byte» es el entorno del observador, y la
+declara cada acto en su propio contrato: `verificar_sello.py` normaliza
+`entorno.plataforma` y `entorno.runtime` —los dos campos que miden la máquina y no
+el árbol— y compara el resto entero (`UBICACION.md` §6.1). Una excepción que no se
+declara por acto es un `--check` que se aprueba a sí mismo; una excepción más
+ancha que el entorno del observador es un verde por la puerta de atrás.
+
 **Lo que se comitea es lo que `--check` reproduce.** Medido el 27-Nov-2026: la
 página publicada declaraba `Ran 271 tests / FAILED (failures=1)` mientras la
 suite salía verde, y `--check` lo acusó `DIVERGE` en un clon frío —nadie lo había
