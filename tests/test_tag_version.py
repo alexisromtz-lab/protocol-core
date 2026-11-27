@@ -44,6 +44,13 @@ def _escribir(ruta, texto):
         maneja.write(texto)
 
 
+def _registro(raiz):
+    """Las filas de la lapida real, para saber que commit deberia viajar."""
+
+    with open(os.path.join(raiz, "examples", "etiquetas-retiradas.json"), encoding="utf-8") as flujo:
+        return json.load(flujo)["retiradas"]
+
+
 class _Base(unittest.TestCase):
     def repo(self, version=None, en_pyproject=None):
         """Un repositorio desechable cuyo arbol declara lo que se le pida."""
@@ -103,13 +110,27 @@ class _Base(unittest.TestCase):
 
 class TestElParEtiquetaArbol(_Base):
     def test_p108a_este_repositorio_no_tiene_etiquetas_contradichas(self):
-        """El censo real: ninguna etiqueta publicada contradice a su arbol."""
+        """El censo real: ninguna etiqueta publicada contradice a su arbol.
+
+        El censo exige el sujeto entero, y un `--depth 1` no lo trae: el commit
+        de la lapida no viaja, la lapida sale `RETIRADA_NO_MEDIDA` (RC 2) y el
+        censo no puede dar `0`. Ese 2 se acepta **solo** cuando el commit
+        declarado falta de verdad, comprobado aqui con `git rev-parse`; si el
+        commit esta en el ODB y el censo aun responde 2, el test cae. Un clon
+        que no trae el sujeto no hereda un rojo, pero tampoco se disfraza de
+        cero: la distincion es la misma que hace el verificador.
+        """
 
         codigo, salida = self.correr(_RAIZ, "--todas", "--json")
         datos = json.loads(salida)
         graves = [fila for fila in datos["filas"] if fila["veredicto"] in ("DIVERGE", "REAPARECIDA", "RETIRADA_RANCIA")]
         self.assertEqual(graves, [], "etiquetas contradichas: %r" % (graves,))
-        self.assertEqual(codigo, 0)
+        faltan = [
+            entrada["commit"]
+            for entrada in _registro(_RAIZ)
+            if _git(_RAIZ, "rev-parse", "--verify", "--quiet", str(entrada["commit"]) + "^{commit}").returncode != 0
+        ]
+        self.assertEqual(codigo, 2 if faltan else 0, "%s\ncommits de lapida ausentes: %r" % (salida, faltan))
         self.assertTrue(
             [fila for fila in datos["filas"] if fila["veredicto"] == "COINCIDE"],
             "un censo sin ninguna coincidencia no mide nada",
@@ -213,3 +234,66 @@ class TestLaLapidaSeVuelveAMedir(_Base):
         self.assertEqual(codigo, 1, salida)
         self.assertIn("RETIRADA_RANCIA", salida)
         self.assertIn("la retirada registra 8.8.8 y su arbol declara 1.0.0", salida)
+
+
+class TestLaLapidaEnUnClonQueNoTraeElRefDeFueraDeBanda(_Base):
+    """El tercer escalon: `git clone` no transporta `refs/tags-retirados/`.
+
+    Medido en un clon frio por HTTPS: el ref de fuera de banda no llega, el
+    commit si (esta en la historia), y la primera version del verificador
+    publico `RETIRADA_RANCIA` —RC 1— sobre un arbol intacto. Era un rojo
+    heredado de no haber traido el sujeto, no de haberlo medido.
+    """
+
+    def test_p108m_sin_el_ref_pero_con_el_commit_la_retirada_se_mide(self):
+        """Escalon 2: el commit viaja, y basta para no mentir sobre la version."""
+
+        raiz = self.repo(version="1.0.0")
+        _git(raiz, "tag", "-a", "v1.0.0", "-m", "etiqueta anotada, como la real")
+        self.retirar(raiz, "v1.0.0", "1.0.0")
+        _git(raiz, "add", "-A")
+        _git(raiz, "commit", "-q", "-m", "lapida")
+        clon = tempfile.mkdtemp(prefix="protocol-etiqueta-clon-")
+        self.addCleanup(shutil.rmtree, clon, True)
+        # `--no-local` fuerza el camino de transporte: un clon por defecto solo
+        # lleva refs/heads/* y refs/tags/*, asi que el ref de fuera de banda y
+        # el objeto anotado (que solo el sostenia) no llegan.
+        _git(clon, "clone", "-q", "--no-local", raiz, os.path.join(clon, "frio"))
+        frio = os.path.join(clon, "frio")
+        self.assertNotEqual(
+            _git(frio, "show-ref", "--verify", "--quiet", "refs/tags-retirados/v1.0.0").returncode, 0
+        )
+        self.assertNotEqual(_git(frio, "rev-parse", "--verify", "--quiet", "v1.0.0").returncode, 0)
+        codigo, salida = self.correr(frio, "--todas")
+        self.assertEqual(codigo, 0, salida)
+        self.assertIn("RETIRADA ", salida)
+        self.assertIn("declara=1.0.0", salida)
+        self.assertIn("sin refs/tags-retirados/v1.0.0 en este clon", salida)
+        self.assertNotIn("RETIRADA_RANCIA", salida)
+
+    def test_p108n_sin_el_ref_ni_el_commit_es_no_medido_y_nunca_rancia(self):
+        """Escalon 3: no medir no es defecto, y no se disfraza de cero."""
+
+        raiz = self.repo(version="1.0.0")
+        _escribir(
+            os.path.join(raiz, "examples", "etiquetas-retiradas.json"),
+            json.dumps(
+                {
+                    "retiradas": [
+                        {
+                            "etiqueta": "v1.0.0",
+                            "objeto": "1" * 40,
+                            "commit": "2" * 40,
+                            "declara_en_su_arbol": "1.0.0",
+                            "retirada": "2026-11-27",
+                            "por_que": "prueba",
+                        }
+                    ]
+                }
+            ),
+        )
+        codigo, salida = self.correr(raiz, "--todas")
+        self.assertEqual(codigo, 2, salida)
+        self.assertIn("RETIRADA_NO_MEDIDA", salida)
+        self.assertIn("git fetch origin", salida)
+        self.assertNotIn("RETIRADA_RANCIA", salida)

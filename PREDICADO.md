@@ -233,6 +233,36 @@ para siempre: un guardián que no puede volver a verde enseña a ignorar el verd
 La retirada deja el censo en `3 COINCIDE · 1 RETIRADA · RC 0`, y nombra el
 defecto en la fila en vez de esconderlo.
 
+**Qué viaja y qué no.** El escalón 2 conserva el objeto en
+`refs/tags-retirados/`, y ese espacio de nombres **tiene una asimetría que
+muerde**: `git clone` transporta `refs/heads/*` y `refs/tags/*`, nada más. Un
+clon frío por HTTPS no ve el ref de fuera de banda. El commit, en cambio, sí
+viaja: está en la historia. Por eso la lápida se vuelve a medir **en tres
+escalones**, y cada uno dice distinto:
+
+| escalón | qué hay en este clon | veredicto | RC |
+|---|---|---|---|
+| 1 | el objeto anotado, por el ref de fuera de banda o por el ODB local | `RETIRADA` | 0 |
+| 2 | sólo el commit declarado en la lápida | `RETIRADA` + nota «sin `refs/tags-retirados/` en este clon» | 0 |
+| 3 | ni el objeto ni el commit | `RETIRADA_NO_MEDIDA`, con la orden de `fetch` que falta | 2 |
+
+El escalón 3 es la parte que importa y la que se escribió mal la primera vez: la
+primera corrida en clon frío publicó `RETIRADA_RANCIA` —RC 1— sobre un árbol
+intacto, acusando una rancia que no existía. **Era un rojo heredado de no haber
+traído el sujeto, no de haberlo medido.** La regla que lo corrige es la que
+ordena todo el corpus: `NO_MEDIDO` no es cero y tampoco es defecto; es estado
+del cálculo, y se nombra como tal con la orden exacta que lo convierte en
+medición.
+
+**Y hay un falso verde en la dirección contraria.** El commit declarado en la
+lápida viaja, así que «el objeto no está» no prueba nada por sí solo: un clon
+podría no traer el objeto anotado y aun así tener el commit, y el commit
+bastaría para no poder mentir sobre la versión —pero no para probar que el
+nombre fue retirado en vez de nunca publicado—. Los dos escalones conviven
+porque miden cosas distintas; el escalón 2 acredita el árbol, el 1 acredita la
+retirada como acto. Quien necesite la segunda, la pide con el `fetch` que el
+escalón 3 imprime.
+
 **El hook no bloquea lo que no mide.** `--pre-push` lee las líneas de refs de
 `stdin` y juzga sólo las que empiezan por `refs/tags/`; sin etiquetas en el push
 sale `0` con `SIN ETIQUETAS EN ESTE PUSH`, y un borrado de etiqueta no se juzga.

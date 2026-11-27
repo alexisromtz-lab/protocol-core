@@ -22,7 +22,8 @@ MODO:
 Opciones: `--raiz RUTA` (por defecto, la del archivo), `--json`.
 
 RC: `0` todas coinciden · `1` alguna diverge (CONTRADICE) · `2` NO_MEDIDO (no se
-pudo juzgar: ninguna etiqueta, o un arbol sin version declarada) · `20` uso.
+pudo juzgar: ninguna etiqueta, un arbol sin version declarada, o una lapida
+cuyo sujeto no viaja en este clon) · `20` uso.
 `NO_MEDIDO` nunca degrada a `0`: un padron vacio no es un padron limpio.
 En `--pre-push` un push sin etiquetas no tiene sujeto y sale `0`: la guarda no
 opina sobre lo que no mide, y bloquear un push de ramas seria un falso rojo.
@@ -36,6 +37,17 @@ registro no es una promesa: `--todas` vuelve a medirlo y acusa `REAPARECIDA` si
 el nombre regresa y `RETIRADA_RANCIA` si el objeto o la version registrada ya no
 coinciden. Retirar sin registrar deja el defecto sin lector; registrar sin
 volver a medir deja una excepcion permanente.
+
+QUE VIAJA Y QUE NO. Un `git clone` no transporta `refs/tags-retirados/`: solo
+trae `refs/heads/*` y `refs/tags/*`. La lapida se midio por primera vez en un
+clon en frio y salio `RETIRADA_RANCIA` sobre un arbol intacto —un rojo por la
+ausencia del transporte, no por un defecto—, que es la forma exacta del falso
+rojo que este acto prohibe en `--pre-push`. Por eso la lapida se mide en tres
+escalones, del mas fuerte al mas debil: (1) el ref fuera de banda, si el clon lo
+trajo; (2) el commit registrado, que **si** viaja porque la etiqueta apuntaba a
+un commit de la historia; (3) nada de los dos, que es `RETIRADA_NO_MEDIDA` —RC 2,
+con la orden de medida impresa— y nunca un cero ni una rancia. Un rojo se gana
+midiendo; no se hereda de no haber medido.
 
 LIMITES DECLARADOS (lista cerrada):
 
@@ -72,9 +84,13 @@ IGNORADA = "IGNORADA"
 RETIRADA = "RETIRADA"
 REAPARECIDA = "REAPARECIDA"
 RETIRADA_RANCIA = "RETIRADA_RANCIA"
+RETIRADA_NO_MEDIDA = "RETIRADA_NO_MEDIDA"
 
 #: Gravedad: lo que impide que el acto pase. `RETIRADA` informa y no absolve a
 #: nadie de nada — solo dice que el nombre ya no esta donde estaba.
+#: `RETIRADA_NO_MEDIDA` no esta aqui a proposito: no haber traido el ref de
+#: fuera de banda no es un defecto del objeto, es ausencia de medicion, y una
+#: ausencia de medicion no se cobra como rojo (RC 2, no RC 1).
 _GRAVES = (DIVERGE, REAPARECIDA, RETIRADA_RANCIA)
 
 
@@ -178,19 +194,37 @@ def auditar_retiradas(raiz: str, filas: List[Dict[str, object]]) -> List[Dict[st
             )
             continue
         referencia = _ESPACIO_RETIRADAS + nombre
-        codigo, oid, _ = _git(raiz, "rev-parse", "--verify", "--quiet", referencia)
-        if codigo != 0:
-            filas.append(_fila(nombre, None, None, RETIRADA_RANCIA, "el objeto retirado no esta en %s" % referencia))
-            continue
-        if oid.strip() != objeto:
+        codigo_ref, oid, _ = _git(raiz, "rev-parse", "--verify", "--quiet", referencia)
+        if codigo_ref == 0 and oid.strip() != objeto:
             filas.append(
                 _fila(nombre, oid.strip(), None, RETIRADA_RANCIA, "%s ya no apunta al objeto registrado" % referencia)
             )
             continue
-        codigo, commit, _ = _git(raiz, "rev-parse", "--verify", "%s^{commit}" % objeto)
-        if codigo != 0:
-            filas.append(_fila(nombre, None, None, RETIRADA_RANCIA, "el objeto registrado no apunta a un commit"))
-            continue
+        # Escalon 1: el objeto anotado, si este clon lo tiene —por el ref de
+        # fuera de banda o porque su ODB todavia lo guarda—.
+        codigo_commit, commit, _ = _git(raiz, "rev-parse", "--verify", "--quiet", objeto + "^{commit}")
+        nota = ""
+        if codigo_commit != 0:
+            # Escalon 2: el commit declarado. La etiqueta apuntaba a un commit de
+            # la historia, y la historia si viaja en un clone por defecto.
+            codigo_commit, commit, _ = _git(
+                raiz, "rev-parse", "--verify", "--quiet", str(entrada.get("commit", "")) + "^{commit}"
+            )
+            if codigo_commit != 0:
+                # Escalon 3: ni el objeto ni el commit. No es una rancia: es que
+                # este clon no trae el sujeto, y se dice como se mide.
+                filas.append(
+                    _fila(
+                        nombre,
+                        None,
+                        None,
+                        RETIRADA_NO_MEDIDA,
+                        "este clon no trae %s ni el commit registrado; medir con: "
+                        "git fetch origin '%s*:%s*'" % (referencia, _ESPACIO_RETIRADAS, _ESPACIO_RETIRADAS),
+                    )
+                )
+                continue
+            nota = " (sin %s en este clon: se mide el commit declarado, que si viaja)" % referencia
         version, causa = _declarada(raiz, commit.strip())
         if version != esperado:
             filas.append(
@@ -199,7 +233,8 @@ def auditar_retiradas(raiz: str, filas: List[Dict[str, object]]) -> List[Dict[st
                     commit.strip(),
                     version,
                     RETIRADA_RANCIA,
-                    "la retirada registra %s y su arbol declara %s (%s)" % (esperado, version, causa or "sin causa"),
+                    "la retirada registra %s y su arbol declara %s (%s)%s"
+                    % (esperado, version, causa or "sin causa", nota),
                 )
             )
             continue
@@ -209,7 +244,7 @@ def auditar_retiradas(raiz: str, filas: List[Dict[str, object]]) -> List[Dict[st
                 commit.strip(),
                 version,
                 RETIRADA,
-                "retirada %s: %s" % (entrada.get("retirada", "sin fecha"), entrada.get("por_que", "")),
+                "retirada %s: %s%s" % (entrada.get("retirada", "sin fecha"), entrada.get("por_que", ""), nota),
             )
         )
     return filas
@@ -244,7 +279,7 @@ def _codigo(filas: Sequence[Dict[str, object]]) -> int:
         return 2
     if any(fila["veredicto"] in _GRAVES for fila in filas):
         return 1
-    if any(fila["veredicto"] == NO_MEDIDO for fila in filas):
+    if any(fila["veredicto"] == NO_MEDIDO or fila["veredicto"] == RETIRADA_NO_MEDIDA for fila in filas):
         return 2
     if all(fila["veredicto"] == IGNORADA for fila in filas):
         return 2

@@ -1,5 +1,5 @@
 {
-  "que_es": "Etiquetas retiradas del remoto. Borrar el nombre quita la afirmacion falsa, no el hecho: el objeto se conserva en refs/tags-retirados/<t> y esta lapida se vuelve a medir en cada corrida de tools/verificar_etiqueta.py --todas. Si el nombre reaparece, REAPARECIDA; si el objeto o la version registrada ya no coinciden, RETIRADA_RANCIA. Ambas cosas son RC 1.",
+  "que_es": "Etiquetas retiradas del remoto. Borrar el nombre quita la afirmacion falsa, no el hecho: el objeto se conserva en refs/tags-retirados/<t> y esta lapida se vuelve a medir en cada corrida de tools/verificar_etiqueta.py --todas. Si el nombre reaparece, REAPARECIDA; si el objeto o la version registrada ya no coinciden, RETIRADA_RANCIA; ambas son RC 1. Si el clon no trae ni el ref de fuera de banda ni el commit registrado, RETIRADA_NO_MEDIDA (RC 2): un git clone solo transporta refs/heads/* y refs/tags/*, y no medir no es defecto.",
   "espacio": "refs/tags-retirados/",
   "retiradas": [
     {
