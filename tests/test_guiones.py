@@ -51,7 +51,7 @@ PALABRAS_POR_SEGUNDO = 3.0
 _TIEMPO = _re.compile(r"^(\d+),(\d)$")
 _SECCION = _re.compile(r"^## (\d+) · (.*)$", _re.M)
 _FILA = _re.compile(r"^\| (\d+,\d)–(\d+,\d) \| .* \| (.*?) \|$", _re.M)
-_GUION = _re.compile(r"^G(\d) · .* — (\d+) s(?: · (.+))?$")
+_GUION = _re.compile(r"^G(\d+) · .* — (\d+) s(?: · (.+))?$")
 
 
 def _medicion(etiqueta: str, valor: object) -> None:
@@ -148,12 +148,12 @@ class _ContratoDeLaPagina:
 
     def test_p65_cada_guion_tiene_falsador_en_la_tabla(self) -> None:
         texto = self._texto()
-        guiones = {int(n) for n in _re.findall(r"^## \d+ · G(\d) ·", texto, flags=_re.M)}
+        guiones = {int(n) for n in _re.findall(r"^## \d+ · G(\d+) ·", texto, flags=_re.M)}
         falsados = set()
         for linea in texto.splitlines():
             if not linea.startswith("| G"):
                 continue
-            for n in _re.findall(r"G(\d)", linea.split("|")[1]):
+            for n in _re.findall(r"G(\d+)", linea.split("|")[1]):
                 falsados.add(int(n))
         _medicion("P-65 guiones", sorted(guiones))
         _medicion("P-65 falsados", sorted(falsados))
@@ -184,6 +184,23 @@ class _ContratoDeLaPagina:
             for anterior, siguiente in zip(fines, inicios[1:]):
                 self.assertAlmostEqual(anterior, siguiente, places=6, msg=titulo)
             self.assertAlmostEqual(float(duracion), fines[-1], places=6, msg=titulo)
+
+    def test_p108_ningun_guion_escapa_a_las_reglas_de_la_tabla(self) -> None:
+        """P-108 · el meta-falsificador: un `G10` no puede ser invisible por un digito.
+
+        Las reglas de P-66 y P-67 solo ven los guiones que `_GUION` reconoce. El
+        27-Nov-2026 ese patron casaba `G(\\d)` —un digito—, asi que `G10` existia
+        en la pagina y ninguna regla lo medía: un guion sin linea de tiempo ni
+        presupuesto de voz pasaba en verde. Aqui se comparan los dos censos, el
+        estricto y el laxo: la diferencia tiene que ser vacia.
+        """
+
+        texto = self._texto()
+        laxos = {int(n) for n in _re.findall(r"^## \d+ · G(\d+) ·", texto, flags=_re.M)}
+        estrictos = {g[0] for g in self._guiones()}
+        _medicion("P-108 guiones laxos", sorted(laxos))
+        _medicion("P-108 guiones medidos", sorted(estrictos))
+        self.assertEqual(set(), laxos - estrictos)
 
     def test_p67_la_voz_cabe_en_el_presupuesto(self) -> None:
         # Regla 6: 12 palabras cada 4 s. Lo que no cabe no se acelera: pasa a
@@ -242,7 +259,7 @@ class TestParidadDeLasDosPaginas(_unittest.TestCase):
     def test_p70_las_dos_paginas_tienen_los_mismos_guiones_y_duraciones(self) -> None:
         def guiones(ruta: str) -> dict:
             texto = _texto(ruta)
-            return dict(_re.findall(r"^## \d+ · G(\d) · .* — (\d+) s", texto, flags=_re.M))
+            return dict(_re.findall(r"^## \d+ · G(\d+) · .* — (\d+) s", texto, flags=_re.M))
 
         es, en = guiones(_GUIONES), guiones(_GUIONES_EN)
         _medicion("P-70 guiones", (es, en))

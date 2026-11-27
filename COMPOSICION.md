@@ -150,7 +150,11 @@ Su límite va impreso en cada corrida, no en la letra pequeña:
 
 1. **No certifica la transformación.** Que B leyera lo que A dejó no dice nada
    sobre si B aplicó la regla acordada. Un recibo de continuidad leído como
-   recibo de corrección es un falso verde con firma.
+   recibo de corrección es un falso verde con firma. El anillo 7
+   ([`CONSERVACION.md`](CONSERVACION.md)) **acota** este hueco con una magnitud
+   que el cliente declara y se recalcula de las páginas; no lo cierra: una
+   medida puede sobrevivir a un valor mal calculado y la línea `limite` lo
+   publica en cada corrida (P-103).
 2. **No abarata la cadena larga.** Componer es barato; **verificar** un salto es
    O(página). La cadena de `n` nodos no se vuelve O(1) por componerla: el coste
    sigue en los extremos que alguien tenga que rehashear, y quien afirme lo

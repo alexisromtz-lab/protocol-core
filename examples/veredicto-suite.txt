@@ -1,2 +1,2 @@
-Ran 236 tests
-OK
+Ran 271 tests
+FAILED (failures=1)

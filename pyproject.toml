@@ -35,7 +35,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "protocol-core"
-version = "0.1.0"
+version = "0.2.0"
 description = "Ficha, partición y manifiesto medidos fuera de banda, y los invariantes de custodia (Materia A)"
 # Piso declarado, NO medido: el árbol se corre con el intérprete del sistema
 # (3.14.7). El piso es una declaración de empaquetado, no una cifra del objeto.

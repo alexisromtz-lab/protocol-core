@@ -1,6 +1,6 @@
 # SPEC · Protocolo de Custodia Determinista y Reserva de Ranuras
 
-**Versión** 0.1.0 · **Estado** ESQUEMA EN SECO — sin implementación, sin extracción de código
+**Versión** 0.2.0 · **Estado** ESQUEMA EN SECO — sin implementación, sin extracción de código
 **Materia** A (Método y Arquitectura) · **Hora de la puerta** 09Z01Z11Z21Z.015293 (UTC)
 **Entregable** `protocol-core/` · **Fuera de alcance** Materia B (corpus teórico) · Materia C (evidencia y bitácora)
 

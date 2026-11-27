@@ -136,8 +136,15 @@ from protocol.types import (  # noqa: E402
 #: primera no se esconde, se nombra —es la página que midió el desfase—. Un acto
 #: que se emitiera una sola vez publicaría un veredicto sobre un árbol que ya no
 #: es el que describe.
-COPTA_LINEAS = 109
-COPTA_BYTES = 3530
+#: SUBIDO 2026-11-27 a 121 líneas y 3 941 bytes. Predicción pre-registrada antes
+#: de emitir: 121 líneas y 3 938 bytes — el anillo 7 entra con tres artefactos
+#: (`src/protocol/conservacion.py`, `tests/test_conservacion.py` y
+#: `tests/test_version.py`) y cada uno paga sus cuatro líneas sobre las 109 de
+#: HEAD: 109 + 12 = 121, que es lo que el acto escribió. La de bytes se quedó
+#: corta: el acto imprimió **3 940** y el archivo pesa 3 941 con su salto final,
+#: que es lo que este test mide. La cota se queda en la cifra medida.
+COPTA_LINEAS = 121
+COPTA_BYTES = 3941
 #: Cota del acto de censo. Es más ancha que la de la suite porque lleva 12
 #: referencias vivas en vez de 10; se declara aparte para que una cota no mida
 #: el acto que la escribió (§medición con unidad: cada acto, su número).
@@ -154,8 +161,14 @@ COPTA_BYTES = 3530
 #: bytes se quedó corta por uno, y por eso la cota se queda en **2 757**, que es
 #: lo que el archivo pesa con su salto final. Se declara la diferencia en vez de
 #: re-emitir hasta que la predicción cuadre.
-COPTA_CENSO_LINEAS = 82
-COPTA_CENSO_BYTES = 2757
+#: Subida del 2026-11-27 a 86 líneas y 2 901 bytes: cuarta entrada de código
+#: (`conservacion.py`) sobre las 82 de HEAD, cuatro líneas de JSON por entrada
+#: (82 + 4 = 86, pre-registradas antes de emitir). La predicción de bytes era
+#: 2 889 y el acto escribió 2 901, doce más, porque el nombre de la ruta nueva es
+#: más largo que la media que sirvió de base. Se declara la diferencia en vez de
+#: re-emitir hasta que la predicción cuadre.
+COPTA_CENSO_LINEAS = 86
+COPTA_CENSO_BYTES = 2901
 
 H_A = Hash(ALGORITMO, "a" * 64)
 H_B = Hash(ALGORITMO, "b" * 64)

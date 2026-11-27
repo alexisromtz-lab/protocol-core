@@ -12,7 +12,7 @@ It exists for one reason: the closing piece (G5) ends with `git clone` on camera
 
 ## 0 · The script contract — six rules
 
-1. **No figure on screen without its command.** True for `206 routes` and for `RC 1`. The table in [§13](#11--figure-table) is the source; the script cites it, it does not remember it.
+1. **No figure on screen without its command.** True for `206 routes` and for `RC 1`. The table in [§14](#14--figure-table) is the source; the script cites it, it does not remember it.
 2. **The script is not transcribed, it is convoked.** The lines that go on screen are printed by `examples/ensayo_escalera.py`, not typed by an editor.
 3. **The script is rehearsed before it is filmed.** `python3 -B examples/ensayo_escalera.py` ⇒ `ENSAYO | 7/7 | … | RC 0`. That RC is the falsifier: if the act changes, the rehearsal shouts before the camera does.
 4. **Animation never runs ahead.** A line appears whole — as the act printed it — and then fades in. Never character by character: typing suggests a process the act did not have.
@@ -54,7 +54,7 @@ Three things this agenda measures that an exporter's `grep` cannot:
 - **`pi` is applied before the page exists.** A route with a byte outside `A-Za-z0-9._-` is not silently normalised: `ENTRADA INVALIDA | … | componente no admisible como slug`, RC 2. A diacritic dropped in silence is a row that disappears.
 - **Two clients with the same `pi` are one client.** `Ávila-cita-09-00-sillon1` and `AVILA-CITA-09-00-SILLON1` project onto the same key and the act **refuses to seal**: `CONTRATO | colapsa-el-caso: … proyectan a la misma clave` · `-> no se emite: una clave que colapsa se resuelve, no se sella` · RC 1. Guessing which one is right would be inventing the owner's answer.
 
-**What this measurement is not:** we wrote the manifest. It proves the algebra works outside a software tree; it does **not** prove that a manifest signed by a client behaves the same way. That remains open (see [`GUIONES.md` §15](GUIONES.md)).
+**What this measurement is not:** we wrote the manifest. It proves the algebra works outside a software tree; it does **not** prove that a manifest signed by a client behaves the same way. That remains open (see [`GUIONES.md` §16](GUIONES.md)).
 
 ---
 
@@ -171,6 +171,37 @@ The mistake that cost one run: rebuilding the payload while losing the final new
 
 ---
 
+### 1.9 · Conservation — the magnitude that survives
+
+The envelope (§1.8) separates file from object, and neither of them asks whether what sits **inside** the page was computed correctly. The chain of §1.6 inherits that same blindness: two `intactas` hops yield an `intacto` receipt even if the middle node recalculated all three of its rows. Conservation is the first measure in the series that **does not look at bytes**: the client declares a magnitude over the page, and the chain checks that the same magnitude reads the same at both ends.
+
+Two declared measures, the same three-node chain, two verdicts:
+
+```
+conservacion | A -> B -> C
+medida | filas | declarada por el cliente
+salto | A->B | filas | filas=3 -> filas=3 | conservada
+salto | B->C | filas | filas=3 -> filas=3 | conservada
+limite | conserva el transporte, no el calculo: la magnitud elegida puede sobrevivir a un valor mal calculado
+-> conservada
+```
+
+```
+conservacion | A -> B -> C
+medida | claves | declarada por el cliente
+salto | A->B | claves | claves=17849efefd40 -> claves=17849efefd40 | conservada
+salto | B->C | claves | claves=17849efefd40 -> claves=37cc1abd699d | no_conservada
+degradado | B->C | no_conservada
+limite | conserva el transporte, no el calculo: la magnitud elegida puede sobrevivir a un valor mal calculado
+-> no_conservada
+```
+
+The same chain, the same pages, two opposite verdicts. It is not a contradiction; it is the only lesson the piece has. `filas=3` counts entries and does not see that `B` recalculated its three digests; `claves` authenticates the **set of routes** —deliberately discarding the digests— so it does not see the recalculation either, but it does see that `C` moved one appointment from chair 2 to chair 4. A finer measure implies the coarser one and not the reverse (P-100e), and **neither of them looks at a row's value**.
+
+**What this measurement is not:** conservation does *not* certify that `B` computed correctly. A `conservada` chain says the magnitude the client chose survived transport; if `B` adds wrongly and its page keeps the count, the chain has nothing to accuse it with. That is why the `limite` line travels in both outputs, the green one included: a `conservada` without that line would read as an arithmetic certification this ring does not make. Algebra, refinement chain and the 26 falsifiers P-99…P-106: [`CONSERVACION.md`](CONSERVACION.md).
+
+---
+
 ## 2 · Camera rules
 
 - **Background** `#0B0E12` · **text** `#E8EDF2` · **amber** `#E0A83C` = verdict · **cyan** `#4CC3D9` = datum · **grey** `#8A949E` = gap.
@@ -194,7 +225,7 @@ The mistake that cost one run: rebuilding the payload while losing the final new
 | 10,5–13,5 | `reubicado <acta> -> 14 caminos` + `RC 0` | «And it picks no destination for you.» |
 | 13,5–15,0 | `protocol-core` | — |
 
-**Figures:** `206` ⇒ §12 #4 · `14/4/10` ⇒ §12 #3.
+**Figures:** `206` ⇒ §14 #4 · `14/4/10` ⇒ §14 #3.
 **Falsifier:** the command in [`GUIONES.md` §1.2](GUIONES.md) must still print `10 conforme / 4 reubicado`. If the seal moves, the piece is re-measured, not re-filmed.
 
 ---
@@ -231,7 +262,7 @@ The mistake that cost one run: rebuilding the payload while losing the final new
 | 17,0–23,0 | `RC 1` | «Not a bug. The program saying where it stopped looking.» |
 | 23,0–30,0 | `opaco` · `no_medida` · `redundancia` (all cyan) | «An instrument that declares its blindness is auditable.» |
 
-**Figures:** §12 #2, #5, #6, #7.
+**Figures:** §14 #2, #5, #6, #7.
 **Falsifier:** P-47 together with P-44/P-45 — without `--completo` the `redundancia` line **cannot** appear; with it, the verdict does not move.
 
 ---
@@ -247,7 +278,7 @@ The mistake that cost one run: rebuilding the payload while losing the final new
 | 13,0–19,0 | `1 conforme / 0 reubicado / 0 diverge / 0 opaco -> intacta` + `RC 0` | «Verdict unchanged. The copy is a datum.» |
 | 19,0–25,0 | `14 digests \| 206 rutas` (amber) + second line `esto sí es mi árbol` | «In mine: two hundred and six routes.» |
 
-**Figures:** §12 #4, #10.
+**Figures:** §14 #4, #10.
 **Falsifier:** [`GUIONES.md` §1.3](GUIONES.md) — the line `1 declaradas \| 3 observadas` over jq 1.7.1.
 **Permanent lower third, grey, 6,0–19,0:** `bytes y manifiesto: jq 1.7.1 · las copias: mías`. The voice does not say it; the piece does not hide it.
 
@@ -265,7 +296,7 @@ The mistake that cost one run: rebuilding the payload while losing the final new
 | 21,0–27,0 | `caso \| colapsa-el-caso` + `caso-choque \| jq-linux-amd64 \| …` + `-> presente` `RC 1` | «Case-blind volume, uppercase name: still `presente`.» |
 | 27,0–30,0 | `ausente` · `presente` · `no_medida` (all cyan) | «Absence proved. Presence declared. The rest said.» |
 
-**Figures:** §13 #11, #12, #13.
+**Figures:** §14 #11, #12, #13.
 **Falsifier:** `python3 -B -m unittest tests.test_ausencia` (27 tests) and the receipts in [`GUIONES.md` §1.4](GUIONES.md).
 
 ---
@@ -283,7 +314,7 @@ The mistake that cost one run: rebuilding the payload while losing the final new
 | 27,0–30,0 | `ausente` · `presente` · `no_medida` (all three in cyan) | "Absence proven. Presence declared. The rest, unmeasured." |
 
 **Animation:** the same as G3 and G6 — the series has one visual ending and does not invent new grammar.
-**Figures:** §13 #14, #15.
+**Figures:** §14 #14, #15.
 **Falsifier:** `python3 -B -m unittest tests.test_negocio` (13 tests) and the receipts in [`GUIONES.md` §1.5](GUIONES.md).
 **Permanent note, lower third in grey, while the 21,0–27,0 row is up:** `our own subject, not a client's · no client has signed this manifest`.
 
@@ -302,7 +333,7 @@ The mistake that cost one run: rebuilding the payload while losing the final new
 | 27,0–30,0 | `reubicada` · `frontera_rota` · `no_medida` (all three in cyan) | "What travelled. What broke." |
 
 **Animation:** the one from G3, G6 and G7 —three words at the close, same movement, same opacity—; the new move is the joint: the `frontera` line enters **between** the two digests, not on top.
-**Figures:** §13 #16, #17.
+**Figures:** §14 #16, #17.
 **Falsifier:** `python3 -B -m unittest tests.test_composicion` (22 tests) and the receipts in [`GUIONES.md` §1.6](GUIONES.md).
 **Permanent note, lower third in grey, while the 13,0–21,0 row is up:** `byte continuity across hops · not that the middle node did its job`.
 
@@ -321,7 +352,7 @@ The mistake that cost one run: rebuilding the payload while losing the final new
 | 27,0–30,0 | `coreutils` · `bsd` · `deb822` · `suelto` (all four in cyan) | "Four grammars. None chosen blindly." |
 
 **Animation:** the first three columns enter with the usual movement; the new move is the **strike-through** of `881cba55a9d2` at 21,0–27,0 —one red line crossing the digest, 200 ms, no bounce—, because what is being withdrawn is an accusation, not a datum.
-**Figures:** §13 #18, #19.
+**Figures:** §14 #18, #19.
 **Falsifier:** `python3 -B -m unittest tests.test_portador` (21 tests) and the eight artifacts in `examples/portadores/` with their `FUENTES.txt`.
 **Permanent note, lower third in grey, while the 21,0–27,0 row is up:** `the signature is not verified · the line is attested, not the author`.
 
@@ -340,19 +371,38 @@ The mistake that cost one run: rebuilding the payload while losing the final new
 | 26,0–30,0 | `firma no verificada` (amber) + `0 bytes de firma` (grey) | "What I did not check, with its byte count." |
 
 **Animation:** the two columns of 20,0–26,0 are drawn **at the same time and with the same motion**, and the two final figures stay character-aligned; the only highlight is the `-` of `carga -` at 12,0–20,0, which pulses once and then holds still, because it names an absence and not an error.
-**Figures:** [`GUIONES.md` §13 #20, #21](GUIONES.md).
+**Figures:** [`GUIONES.md` §14 #20, #21](GUIONES.md).
 **Falsifier:** `python3 -B -m unittest tests.test_sobre` (13 tests) and the three Debian artifacts in `examples/portadores/`.
 **Permanent notice, lower third in grey, from 26,0:** `the signature is not verified · how much was not verified is measured`.
 
 ---
 
-## 12 · G5 · "Verify it without believing me" — 45 s · closing
+## 12 · G11 · "The count survives, the calculation does not" — 30 s · conservation piece
+
+**Thesis:** the chain of G8 says the bytes arrived; it does not say that what the middle node put inside was added up correctly. Conservation is the first measure in the series that **is not a byte**: the client declares a magnitude —how many rows, which keys— and the chain checks that it reads the same at both ends. The piece shows the same three nodes giving **two opposite verdicts** depending on the declared measure, and the limit line that accompanies both.
+
+| t | screen | voice |
+|---|---|---|
+| 0,0–6,0 | `medida \| filas \| declarada por el cliente` + `filas=3 -> filas=3` (cyan) | "Three appointments in. Three appointments out." |
+| 6,0–13,0 | `salto \| A->B \| filas \| filas=3 -> filas=3 \| conservada` and `salto \| B->C \| filas \| … \| conservada` | "The count survives even when every byte changes." |
+| 13,0–20,0 | `manifiesto B: las tres filas, recalculadas` (grey) + `salto \| A->B \| claves \| … \| conservada` (amber) | "B recalculated all three rows. Neither measure saw it." |
+| 20,0–26,0 | `salto \| B->C \| claves \| claves=17849efefd40 -> claves=37cc1abd699d \| no_conservada` + `degradado \| B->C \| no_conservada` | "C moved one appointment to another chair, and there it accuses." |
+| 26,0–30,0 | `limite \| conserva el transporte, no el calculo: …` (amber, lower third) | "It conserves the transport. About the calculation it says nothing." |
+
+**Animation:** the two runs of the act are drawn **one after the other over the same three nodes**, without any box moving: the only thing that changes between 6,0–13,0 and 20,0–26,0 is the word `filas` becoming `claves`. The `limite` line is not animated: it appears complete and stays, because it is the reading condition of everything above it.
+**Figures:** [`GUIONES.md` §14 #22, #23](GUIONES.md).
+**Falsifier:** `python3 -B -m unittest tests.test_conservacion` (26 tests) and the third-party act `python3 -B examples/verificar_conservacion.py --demo` (see [`GUIONES.md` §1.9](GUIONES.md)).
+**Permanent notice, lower third in grey, from 26,0:** `conservation measures the transport · the calculation stays outside`.
+
+---
+
+## 13 · G5 · "Verify it without believing me" — 45 s · closing
 
 **Thesis:** the whole product fits in one line: *I am not asking you to believe me, I am giving you the act.* The piece shows no conclusions — it shows the commands and their output, and leaves the keyboard to the viewer.
 
 | t | screen | voice |
 |---|---|---|
-| 0,0–5,0 | `$ git clone …` + `Ran 236 tests` + `OK` | «A public clone. The whole suite.» |
+| 0,0–5,0 | `$ git clone …` + `Ran 271 tests` + `OK` | «A public clone. The whole suite.» |
 | 5,0–13,0 | `$ python3 -B examples/verificar_sello.py --manifiesto … --check` ⇒ `REPRODUCE \| <digest>` | «Re-emitted and compared to itself.» |
 | 13,0–21,0 | four grey `real` lines: `343,61 s` · `164,11 s` · `67,11 s` · `264,35 s` | «Four runs. Sixty-seven seconds, or three hundred.» |
 | 21,0–29,0 | `coste \| 14 declaradas \| 87855 barridas \| 87819 hasheadas` (cyan) | «So the clock stays out. Counters go in.» |
@@ -360,12 +410,12 @@ The mistake that cost one run: rebuilding the payload while losing the final new
 | 38,0–45,0 | `git clone` + `python3 -B examples/ensayo_escalera.py` (monospace, still) | «If this stops being true, the rehearsal fails first.» |
 
 **Animation:** the four `real` timings appear as columns of one table, not as a trend line: there is no trend, there is dispersion.
-**Figures:** §13 #1, #3, #8, #9.
-**Falsifier:** the commands themselves, on camera, from a cold clone (§14).
+**Figures:** §14 #1, #3, #8, #9.
+**Falsifier:** the commands themselves, on camera, from a cold clone (§15).
 
 ---
 
-## 13 · Figure table
+## 14 · Figure table
 
 | # | figure | command that produces it | date |
 |---|---|---|---|
@@ -377,7 +427,7 @@ The mistake that cost one run: rebuilding the payload while losing the final new
 | 6 | `coste \| 2 declaradas \| 4 barridas \| 4 hasheadas` | ensayo, step 6/7 | 25-Nov-2026 |
 | 7 | `1 fuera del universo` · `opaco __pycache__/x.pyc` | ensayo, step 7/7 | 25-Nov-2026 |
 | 8 | `343,61 / 164,11 / 67,11 / 264,35 s` | `/usr/bin/time -p` over the act, four machine states | 24–25 Nov-2026 |
-| 9 | `Ran 236 tests` · `OK` | `python3 -B -m unittest discover -s tests` | 25-Nov-2026 |
+| 9 | `Ran 271 tests` · `OK` | `python3 -B -m unittest discover -s tests` | 25-Nov-2026 |
 | 10 | `redundancia \| 5942c9b0… \| 1 declaradas \| 3 observadas` | [`GUIONES.md` §1.3](GUIONES.md) (jq 1.7.1, official manifest) | 25-Nov-2026 |
 | 11 | `ausencia \| .env \| ausente` · `testigo \| ⊥ < .env < …` · `RC 0` | [`GUIONES.md` §1.4](GUIONES.md) | 25-Nov-2026 |
 | 12 | `ausencia \| AGENTS.md \| ausente` · `arbol-ausencia \| presente` · `RC 1` | [`GUIONES.md` §1.4](GUIONES.md) | 25-Nov-2026 |
@@ -390,12 +440,14 @@ The mistake that cost one run: rebuilding the payload while losing the final new
 | 19 | `deb822 2 filas 7674c4bedf05` and `coreutils 2 filas … recorte f2ba089a097c` over **the same file** · the accused `881cba55a9d2` | [`GUIONES.md` §1.7](GUIONES.md) | 25-Nov-2026 |
 | 20 | `sobre \| firmado_en_claro \| 1759 bytes de firma \| carga abcf5882746e \| sobre 77737fa4b34f` · `sobre \| ninguno \| 0 bytes de firma` · `SobreSinCarga` over `firma_pegada` | [`GUIONES.md` §1.8](GUIONES.md) · `tests.test_sobre` | 25-Nov-2026 |
 | 21 | the two paths of one object: `carga 149266 B abcf5882746e` through `Release` and through `InRelease` · the measured mistake: `149265 B c8394efad1f4` when the final newline is dropped | [`GUIONES.md` §1.8](GUIONES.md) · §7 of [`SOBRE.md`](SOBRE.md) | 25-Nov-2026 |
+| 22 | `conservacion \| A -> B -> C` · `medida \| filas` · `salto \| A->B \| filas \| filas=3 -> filas=3 \| conservada` · `-> conservada` | [`GUIONES.md` §1.9](GUIONES.md) · `examples/verificar_conservacion.py --demo` | 27-Nov-2026 |
+| 23 | the same chain with `medida \| claves`: `claves=17849efefd40 -> claves=37cc1abd699d` · `degradado \| B->C \| no_conservada` · `-> no_conservada` | [`GUIONES.md` §1.9](GUIONES.md) · `--demo --medida claves` | 27-Nov-2026 |
 
 `87819` and `87855` count different sets (swept routes / hashed routes, which include declared routes outside the universe); they are not subtracted from each other. `206` is a sum of list lengths printed by the act, not a subtraction.
 
 ---
 
-## 14 · Falsifiers of the series
+## 15 · Falsifiers of the series
 
 | piece | what falsifies it | command |
 |---|---|---|
@@ -407,6 +459,7 @@ The mistake that cost one run: rebuilding the payload while losing the final new
 | G8 | the chain stops naming the degraded hop, the neutral stops being absorbed, or a broken frontier inherits the absence again | `python3 -B -m unittest tests.test_composicion` |
 | G9 | a real carrier stops being read, the intact file gets accused again, or a slice stops opening two readings | `python3 -B -m unittest tests.test_portador` |
 | G10 | the envelope stops yielding `Release`'s `sha256`, a `firma_pegada` reads as a zero-row manifest again, or `firma no verificada` appears over a file with no signature | `python3 -B -m unittest tests.test_sobre` |
+| G11 | the same chain stops giving two different verdicts depending on the measure, or a missing measure stops giving `sin_medida` | `python3 -B -m unittest tests.test_conservacion` · [`GUIONES.md` §1.9](GUIONES.md) |
 | all | the suite falls | `python3 -B -m unittest discover -s tests` |
 
 A script whose figure is no longer produced by its command **is not fixed**: it is withdrawn and re-measured.
@@ -415,7 +468,7 @@ Both pages are checked by `tests/test_guiones.py`: same section numbering, same 
 
 ---
 
-## 15 · What must not be filmed yet
+## 16 · What must not be filmed yet
 
 1. **The duplication rate of a client tree: `NO_MEDIDA`.** What is measured is the act over foreign bytes (jq 1.7.1) with a **self-built** copy topology. The `k = 14` copies of the Sello A are worktrees of the same owner.
 2. **The cost on a client machine.** Four runs of the same act range from 67 to 344 s, all on this machine. None of them is "the time of the act".
@@ -424,11 +477,12 @@ Both pages are checked by `tests/test_guiones.py`: same section numbering, same 
 5. **The business subject is ours.** The agenda in §1.5 is a fixture: it proves the algebra works outside a software tree, **not** that a manifest signed by a client behaves the same way.
 6. **The full ladder against a third-party tree** covers `intacta`/`reubicada`/`suplantada`/`divergente`, not the seven steps.
 7. **A client's chain.** Composition is measured between nodes of the same owner and over an agenda we wrote; no real three-party chain has gone through `componer`. And composing does not make verification cheaper: `n` hops still cost O(page) per hop someone has to re-hash.
+8. **The middle node's arithmetic correctness: `NO_MEDIDA`.** Conservation says the declared magnitude survived transport; it does not say `B` computed correctly. If `B` adds wrongly **and** its page keeps the count it declared, the chain has nothing to accuse it with (P-103). What is measured is something else: that the chain falls silent when the measure is missing —`sin_medida`, worse than `conservada` and better than `no_conservada`— and that two measures of the same chain give different verdicts (P-102).
 
-Filming any of these seven as if measured is the only mistake this file cannot repair afterwards.
+Filming any of these eight as if measured is the only mistake this file cannot repair afterwards.
 
 ---
 
-## 16 · Bridge with `letras-video`
+## 17 · Bridge with `letras-video`
 
-Each piece is a `cues.ts` file: `t` in, `t` out, the exact string, and the color. The render is deterministic, so the same cues produce the same MP4 — and the MP4 can be its own subject in G5. Full bridge in [`GUIONES.md` §16](GUIONES.md).
+Each piece is a `cues.ts` file: `t` in, `t` out, the exact string, and the color. The render is deterministic, so the same cues produce the same MP4 — and the MP4 can be its own subject in G5. Full bridge in [`GUIONES.md` §17](GUIONES.md).

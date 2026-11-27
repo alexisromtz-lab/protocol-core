@@ -10,7 +10,7 @@ Este archivo no es publicidad: es **una página**, en el mismo sentido que `PRED
 
 ## 0 · El contrato del guion — seis reglas
 
-1. **Ninguna cifra en pantalla sin su comando.** Vale para `206 rutas` igual que para `RC 1`. La tabla [§13](#12--tabla-de-cifras) es la fuente; el guion la cita, no la recuerda.
+1. **Ninguna cifra en pantalla sin su comando.** Vale para `206 rutas` igual que para `RC 1`. La tabla [§14](#14--tabla-de-cifras) es la fuente; el guion la cita, no la recuerda.
 2. **El guion no se transcribe: se convoca.** Las líneas que van a pantalla las imprime `examples/ensayo_escalera.py`, no un editor de texto. Si alguien reescribe una línea «para que se lea mejor», el video y el acto ya no son el mismo objeto.
 3. **El guion se ensaya antes de grabarse.** `python3 -B examples/ensayo_escalera.py` ⇒ `ENSAYO | 7/7 | … | RC 0`. Ese RC es el falsador del guion: si el acto cambia, el ensayo lo grita **antes** que la cámara.
 4. **La animación no adelanta.** Una línea aparece completa —como la imprime el acto— y después entra. Nunca se escribe carácter a carácter: escribir sugiere un proceso que el acto no tuvo.
@@ -137,9 +137,9 @@ El digest es el que publica jq: cualquiera lo comprueba contra el release. Y el 
 
 El manifiesto original declara **26 filas** (`2129 B`); el sujeto declara **una**: esto mide una fila contra un árbol, no el release entero. Declararlo es la mitad del resultado, como el dialecto.
 
-**Lo que esta medición no es:** los bytes y el manifiesto son de jq; la **topología de copias la construí yo**. Prueba que el acto cuenta copias no declaradas de bytes ajenos; no prueba cómo se duplica el árbol de un cliente. Eso sigue en §15.
+**Lo que esta medición no es:** los bytes y el manifiesto son de jq; la **topología de copias la construí yo**. Prueba que el acto cuenta copias no declaradas de bytes ajenos; no prueba cómo se duplica el árbol de un cliente. Eso sigue en §16.
 
-El mismo acto tardó **11 ms** sobre 5 rutas y **264,35 s** sobre 87 819 (§1.2). La diferencia no es el acto: es el universo. Es la misma ley de §12 #8 vista desde el otro extremo.
+El mismo acto tardó **11 ms** sobre 5 rutas y **264,35 s** sobre 87 819 (§1.2). La diferencia no es el acto: es el universo. Es la misma ley de §14 #8 vista desde el otro extremo.
 
 ### 1.4 · El acto de ausencia — Sello A y jq 1.7.1
 
@@ -212,7 +212,7 @@ Tres cosas que esta agenda mide y un `grep` de exportador no:
 - **`pi` se aplica antes de que la página exista.** Una ruta con un byte fuera de `A-Za-z0-9._-` no se normaliza a la callada: `ENTRADA INVALIDA | … | componente no admisible como slug`, RC 2. Un acento que se cae sin decirlo es una fila que desaparece.
 - **Dos clientes con la misma `pi` son un cliente.** `Ávila-cita-09-00-sillon1` y `AVILA-CITA-09-00-SILLON1` proyectan a la misma clave y el acto **no sella**: `CONTRATO | colapsa-el-caso: … proyectan a la misma clave 'avila-cita-09-00-sillon1'` · `-> no se emite: una clave que colapsa se resuelve, no se sella` · RC 1. Adivinar cuál de los dos es el bueno sería inventar la respuesta del dueño.
 
-**Lo que esta medición no es:** el manifiesto lo escribimos nosotros. Prueba que el álgebra funciona fuera de un árbol de software; **no** prueba que un manifiesto firmado por un cliente se comporte igual. Eso sigue en §15.
+**Lo que esta medición no es:** el manifiesto lo escribimos nosotros. Prueba que el álgebra funciona fuera de un árbol de software; **no** prueba que un manifiesto firmado por un cliente se comporte igual. Eso sigue en §16.
 
 ---
 
@@ -329,6 +329,37 @@ El error que costó una corrida: reconstruir la carga perdiendo el salto de lín
 
 ---
 
+### 1.9 · La conservación — la magnitud que sobrevive
+
+El sobre (§1.8) separa archivo de objeto, y ninguno de los dos pregunta si lo que va **dentro** de la página está bien calculado. La cadena de §1.6 hereda esa misma ceguera: dos saltos `intactas` dan un recibo `intacto` aunque el nodo de en medio haya recalculado sus tres filas. La conservación es la primera medida de la serie que **no mira bytes**: el cliente declara una magnitud sobre la página, y la cadena comprueba que se lee igual en los dos extremos.
+
+Dos medidas declaradas, la misma cadena de tres nodos, dos veredictos:
+
+```
+conservacion | A -> B -> C
+medida | filas | declarada por el cliente
+salto | A->B | filas | filas=3 -> filas=3 | conservada
+salto | B->C | filas | filas=3 -> filas=3 | conservada
+limite | conserva el transporte, no el calculo: la magnitud elegida puede sobrevivir a un valor mal calculado
+-> conservada
+```
+
+```
+conservacion | A -> B -> C
+medida | claves | declarada por el cliente
+salto | A->B | claves | claves=17849efefd40 -> claves=17849efefd40 | conservada
+salto | B->C | claves | claves=17849efefd40 -> claves=37cc1abd699d | no_conservada
+degradado | B->C | no_conservada
+limite | conserva el transporte, no el calculo: la magnitud elegida puede sobrevivir a un valor mal calculado
+-> no_conservada
+```
+
+La misma cadena, las mismas páginas, dos veredictos opuestos. No es una contradicción: es la única lección que la pieza tiene. `filas=3` cuenta entradas y no ve que `B` recalculó sus tres digests; `claves` autentica el **conjunto de rutas** —descartando los digests a propósito— y por eso tampoco ve el recálculo, pero sí ve que `C` movió una cita del sillón 2 al 4. Una medida más fina implica la más gruesa y no al revés (P-100e), y **ninguna de las dos mira el valor de la fila**.
+
+**Lo que esta medición no es:** la conservación *no* certifica que `B` calculara bien. Una cadena `conservada` dice que la magnitud que el cliente eligió sobrevivió el transporte; si `B` suma mal y su página conserva la cuenta, la cadena no tiene con qué acusarlo. Por eso la línea `limite` viaja en las dos salidas, también en la verde: un `conservada` sin esa línea se leería como una certificación aritmética que este anillo no hace. Álgebra, cadena de refinamiento y los 26 falsadores P-99…P-106: [`CONSERVACION.md`](CONSERVACION.md).
+
+---
+
 ## 2 · Reglas de cámara
 
 - **Fondo** `#0B0E12` · **texto** `#E8EDF2` · **ámbar** `#E0A83C` = veredicto · **cian** `#4CC3D9` = dato · **gris** `#8A949E` = laguna.
@@ -353,7 +384,7 @@ El error que costó una corrida: reconstruir la carga perdiendo el salto de lín
 | 13,5–15,0 | `protocol-core` | — |
 
 **Animación:** las 206 rutas no se dibujan; se colapsan en un contador. Un árbol de puntos es opcional **sólo** si cada punto es una ruta de la lista (no una ilustración).
-**Cifras:** `206` ⇒ §12 #4 · `14/4/10` ⇒ §12 #3.
+**Cifras:** `206` ⇒ §14 #4 · `14/4/10` ⇒ §14 #3.
 **Falsador:** el comando de §1.2 tiene que seguir dando `10 conforme / 4 reubicado`. Si mañana el Sello A se mueve, este guion no se re-graba: se re-mide.
 
 ---
@@ -394,7 +425,7 @@ El error que costó una corrida: reconstruir la carga perdiendo el salto de lín
 | 23,0–30,0 | `opaco` · `no_medida` · `redundancia` (los tres en cian) | «Un instrumento que declara su ceguera es el único que un tercero puede auditar.» |
 
 **Animación:** las tres palabras finales entran una a una. Nada más se mueve en 7 s: es el cierre intelectual de la serie.
-**Cifras:** §12 #2, #5, #6, #7.
+**Cifras:** §14 #2, #5, #6, #7.
 **Falsador:** P-47 (`tests/test_ubicacion.py`) y P-44/P-45 —sin `--completo`, la línea `redundancia` **no puede** aparecer; con él, el veredicto no se mueve.
 
 ---
@@ -411,9 +442,9 @@ El error que costó una corrida: reconstruir la carga perdiendo el salto de lín
 | 19,0–25,0 | `14 digests | 206 rutas` (ámbar) + segunda línea `esto sí es mi árbol` | «En el mío: doscientas seis rutas. Ese árbol es mío, no el suyo.» |
 
 **Animación:** el contador sube de 3 a 206 una sola vez, monotónico, sin easing. La segunda línea en gris entra 800 ms después que su principal.
-**Cifras:** §12 #4, #10.
+**Cifras:** §14 #4, #10.
 **Falsador:** §1.3 (la línea `1 declaradas | 3 observadas` sobre jq 1.7.1) y el agregado §1.2.
-**Aviso permanente, tercio inferior en gris, de 6,0 a 19,0:** `bytes y manifiesto: jq 1.7.1 · las copias: mías`. La voz no lo dice (no cabe) y la pieza no lo esconde. Ver §13.
+**Aviso permanente, tercio inferior en gris, de 6,0 a 19,0:** `bytes y manifiesto: jq 1.7.1 · las copias: mías`. La voz no lo dice (no cabe) y la pieza no lo esconde. Ver §14.
 
 ---
 
@@ -430,7 +461,7 @@ El error que costó una corrida: reconstruir la carga perdiendo el salto de lín
 | 27,0–30,0 | `ausente` · `presente` · `no_medida` (los tres en cian) | «Ausencia probada. Presencia declarada. Lo no mirado, dicho.» |
 
 **Animación:** las tres palabras del cierre entran igual que en G3: la serie tiene un solo final visual y no inventa gramática nueva.
-**Cifras:** §13 #11, #12, #13.
+**Cifras:** §14 #11, #12, #13.
 **Falsador:** `python3 -B -m unittest tests.test_ausencia` (27 pruebas) y los recibos de §1.4.
 **Aviso permanente, tercio inferior en gris, mientras dura la fila 21,0–27,0:** `volumen APFS sin distinción de mayúsculas · sonda escribe 0 bytes`.
 
@@ -449,7 +480,7 @@ El error que costó una corrida: reconstruir la carga perdiendo el salto de lín
 | 27,0–30,0 | `ausente` · `presente` · `no_medida` (los tres en cian) | «Ausencia probada. Presencia declarada. Lo demás, no mirado.» |
 
 **Animación:** la de G3 y G6 —la serie tiene un solo final visual y no inventa gramática nueva.
-**Cifras:** §13 #14, #15.
+**Cifras:** §14 #14, #15.
 **Falsador:** `python3 -B -m unittest tests.test_negocio` (13 pruebas) y los recibos de §1.5.
 **Aviso permanente, tercio inferior en gris, mientras dura la fila 21,0–27,0:** `los nombres son de un sujeto escrito por nosotros · ningún cliente ha firmado este manifiesto`.
 
@@ -468,7 +499,7 @@ El error que costó una corrida: reconstruir la carga perdiendo el salto de lín
 | 27,0–30,0 | `reubicada` · `frontera_rota` · `no_medida` (los tres en cian) | «Lo que viajó. Lo que se rompió.» |
 
 **Animación:** la de G3, G6 y G7 —tres palabras al cierre, mismo movimiento, misma opacidad—; lo nuevo es el empalme: la línea `frontera` entra **entre** los dos digests, no encima.
-**Cifras:** §13 #16, #17.
+**Cifras:** §14 #16, #17.
 **Falsador:** `python3 -B -m unittest tests.test_composicion` (22 pruebas) y los recibos de §1.6.
 **Aviso permanente, tercio inferior en gris, mientras dura la fila 13,0–21,0:** `continuidad de bytes entre saltos · no que el nodo intermedio hiciera su trabajo`.
 
@@ -487,7 +518,7 @@ El error que costó una corrida: reconstruir la carga perdiendo el salto de lín
 | 27,0–30,0 | `coreutils` · `bsd` · `deb822` · `suelto` (los cuatro en cian) | «Cuatro gramáticas. Ninguna elegida a ciegas.» |
 
 **Animación:** las tres primeras columnas entran con el movimiento de siempre; lo nuevo es el **tachado** de `881cba55a9d2` en 21,0–27,0 —una sola línea roja que cruza el digest, 200 ms, sin rebote—, porque lo que se retira es una acusación, no un dato.
-**Cifras:** §13 #18, #19.
+**Cifras:** §14 #18, #19.
 **Falsador:** `python3 -B -m unittest tests.test_portador` (21 pruebas) y los ocho artefactos de `examples/portadores/` con su `FUENTES.txt`.
 **Aviso permanente, tercio inferior en gris, mientras dura la fila 21,0–27,0:** `la firma no se verifica · se atestigua la linea, no al autor`.
 
@@ -506,19 +537,38 @@ El error que costó una corrida: reconstruir la carga perdiendo el salto de lín
 | 26,0–30,0 | `firma no verificada` (ámbar) + `0 bytes de firma` (gris) | «Lo que no comprobé, con su número de bytes.» |
 
 **Animación:** las dos columnas de 20,0–26,0 se dibujan **a la vez y con el mismo movimiento**, y las dos cifras finales quedan alineadas al carácter; el único remarcado es el `-` de `carga -` en 12,0–20,0, que late una vez y se queda quieto, porque nombra una ausencia y no un error.
-**Cifras:** §13 #20, #21.
+**Cifras:** §14 #20, #21.
 **Falsador:** `python3 -B -m unittest tests.test_sobre` (13 pruebas) y los tres artefactos de Debian en `examples/portadores/`.
 **Aviso permanente, tercio inferior en gris, desde 26,0:** `la firma no se verifica · se mide cuánto no se verificó`.
 
 ---
 
-## 12 · G5 · «Verifícalo sin creerme» — 45 s · cierre
+## 12 · G11 · «La cuenta sobrevive, el cálculo no» — 30 s · pieza de conservación
+
+**Tesis:** la cadena de G8 dice que los bytes llegaron; no dice que lo que el nodo de en medio puso dentro esté bien sumado. La conservación es la primera medida de la serie que **no es un byte**: el cliente declara una magnitud —cuántas filas, qué claves— y la cadena comprueba que se lee igual en los dos extremos. La pieza enseña el mismo trío de nodos dando **dos veredictos opuestos** según la medida declarada, y la línea de límite que acompaña a los dos.
+
+| t | pantalla | voz |
+|---|---|---|
+| 0,0–6,0 | `medida \| filas \| declarada por el cliente` + `filas=3 -> filas=3` (cian) | «Tres citas entran. Tres citas salen.» |
+| 6,0–13,0 | `salto \| A->B \| filas \| filas=3 -> filas=3 \| conservada` y `salto \| B->C \| filas \| … \| conservada` | «La cuenta se conserva aunque los bytes cambien todos.» |
+| 13,0–20,0 | `manifiesto B: las tres filas, recalculadas` (gris) + `salto \| A->B \| claves \| … \| conservada` (ámbar) | «B recalculó las tres filas. Ninguna de las dos medidas lo vio.» |
+| 20,0–26,0 | `salto \| B->C \| claves \| claves=17849efefd40 -> claves=37cc1abd699d \| no_conservada` + `degradado \| B->C \| no_conservada` | «C movió una cita de sillón, y ahí sí acusa.» |
+| 26,0–30,0 | `limite \| conserva el transporte, no el calculo: …` (ámbar, tercio inferior) | «Conserva el transporte. Del cálculo no responde.» |
+
+**Animación:** las dos corridas del acto se dibujan **una después de la otra sobre el mismo trío de nodos**, sin mover cajas: lo único que cambia entre 6,0–13,0 y 20,0–26,0 es la palabra `filas` por `claves`. La línea `limite` no se anima: aparece completa y se queda, porque es la condición de lectura de todo lo anterior.
+**Cifras:** §14 #22, #23.
+**Falsador:** `python3 -B -m unittest tests.test_conservacion` (26 pruebas) y el acto de tercero `python3 -B examples/verificar_conservacion.py --demo` (§1.9).
+**Aviso permanente, tercio inferior en gris, desde 26,0:** `la conservación mide el transporte · el cálculo queda fuera`.
+
+---
+
+## 13 · G5 · «Verifícalo sin creerme» — 45 s · cierre
 
 **Tesis:** el producto entero cabe en una línea: *no te pido que me creas, te doy el acto*. La pieza no enseña conclusiones: enseña los comandos y su salida, y deja el teclado al espectador.
 
 | t | pantalla | voz |
 |---|---|---|
-| 0,0–5,0 | `$ git clone …` + `Ran 236 tests` + `OK` | «Un clon público. La suite entera.» |
+| 0,0–5,0 | `$ git clone …` + `Ran 271 tests` + `OK` | «Un clon público. La suite entera.» |
 | 5,0–13,0 | `$ python3 -B examples/verificar_sello.py --manifiesto … --raiz … --check` ⇒ `REPRODUCE | <digest>` | «El sello se re-emite y se compara consigo mismo: si la página no describe este árbol, lo dice.» |
 | 13,0–21,0 | cuatro líneas `real` (gris): `343,61 s` · `164,11 s` · `67,11 s` · `264,35 s` + segunda línea `el mismo acto sobre los mismos bytes` | «Cuatro corridas del mismo acto. Sesenta y siete segundos, o trescientos cuarenta. El coste es de la máquina.» |
 | 21,0–29,0 | `coste | 14 declaradas | 87855 barridas | 87819 hasheadas` (cian) | «Por eso a la página sellada no entra el reloj. Entran los contadores: cuántas declaré, cuántas barrí, cuántas hasheé.» |
@@ -526,12 +576,12 @@ El error que costó una corrida: reconstruir la carga perdiendo el salto de lín
 | 38,0–45,0 | `git clone` + `python3 -B examples/ensayo_escalera.py` (mono, quieto) | «Si mañana esto ya no es verdad, el ensayo falla antes de que nadie tenga que creerme.» |
 
 **Animación:** los cuatro tiempos `real` aparecen como columnas de una misma tabla, no como una gráfica de mejora: no hay tendencia, hay dispersión.
-**Cifras:** §13 #1, #3, #8, #9.
-**Falsador:** los propios comandos, en cámara, desde un clon en frío (§14).
+**Cifras:** §14 #1, #3, #8, #9.
+**Falsador:** los propios comandos, en cámara, desde un clon en frío (§15).
 
 ---
 
-## 13 · Tabla de cifras
+## 14 · Tabla de cifras
 
 | # | cifra | comando que la produce | fecha |
 |---|---|---|---|
@@ -543,7 +593,7 @@ El error que costó una corrida: reconstruir la carga perdiendo el salto de lín
 | 6 | `coste | 2 declaradas | 4 barridas | 4 hasheadas` | ensayo, paso 6/7 | 25-Nov-2026 |
 | 7 | `1 fuera del universo` · `opaco __pycache__/x.pyc` | ensayo, paso 7/7 | 25-Nov-2026 |
 | 8 | `343,61 / 164,11 / 67,11 / 264,35 s` | `/usr/bin/time -p` sobre el acto (§1.2), cuatro veces en cuatro estados de máquina | 24–25 Nov-2026 |
-| 9 | `Ran 236 tests` · `OK` | `python3 -B -m unittest discover -s tests` | 25-Nov-2026 |
+| 9 | `Ran 271 tests` · `OK` | `python3 -B -m unittest discover -s tests` | 25-Nov-2026 |
 | 10 | `redundancia | 5942c9b0… | 1 declaradas | 3 observadas` · `coste | 1 declaradas | 5 barridas | 5 hasheadas` | §1.3 (jq 1.7.1, manifiesto oficial) | 25-Nov-2026 |
 | 11 | `ausencia | .env | ausente` · `testigo | ⊥ < .env < …` · `RC 0` | §1.4 | 25-Nov-2026 |
 | 12 | `ausencia | AGENTS.md | ausente` · `arbol-ausencia | presente` · `-> presente` · `RC 1` | §1.4 | 25-Nov-2026 |
@@ -556,6 +606,8 @@ El error que costó una corrida: reconstruir la carga perdiendo el salto de lín
 | 19 | `deb822 2 filas 7674c4bedf05` y `coreutils 2 filas … recorte f2ba089a097c` sobre **el mismo archivo** · el acusado `881cba55a9d2` | §1.7 | 25-Nov-2026 |
 | 20 | `sobre \| firmado_en_claro \| 1759 bytes de firma \| carga abcf5882746e \| sobre 77737fa4b34f` · `sobre \| ninguno \| 0 bytes de firma` · `SobreSinCarga` sobre `firma_pegada` | §1.8 · `tests.test_sobre` | 25-Nov-2026 |
 | 21 | las dos vías del mismo objeto: `carga 149266 B abcf5882746e` por `Release` y por `InRelease` · el error medido: `149265 B c8394efad1f4` al perder el salto final | §1.8 · §7 de [`SOBRE.md`](SOBRE.md) | 25-Nov-2026 |
+| 22 | `conservacion \| A -> B -> C` · `medida \| filas` · `salto \| A->B \| filas \| filas=3 -> filas=3 \| conservada` · `-> conservada` | §1.9 · `examples/verificar_conservacion.py --demo` | 27-Nov-2026 |
+| 23 | la misma cadena con `medida \| claves`: `claves=17849efefd40 -> claves=37cc1abd699d` · `degradado \| B->C \| no_conservada` · `-> no_conservada` | §1.9 · `--demo --medida claves` | 27-Nov-2026 |
 
 `87819` y `87855` cuentan cosas distintas (rutas del universo / rutas hasheadas, que incluyen las declaradas fuera de él); no se restan entre sí. `206` es suma de longitudes de listas impresas por el acto, no una resta.
 
@@ -563,7 +615,7 @@ La cifra 9 **no se copia al grabar**: la suite crece y el recibo en pantalla es 
 
 ---
 
-## 14 · Falsadores de la serie
+## 15 · Falsadores de la serie
 
 | pieza | qué la falsa | comando |
 |---|---|---|
@@ -576,15 +628,16 @@ La cifra 9 **no se copia al grabar**: la suite crece y el recibo en pantalla es 
 | G8 | la cadena deja de nombrar el tramo degradado, el neutro deja de absorberse, o una frontera rota vuelve a heredar la ausencia | `python3 -B -m unittest tests.test_composicion` · §1.6 |
 | G9 | un portador real deja de leerse, el archivo intacto vuelve a ser acusado, o un extracto deja de abrir dos lecturas | `python3 -B -m unittest tests.test_portador` · §1.7 |
 | G10 | el sobre deja de dar el `sha256` del `Release`, una `firma_pegada` vuelve a leerse como manifiesto de cero filas, o `firma no verificada` aparece sobre un archivo sin firma | `python3 -B -m unittest tests.test_sobre` · §1.8 |
+| G11 | la misma cadena deja de dar dos veredictos distintos según la medida, o una medida ausente deja de dar `sin_medida` | `python3 -B -m unittest tests.test_conservacion` · §1.9 |
 | todas | la suite cae | `python3 -B -m unittest discover -s tests` |
 
 Un guion cuya cifra ya no la produce su comando **no se corrige**: se retira y se re-mide.
 
-**Prerrequisito de grabación, medido el 25-Nov-2026:** el veredicto de ancla necesita **historia completa**. En un `--depth 1` el acto responde `CONTRATO | git no respondió: sin ancla no hay contrafirma` —no miente y no mide—, así que el clon de G5 se hace sin `--depth 1` si la pieza va a enseñar el ancla. La suite y el ensayo sí corren en un clon superficial (`Ran 236 tests` · `OK`, `ENSAYO 7/7 RC 0`).
+**Prerrequisito de grabación, medido el 25-Nov-2026:** el veredicto de ancla necesita **historia completa**. En un `--depth 1` el acto responde `CONTRATO | git no respondió: sin ancla no hay contrafirma` —no miente y no mide—, así que el clon de G5 se hace sin `--depth 1` si la pieza va a enseñar el ancla. La suite y el ensayo sí corren en un clon superficial (`Ran 271 tests` · `OK`, `ENSAYO 7/7 RC 0`).
 
 ---
 
-## 15 · Lo que todavía no hay que grabar
+## 16 · Lo que todavía no hay que grabar
 
 Estas son las lagunas del producto, y por eso no tienen guion:
 
@@ -595,12 +648,13 @@ Estas son las lagunas del producto, y por eso no tienen guion:
 5. **El sujeto de negocio lo escribimos nosotros.** La agenda de §1.5 es una fixture propia: prueba que el álgebra funciona fuera de un árbol de software, **no** que un manifiesto firmado por un cliente se comporte igual. La proyección `π(k)` es una frontera declarada que el cliente firma ([`AUSENCIA.md` §4.4](AUSENCIA.md)); nadie nos ha firmado una todavía.
 6. **La escalera completa contra un árbol de terceros** (un release público con `SHA256SUMS` nativo) está hecha para `intacta`/`reubicada`/`suplantada`/`divergente`, no para los siete pasos.
 7. **La cadena de un cliente.** La composición se mide entre nodos del mismo dueño y sobre una agenda escrita por nosotros; ninguna cadena real de tres manos ha pasado por `componer`. Y componer no abarata verificar: la cadena de `n` saltos sigue costando O(página) por salto que alguien tenga que rehashear.
+8. **La corrección aritmética del nodo de en medio: `NO_MEDIDA`.** La conservación dice que la magnitud declarada sobrevivió el transporte; no dice que `B` calculara bien. Si `B` suma mal **y** su página conserva la cuenta que declaró, la cadena no tiene con qué acusarlo (P-103). Lo medido es otra cosa: que la cadena se calla cuando la medida no está —`sin_medida`, peor que `conservada` y mejor que `no_conservada`— y que dos medidas de la misma cadena dan veredictos distintos (P-102).
 
-Grabar cualquiera de estos siete como si estuviera medido es el único error que este archivo no puede arreglar después.
+Grabar cualquiera de estos ocho como si estuviera medido es el único error que este archivo no puede arreglar después.
 
 ---
 
-## 16 · Puente con `letras-video`
+## 17 · Puente con `letras-video`
 
 Cada guion es ya una tabla `(t0, t1, texto, voz)`. El paso a `cues.ts` es mecánico:
 

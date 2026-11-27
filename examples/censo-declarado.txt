@@ -31,6 +31,14 @@
 # medirla. El archivo lo edita una persona: si lo escribiera el emisor, la
 # discrepancia sería siempre 0 y no mediría nada.
 
+# 2026-11-27: el anillo 7 entra con `src/protocol/conservacion.py` y el acto
+# midió declarado 11 contra observado 12 con discrepancia 1 (página
+# 062e7495df15). Misma regla: se declara el 12, que es el número medido. Y se
+# declara también lo que esa página mide de más: no la concordancia, sino que
+# este archivo se editó después de verla. La alternativa —declarar 12 sin haber
+# dejado medir la discrepancia— se descartó porque borra el único número que el
+# acto puede producir cuando alguien se atreve a declarar antes.
+
 ruta=src/protocol
 universo=protocol-core.src.protocol
 unidad=archivo
@@ -38,4 +46,4 @@ motor=python3 -B examples/emitir_censo.py
 t_utc=2026-11-25T15:50:00Z
 ventana=no medida: el censo declara movimiento del conjunto, no duracion
 umbral=ninguno: el censo no aplica umbral
-declarado=11
+declarado=12
