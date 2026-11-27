@@ -5,6 +5,9 @@ Uso:
     python3 -B examples/emitir_predicado.py           # escribe el veredicto y la página
     python3 -B examples/emitir_predicado.py --check   # re-ejecuta y compara: reproduce o diverge
 
+`--check` RC 0 es la compuerta de publicación: el veredicto que se comitea es el
+que la página reproduce, no el que quedó de una corrida anterior.
+
 Reducción declarada. Del crudo de `unittest` se conserva el conteo (`Ran N
 tests`) y el veredicto (`OK` / `FAILED (...)`); se descarta la duración porque es
 un **reloj de pared**: dos corridas idénticas dan tiempos distintos, y un digest

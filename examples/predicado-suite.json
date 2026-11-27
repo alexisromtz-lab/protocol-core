@@ -39,7 +39,7 @@
     },
     {
       "ruta": "tests/test_predicado.py",
-      "sha256": "662e2f8c8f7ac998d5820fa5f45e48d7c364d6493e52a51e866d973048a6efa8"
+      "sha256": "0185002d4e6d2d288c2004ac01114a7a087d84d5d237a5e93a08b4eb28af5f68"
     },
     {
       "ruta": "tests/test_sobre.py",
@@ -57,7 +57,7 @@
   "codigo": [
     {
       "ruta": "examples/emitir_predicado.py",
-      "sha256": "4b9d356a706dc6189a28b770a7383f4e0706decf7d3bdf71acd7c73d0c3d28ed"
+      "sha256": "36a7c5f168240d7a2797459628e9f75174230354e1899ee2ea4f51757a4ee7da"
     },
     {
       "ruta": "src/protocol/atomic.py",
@@ -114,7 +114,7 @@
   },
   "salida": {
     "ruta": "examples/veredicto-suite.txt",
-    "sha256": "fc0e70fe10460604c7fb745f67e40b17341ab0c31243ce9153456eaf9cb2c580"
+    "sha256": "37837189f8b608810c107059ee42e75769d5843b0e11207263f8fa823155e420"
   },
   "veredicto": "conforme",
   "h_prev": null

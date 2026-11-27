@@ -189,6 +189,15 @@ coincidir con una cifra deseada no mediría nada; éste se repite hasta que la
 página y el árbol son el mismo objeto, y el segundo término no lo elige quien
 emite.
 
+**Lo que se comitea es lo que `--check` reproduce.** Medido el 27-Nov-2026: la
+página publicada declaraba `Ran 271 tests / FAILED (failures=1)` mientras la
+suite salía verde, y `--check` lo acusó `DIVERGE` en un clon frío —nadie lo había
+corrido antes del commit—. La regla que queda es una: `--check` RC 0 antes de
+comitear. Una prueba en proceso no puede sustituirlo: si una prueba exigiera que
+el veredicto sellado diga `OK`, la corrida que la incluyera sellaría `FAILED` por
+su causa y el punto fijo quedaría envenenado para siempre. El falsador de este
+acto es el verbo, no la prueba.
+
 ## 6. Proyección a in-toto Statement v1
 
 El predicado no compite con el estándar; se monta encima. La proyección es
