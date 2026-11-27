@@ -39,7 +39,7 @@
     },
     {
       "ruta": "tests/test_predicado.py",
-      "sha256": "0185002d4e6d2d288c2004ac01114a7a087d84d5d237a5e93a08b4eb28af5f68"
+      "sha256": "f040bc06ce9aa3a2ac64460bf0aec0ca52efd6896d81ee25373536d0587089db"
     },
     {
       "ruta": "tests/test_sobre.py",
@@ -57,7 +57,11 @@
   "codigo": [
     {
       "ruta": "examples/emitir_predicado.py",
-      "sha256": "36a7c5f168240d7a2797459628e9f75174230354e1899ee2ea4f51757a4ee7da"
+      "sha256": "fedcdbef44ba102a6073643d4dd784d52f80115f5c6d4f5b9a23bb108cf542a8"
+    },
+    {
+      "ruta": "src/protocol/__init__.py",
+      "sha256": "3032cae4fdbb6498ea410046f749752f7d90965a627bc14a3bfc82836ba36116"
     },
     {
       "ruta": "src/protocol/atomic.py",

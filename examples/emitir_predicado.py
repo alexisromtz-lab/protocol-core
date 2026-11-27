@@ -77,10 +77,13 @@ def _referencias(relativas: tuple) -> tuple:
 
 
 def _codigo() -> tuple:
+    # `__init__.py` no se excluye: es donde el árbol declara su versión, y una
+    # página que no lo hashea deja que una versión cambie sin mover el acto —
+    # el defecto del tag `v0.1.1`, un salto en la identidad declarada.
     fuente = [
         "src/protocol/%s" % nombre
         for nombre in sorted(_os.listdir(_os.path.join(RAIZ, "src", "protocol")))
-        if nombre.endswith(".py") and nombre != "__init__.py"
+        if nombre.endswith(".py")
     ]
     return _referencias(sorted(fuente + ["examples/emitir_predicado.py"]))
 

@@ -143,8 +143,19 @@ from protocol.types import (  # noqa: E402
 #: HEAD: 109 + 12 = 121, que es lo que el acto escribió. La de bytes se quedó
 #: corta: el acto imprimió **3 940** y el archivo pesa 3 941 con su salto final,
 #: que es lo que este test mide. La cota se queda en la cifra medida.
-COPTA_LINEAS = 121
-COPTA_BYTES = 3941
+#: SUBIDO 2026-11-27 a 122 líneas y 4 062 bytes, pre-registrada **antes** de
+#: emitir. `src/protocol/__init__.py` deja de estar excluido del bloque de
+#: código: es la línea que declara la versión del árbol y, mientras quedara
+#: fuera, una versión podía cambiar sin mover la página —el acto no ataba la
+#: identidad declarada, que es el defecto del tag `v0.1.1`—. Una entrada más,
+#: cuatro líneas y unos 118 B: 121 + 1 = 122 y 3 941 + 121 = 4 062 si el acto
+#: escribe lo previsto.
+#: La predicción se quedó corta y se declara: el acto escribió **125 líneas y
+#: 4 078 bytes** —tres líneas y 16 B más—, porque la entrada nueva no se inserta
+#: al final sino en el orden de ruta y desplaza la coma de la anterior. El
+#: archivo pesa 4 079 con su salto final. La cota se queda en la cifra medida.
+COPTA_LINEAS = 125
+COPTA_BYTES = 4079
 #: Cota del acto de censo. Es más ancha que la de la suite porque lleva 12
 #: referencias vivas en vez de 10; se declara aparte para que una cota no mida
 #: el acto que la escribió (§medición con unidad: cada acto, su número).
@@ -438,18 +449,24 @@ class TestPagina(_unittest.TestCase):
     """Una página medida sobre los archivos reales, no sobre fixtures."""
 
     def _predicado_real(self) -> Predicado:
-        def referencias(subdir: str) -> tuple:
+        def referencias(subdir: str, incluir_init: bool = False) -> tuple:
             base = _os.path.join(_RAIZ, subdir)
             entradas = []
             for nombre in sorted(_os.listdir(base)):
-                if not nombre.endswith(".py") or nombre == "__init__.py":
+                if not nombre.endswith(".py"):
+                    continue
+                if nombre == "__init__.py" and not incluir_init:
                     continue
                 with open(_os.path.join(base, nombre), "rb") as flujo:
                     digest = _hashlib.sha256(flujo.read()).hexdigest()
                 entradas.append(_entrada("%s/%s" % (subdir, nombre), Hash(ALGORITMO, digest)))
             return tuple(entradas)
 
-        codigo = list(referencias("src/protocol"))
+        # `src/protocol/__init__.py` entra: es la línea que declara la versión
+        # del árbol. Sin ella la página no se mueve cuando la versión cambia, y
+        # el acto dejaría de atar la identidad declarada —el defecto del tag
+        # `v0.1.1`, que apuntaba a un árbol que decía otra versión—.
+        codigo = list(referencias("src/protocol", incluir_init=True))
         ruta_emisor = _os.path.join(_RAIZ, "examples", "emitir_predicado.py")
         with open(ruta_emisor, "rb") as flujo:
             emisor = _hashlib.sha256(flujo.read()).hexdigest()

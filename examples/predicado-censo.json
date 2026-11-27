@@ -3,7 +3,7 @@
   "entradas": [
     {
       "ruta": "src/protocol/__init__.py",
-      "sha256": "9152cadbb054e02919b2c982b00749823926d90a4e41770f085793ec7cad702e"
+      "sha256": "3032cae4fdbb6498ea410046f749752f7d90965a627bc14a3bfc82836ba36116"
     },
     {
       "ruta": "src/protocol/atomic.py",

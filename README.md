@@ -1,12 +1,12 @@
 # protocol-core
 
-**Protocolo de Custodia Determinista y Reserva de Ranuras — Versión 0.2.0**
+**Protocolo de Custodia Determinista y Reserva de Ranuras — Versión 0.2.1**
 
 Almacenamiento atómico y auditoría determinista: sustitución atómica de archivos, aislamiento de
 manifiestos por namespace, reserva determinista de ranuras y auditoría criptográfica **en frío** (sin
 red, sin credenciales, sin re-sellar nada).
 
-- **Versión**: `0.2.0` (congelada `2026-11-27T19:14:42Z`)
+- **Versión**: `0.2.1` (congelada `2026-11-27T19:36:19Z`)
 - **Python**: `>= 3.11` · **dependencias de ejecución**: ninguna
 - **Licencia dual**: el **código** bajo **AGPL-3.0** (`LICENSE`); el **SPEC** bajo
   **CC BY 4.0** (`LICENSE_SPEC_CC-BY-4.0.txt`). Resumen y terceros: `NOTICE`, en este repositorio.
@@ -55,7 +55,7 @@ python3 -B examples/emitir_predicado.py --check                   # REPRODUCE (R
 python3 -B examples/emitir_censo.py --check                       # REPRODUCE (RC 0) o DIVERGE (RC 1)
 python3 -B examples/verificar_sello.py --check                    # REPRODUCE (RC 0) o DIVERGE (RC 1)
 python3 -B examples/contrafirmar_censo.py --check                 # REPRODUCE (RC 0) o DIVERGE (RC 1)
-PYTHONPATH=src python3 -B -c "import protocol; print(protocol.__version__)"   # 0.2.0
+PYTHONPATH=src python3 -B -c "import protocol; print(protocol.__version__)"   # 0.2.1
 ```
 
 **Motor único: `unittest` de la biblioteca estándar.** Los 5 archivos de `tests/` hacen
