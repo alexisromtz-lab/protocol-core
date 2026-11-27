@@ -39,11 +39,13 @@ magnitud sobre las claves puede ver (P-103).
 
 from __future__ import annotations
 
+import ast as _ast
 import dataclasses as _dataclasses
 import hashlib as _hashlib
 import os as _os
 import subprocess as _subprocess
 import sys as _sys
+import tempfile as _tempfile
 import unittest as _unittest
 from typing import List, Sequence, Tuple
 
@@ -119,6 +121,33 @@ def _recibo(paginas: Sequence[Tuple[EntradaDeclarada, ...]], nombres: Sequence[s
             )
         )
     return Recibo(tramos=tuple(tramos))
+
+
+def _escribir_paginas(
+    carpeta: str, paginas: Sequence[Tuple[str, Sequence[Tuple[str, str]]]]
+) -> List[str]:
+    """Una pagina por archivo, fuera del arbol: lo que el tercero recibe."""
+
+    rutas: List[str] = []
+    for nombre, valores in paginas:
+        ruta = _os.path.join(carpeta, nombre + ".txt")
+        with open(ruta, "w", encoding="utf-8") as mano:
+            for clave, valor in valores:
+                mano.write("%s|%s\n" % (clave, valor))
+        rutas.append(ruta)
+    return rutas
+
+
+def _acto_aislado(rutas: Sequence[str], extra: Sequence[str], cwd: str) -> "_subprocess.CompletedProcess[str]":
+    """`env -i`: sin arbol, sin PYTHONPATH, sin la maquina que produjo la agenda."""
+
+    return _subprocess.run(
+        [_sys.executable, "-B", _ACTO, "--paginas", ",".join(rutas)] + list(extra),
+        cwd=cwd,
+        env={},
+        capture_output=True,
+        text=True,
+    )
 
 
 class _Base(_unittest.TestCase):
@@ -359,6 +388,59 @@ class TestElTerceroRecalcula(_Base):
             text=True,
         )
         self.assertEqual(corrida.returncode, 2, msg=corrida.stdout)
+
+    def test_p106d_una_cadena_de_archivos_fuera_del_arbol_da_las_mismas_lineas(self) -> None:
+        with _tempfile.TemporaryDirectory() as carpeta:
+            rutas = _escribir_paginas(
+                carpeta, (("A", _VALORES_A), ("B", _VALORES_B), ("C", _VALORES_C))
+            )
+            for medida in MEDIDAS:
+                corrida = _acto_aislado(rutas, ("--medida", medida), cwd=carpeta)
+                ajeno = [linea for linea in corrida.stdout.splitlines() if linea.strip()]
+                propio = de_recibo(_recibo((self.a, self.b, self.c), ("A", "B", "C")), medida).lineas()
+                self.assertEqual(ajeno, propio, msg=corrida.stderr)
+                esperado = 0 if propio[-1] == "-> conservada" else 1
+                self.assertEqual(corrida.returncode, esperado, msg=corrida.stderr)
+
+    def test_p106e_el_acto_recorre_tres_saltos_y_condena_la_fuga_intermedia(self) -> None:
+        with _tempfile.TemporaryDirectory() as carpeta:
+            integra = _escribir_paginas(
+                carpeta,
+                (("A", _VALORES_A), ("B", _VALORES_A), ("C", _VALORES_A), ("D", _VALORES_A)),
+            )
+            corrida = _acto_aislado(
+                integra, ("--medida", "filas", "--saltos", "A:B,B:C,C:D"), cwd=carpeta
+            )
+            self.assertEqual(corrida.returncode, 0, msg=corrida.stderr)
+            self.assertIn("conservacion | A -> B -> C -> D", corrida.stdout)
+
+            fuga = _escribir_paginas(
+                carpeta,
+                (
+                    ("A", _VALORES_A),
+                    ("B", _VALORES_A),
+                    ("C", _VALORES_A[:2]),
+                    ("D", _VALORES_A),
+                ),
+            )
+            corrida = _acto_aislado(fuga, ("--medida", "filas"), cwd=carpeta)
+            self.assertEqual(corrida.returncode, 1, msg=corrida.stdout)
+            self.assertIn("degradado | B->C | no_conservada", corrida.stdout)
+
+    def test_p106f_la_cadena_entra_por_parametro_y_no_por_constante_del_modulo(self) -> None:
+        with open(_ACTO, "r", encoding="utf-8") as mano:
+            arbol = _ast.parse(mano.read())
+        funciones = [
+            nodo
+            for nodo in arbol.body
+            if isinstance(nodo, _ast.FunctionDef) and nodo.name == "medir_cadena"
+        ]
+        self.assertEqual(len(funciones), 1, "el acto debe tener un solo medir_cadena")
+        funcion = funciones[0]
+        referidas = {nodo.id for nodo in _ast.walk(funcion) if isinstance(nodo, _ast.Name)}
+        constantes = {nombre for nombre in referidas if nombre.startswith(("_SALTOS", "_PAGINAS"))}
+        self.assertEqual(constantes, set(), "medir_cadena usa una cadena que no recibio")
+        self.assertIn("saltos", [argumento.arg for argumento in funcion.args.args])
 
 
 if __name__ == "__main__":  # pragma: no cover
