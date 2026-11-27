@@ -4,6 +4,8 @@ Uso:
 
     python3 -B examples/verificar_conservacion.py --demo
     python3 -B examples/verificar_conservacion.py --medida claves
+    python3 -B examples/verificar_conservacion.py \
+        --paginas a.txt,b.txt,c.txt --medida filas
 
 QUE PRUEBA. Que la conservacion de una magnitud se pueda recalcular **sin
 ejecutar el codigo que la emitio**: este acto no importa `protocol` y reescribe
@@ -12,8 +14,16 @@ empalme. Si las lineas coinciden con las del modulo es porque el formato esta
 escrito y no porque los dos llamen a la misma funcion; si divergen, el
 desacuerdo es el hallazgo (`P-106a`).
 
-QUE RECIBE. Las tres paginas de la agenda —lo que cada salto leyo y lo que dejo—
-y nada mas: ni el arbol, ni el recibo, ni la maquina donde se produjo.
+QUE RECIBE. Las paginas de la cadena —lo que cada salto leyo y lo que dejo— y
+nada mas: ni el arbol, ni el recibo, ni la maquina donde se produjo. En modo
+externo cada pagina es un archivo de texto con una ruta por linea; si la linea
+trae `ruta|valor`, el valor **no se lee**: las dos medidas se calculan sobre las
+rutas, y por eso la linea `limite` viaja siempre.
+
+LA CADENA ES LA LISTA DE PAGINAS. `--saltos` no es una segunda fuente de verdad:
+los empalmes salen del orden en que se pasan los archivos (`a,b,c` son `a->b` y
+`b->c`), y `--saltos` solo se acepta como confirmacion de esa lista. Un empalme
+declarado que las paginas no implican no se mide: sale con `2`.
 
 QUE NO MIDE, y lo publica en cada corrida. Que el nodo intermedio calculara
 **bien**. `filas` y `claves` son magnitudes sobre las claves: un importe mal
@@ -32,13 +42,17 @@ conserven por separado: el defecto no vive en ningun salto, vive en el empalme.
 
 Codigo de salida:
 
-- `0` la cadena se midio.
-- `2` la medida pedida no existe.
+- `0` la cadena se midio y, cuando el cliente trajo una cadena, conserva.
+- `1` la cadena del cliente no conserva. Solo en modo externo: en `--demo` no
+  hay cadena ajena que condenar, hay un dialecto que se muestra.
+- `2` la entrada no sirve —medida desconocida, pagina ilegible, saltos que no se
+  tocan—: no es un verde.
 """
 
 from __future__ import annotations
 
 import hashlib as _hashlib
+import os as _os
 import sys as _sys
 from typing import Dict, List, Sequence, Tuple
 
@@ -53,28 +67,46 @@ LIMITE = (
     " sobrevivir a un valor mal calculado"
 )
 
-#: Las tres paginas de la agenda: `A` con sus importes, `B` con el importe de las
-#: 10:00 **recalculado mal** —misma clave, misma cuenta, otro digest— y `C` con
-#: esa cita reubicada del sillon 2 al 4.
-_PAGINAS: Dict[str, Tuple[str, ...]] = {
+#: Las tres paginas de la agenda, **solo para `--demo`**: `A` con sus importes,
+#: `B` con el importe de las 10:00 **recalculado mal** —misma clave, misma
+#: cuenta, otro digest— y `C` con esa cita reubicada del sillon 2 al 4. La
+#: cadena que mide el acto no vive aqui: entra por `--paginas`.
+_PAGINAS_DEMO: Dict[str, Tuple[str, ...]] = {
     "A": ("cita-09-00-sillon1", "cita-10-00-sillon2", "cita-11-00-sillon2"),
     "B": ("cita-09-00-sillon1", "cita-10-00-sillon2", "cita-11-00-sillon2"),
     "C": ("cita-09-00-sillon1", "cita-10-00-sillon2", "cita-11-00-sillon4"),
 }
 
-_SALTOS: Tuple[Tuple[str, str], ...] = (("A", "B"), ("B", "C"))
+_SALTOS_DEMO: Tuple[Tuple[str, str], ...] = (("A", "B"), ("B", "C"))
 
 #: El valor que el acto publicaria para `B` si tuviera que declararlo. No se usa
 #: para medir: existe para que se vea que la magnitud no lo mira.
 _DIGEST_DECLARADO = "0" * 64
 
 
-def _filas(nodo: str, valores: Sequence[Tuple[str, str]]) -> List[Tuple[str, str]]:
-    """`(ruta, digest)` de una pagina. El digest es el de la clave, no el importe."""
+def _digest(texto: str) -> str:
+    return _hashlib.sha256(texto.encode("utf-8")).hexdigest()
 
-    if nodo == "B":
-        return [(ruta, _hashlib.sha256((ruta + "|recalculado").encode("utf-8")).hexdigest()) for ruta in valores]
-    return [(ruta, _hashlib.sha256((ruta + "|original").encode("utf-8")).hexdigest()) for ruta in valores]
+
+def _cargar_pagina(ruta: str) -> List[Tuple[str, str]]:
+    """`(ruta, digest)` de cada linea del archivo. El digest no lo lee la medida.
+
+    Si la linea trae `clave|valor` solo se toma la clave: `filas` cuenta claves y
+    `claves` autentica el conjunto de rutas. El digest se publica para que la
+    forma de la fila sea la de una pagina, no para medir.
+    """
+
+    filas: List[Tuple[str, str]] = []
+    with open(ruta, "r", encoding="utf-8") as mano:
+        for numero, linea in enumerate(mano, 1):
+            texto = linea.rstrip("\n")
+            if not texto.strip():
+                continue
+            clave = texto.split("|", 1)[0].strip()
+            if not clave:
+                raise ValueError("linea %d sin ruta" % numero)
+            filas.append((clave, _digest(texto)))
+    return filas
 
 
 def _medir(filas: Sequence[Tuple[str, str]], medida: str) -> str:
@@ -95,14 +127,27 @@ def _veredicto(izquierda: str, derecha: str, medida: str) -> str:
     return "conservada" if _medir(izquierda, medida) == _medir(derecha, medida) else "no_conservada"
 
 
-def medir_cadena(paginas: Dict[str, Sequence[Tuple[str, str]]], medida: str) -> List[str]:
-    """Las lineas de la cadena. Mismo dialecto que el modulo, reescrito aqui."""
+def medir_cadena(
+    paginas: Dict[str, Sequence[Tuple[str, str]]],
+    saltos: Sequence[Tuple[str, str]],
+    medida: str,
+) -> List[str]:
+    """Las lineas de la cadena. Mismo dialecto que el modulo, reescrito aqui.
+
+    `saltos` entra como parametro: este acto no tiene una cadena propia. La
+    unica fuente de verdad de la cadena es la lista de paginas; los saltos que
+    recibe son los empalmes que esa lista implica, y se comprueba que se toquen.
+    """
 
     if medida not in MEDIDAS:
         raise ValueError("medida desconocida: %r" % (medida,))
-    saltos = []
-    for origen, destino in _SALTOS:
-        saltos.append((origen, destino, paginas[origen], paginas[destino]))
+    if not saltos:
+        raise ValueError("una cadena sin saltos no conserva nada")
+    for (_, destino), (origen, _) in zip(saltos, saltos[1:]):
+        if destino != origen:
+            raise ValueError("los saltos de la cadena no se tocan: %r != %r" % (destino, origen))
+
+    saltos = [(origen, destino, paginas.get(origen, ()), paginas.get(destino, ())) for origen, destino in saltos]
 
     partes = [saltos[0][0]]
     for _, destino, _, _ in saltos:
@@ -149,26 +194,110 @@ def medir_cadena(paginas: Dict[str, Sequence[Tuple[str, str]]], medida: str) -> 
     return salida
 
 
-def _paginas() -> Dict[str, Sequence[Tuple[str, str]]]:
-    return {nodo: _filas(nodo, valores) for nodo, valores in _PAGINAS.items()}
+def _paginas_demo() -> Dict[str, Sequence[Tuple[str, str]]]:
+    return {
+        nodo: [(ruta, _digest(ruta)) for ruta in valores] for nodo, valores in _PAGINAS_DEMO.items()
+    }
+
+
+_BANDERAS_CON_VALOR: Tuple[str, ...] = ("--medida", "--paginas", "--saltos")
+
+
+def _parse(argumentos: Sequence[str]) -> Tuple[Dict[str, str], str]:
+    """Las banderas reconocidas y el primer defecto de forma, si lo hay."""
+
+    opciones: Dict[str, str] = {}
+    indice = 0
+    while indice < len(argumentos):
+        token = argumentos[indice]
+        if token == "--demo":
+            opciones["--demo"] = ""
+            indice += 1
+            continue
+        if token in _BANDERAS_CON_VALOR:
+            if indice + 1 >= len(argumentos) or argumentos[indice + 1].startswith("--"):
+                return opciones, "falta el valor de %s" % token
+            opciones[token] = argumentos[indice + 1]
+            indice += 2
+            continue
+        return opciones, "bandera desconocida: %r" % (token,)
+    return opciones, ""
+
+
+def _externo(opciones: Dict[str, str], medidas: Sequence[str]) -> int:
+    rutas = [parte.strip() for parte in opciones["--paginas"].split(",") if parte.strip()]
+    if len(rutas) < 2:
+        _sys.stderr.write("una cadena necesita al menos dos paginas\n")
+        return 2
+    paginas: Dict[str, Sequence[Tuple[str, str]]] = {}
+    etiquetas: List[str] = []
+    for ruta in rutas:
+        etiqueta = _os.path.splitext(_os.path.basename(ruta))[0]
+        if not etiqueta:
+            _sys.stderr.write("la pagina %r no tiene nombre utilizable\n" % (ruta,))
+            return 2
+        if etiqueta in paginas:
+            _sys.stderr.write("dos paginas se llaman %r: el nodo no distingue cual es cual\n" % (etiqueta,))
+            return 2
+        try:
+            paginas[etiqueta] = _cargar_pagina(ruta)
+        except (OSError, ValueError) as exc:
+            _sys.stderr.write("pagina ilegible %s: %s\n" % (ruta, exc))
+            return 2
+        etiquetas.append(etiqueta)
+    saltos = [(etiquetas[i], etiquetas[i + 1]) for i in range(len(etiquetas) - 1)]
+    if "--saltos" in opciones:
+        declarados = [tuple(par.strip().split(":", 1)) for par in opciones["--saltos"].split(",") if par.strip()]
+        if declarados != saltos:
+            _sys.stderr.write("los saltos declarados no son los que la lista de paginas implica\n")
+            return 2
+    return _publicar(paginas, saltos, medidas, juzga=True)
+
+
+def _publicar(
+    paginas: Dict[str, Sequence[Tuple[str, str]]],
+    saltos: Sequence[Tuple[str, str]],
+    medidas: Sequence[str],
+    juzga: bool,
+) -> int:
+    """Publica las lineas y devuelve el RC. `juzga` separa medir de condenar.
+
+    El codigo `1` solo existe cuando el cliente trajo una cadena: ahi el acto
+    responde si conserva. En `--demo` no hay cadena ajena que condenar.
+    """
+
+    conserva = True
+    for medida in medidas:
+        lineas = medir_cadena(paginas, saltos, medida)
+        for linea in lineas:
+            print(linea)
+        conserva = conserva and lineas[-1] == "-> conservada"
+    return 1 if juzga and not conserva else 0
 
 
 def main(argumentos: Sequence[str]) -> int:
-    medidas = MEDIDAS
-    if "--medida" in argumentos:
-        pedida = argumentos[list(argumentos).index("--medida") + 1] if len(argumentos) > 1 else ""
-        if pedida not in MEDIDAS:
-            _sys.stderr.write("medida desconocida: %r\n" % (pedida,))
-            return 2
-        medidas = (pedida,)
-    elif "--demo" not in argumentos:
-        _sys.stderr.write("nada que hacer: use --demo o --medida\n")
+    opciones, defecto = _parse(argumentos)
+    if defecto:
+        _sys.stderr.write("%s\n" % defecto)
         return 2
-    paginas = _paginas()
-    for medida in medidas:
-        for linea in medir_cadena(paginas, medida):
-            print(linea)
-    return 0
+    medidas: Sequence[str] = MEDIDAS
+    if "--medida" in opciones:
+        if opciones["--medida"] not in MEDIDAS:
+            _sys.stderr.write("medida desconocida: %r\n" % (opciones["--medida"],))
+            return 2
+        medidas = (opciones["--medida"],)
+    if "--paginas" in opciones:
+        if "--demo" in opciones:
+            _sys.stderr.write("--demo y --paginas se excluyen: o se muestra el dialecto o se mide una cadena\n")
+            return 2
+        return _externo(opciones, medidas)
+    if "--saltos" in opciones:
+        _sys.stderr.write("--saltos sin --paginas: un empalme sin paginas es una afirmacion sin sujeto\n")
+        return 2
+    if "--demo" not in opciones and "--medida" not in opciones:
+        _sys.stderr.write("nada que hacer: use --demo, --medida o --paginas\n")
+        return 2
+    return _publicar(_paginas_demo(), _SALTOS_DEMO, medidas, juzga=False)
 
 
 if __name__ == "__main__":

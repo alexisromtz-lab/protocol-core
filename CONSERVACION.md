@@ -165,6 +165,9 @@ viven en el borde entre dos objetos, no en el álgebra de ninguno de los dos.
 | P-106a | el verificador externo reproduce las líneas del módulo, medida a medida |
 | P-106b | el verificador externo no importa el generador |
 | P-106c | `--medida importes` sale con RC 2: entrada inválida, no verde |
+| P-106d | tres páginas en archivos fuera del árbol, bajo `env -i`, dan las mismas líneas que el módulo |
+| P-106e | el acto recorre tres saltos y condena la fuga intermedia nombrando el tramo (RC 1) |
+| P-106f | `medir_cadena` recibe la cadena: no lee ninguna constante del módulo |
 
 **P-106a es el falsador de la autoría.** El verificador de tercero reimplementa
 la medida, el orden y el veredicto en un archivo que no hace `import protocol`, y
@@ -179,6 +182,18 @@ python3 -B examples/verificar_conservacion.py --demo            # las dos medida
 python3 -B examples/verificar_conservacion.py --medida claves   # una sola
 python3 -B -m unittest tests.test_conservacion
 ```
+
+**Como tercero, sin el arbol.** La cadena entra por archivos, una ruta por linea;
+los saltos salen del orden de la lista, y `--saltos` solo los confirma:
+
+```bash
+python3 -B examples/verificar_conservacion.py \
+    --paginas a.txt,b.txt,c.txt,d.txt --medida filas
+```
+
+Sale `0` si la cadena conserva, `1` si no conserva —nombrando el tramo— y `2` si
+la entrada no sirve. En `--demo` el codigo es siempre `0`: ahi no hay cadena
+ajena que condenar, hay un dialecto que se muestra.
 
 Si `claves` deja de discrepar donde discrepaba, hay dos posibilidades y el test
 las distingue porque no adivina: o la agenda cambió —la segunda fila dejó de

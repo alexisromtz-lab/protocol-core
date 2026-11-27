@@ -356,7 +356,7 @@ limite | conserva el transporte, no el calculo: la magnitud elegida puede sobrev
 
 La misma cadena, las mismas páginas, dos veredictos opuestos. No es una contradicción: es la única lección que la pieza tiene. `filas=3` cuenta entradas y no ve que `B` recalculó sus tres digests; `claves` autentica el **conjunto de rutas** —descartando los digests a propósito— y por eso tampoco ve el recálculo, pero sí ve que `C` movió una cita del sillón 2 al 4. Una medida más fina implica la más gruesa y no al revés (P-100e), y **ninguna de las dos mira el valor de la fila**.
 
-**Lo que esta medición no es:** la conservación *no* certifica que `B` calculara bien. Una cadena `conservada` dice que la magnitud que el cliente eligió sobrevivió el transporte; si `B` suma mal y su página conserva la cuenta, la cadena no tiene con qué acusarlo. Por eso la línea `limite` viaja en las dos salidas, también en la verde: un `conservada` sin esa línea se leería como una certificación aritmética que este anillo no hace. Álgebra, cadena de refinamiento y los 26 falsadores P-99…P-106: [`CONSERVACION.md`](CONSERVACION.md).
+**Lo que esta medición no es:** la conservación *no* certifica que `B` calculara bien. Una cadena `conservada` dice que la magnitud que el cliente eligió sobrevivió el transporte; si `B` suma mal y su página conserva la cuenta, la cadena no tiene con qué acusarlo. Por eso la línea `limite` viaja en las dos salidas, también en la verde: un `conservada` sin esa línea se leería como una certificación aritmética que este anillo no hace. Álgebra, cadena de refinamiento y los 29 falsadores P-99…P-106: [`CONSERVACION.md`](CONSERVACION.md).
 
 ---
 
@@ -568,7 +568,7 @@ La misma cadena, las mismas páginas, dos veredictos opuestos. No es una contrad
 
 | t | pantalla | voz |
 |---|---|---|
-| 0,0–5,0 | `$ git clone …` + `Ran 285 tests` + `OK` | «Un clon público. La suite entera.» |
+| 0,0–5,0 | `$ git clone …` + `Ran 288 tests` + `OK` | «Un clon público. La suite entera.» |
 | 5,0–13,0 | `$ python3 -B examples/verificar_sello.py --manifiesto … --raiz … --check` ⇒ `REPRODUCE | <digest>` | «El sello se re-emite y se compara consigo mismo: si la página no describe este árbol, lo dice.» |
 | 13,0–21,0 | cuatro líneas `real` (gris): `343,61 s` · `164,11 s` · `67,11 s` · `264,35 s` + segunda línea `el mismo acto sobre los mismos bytes` | «Cuatro corridas del mismo acto. Sesenta y siete segundos, o trescientos cuarenta. El coste es de la máquina.» |
 | 21,0–29,0 | `coste | 14 declaradas | 87855 barridas | 87819 hasheadas` (cian) | «Por eso a la página sellada no entra el reloj. Entran los contadores: cuántas declaré, cuántas barrí, cuántas hasheé.» |
@@ -593,7 +593,7 @@ La misma cadena, las mismas páginas, dos veredictos opuestos. No es una contrad
 | 6 | `coste | 2 declaradas | 4 barridas | 4 hasheadas` | ensayo, paso 6/7 | 25-Nov-2026 |
 | 7 | `1 fuera del universo` · `opaco __pycache__/x.pyc` | ensayo, paso 7/7 | 25-Nov-2026 |
 | 8 | `343,61 / 164,11 / 67,11 / 264,35 s` | `/usr/bin/time -p` sobre el acto (§1.2), cuatro veces en cuatro estados de máquina | 24–25 Nov-2026 |
-| 9 | `Ran 285 tests` · `OK` | `python3 -B -m unittest discover -s tests` | 27-Nov-2026 |
+| 9 | `Ran 288 tests` · `OK` | `python3 -B -m unittest discover -s tests` | 27-Nov-2026 |
 | 10 | `redundancia | 5942c9b0… | 1 declaradas | 3 observadas` · `coste | 1 declaradas | 5 barridas | 5 hasheadas` | §1.3 (jq 1.7.1, manifiesto oficial) | 25-Nov-2026 |
 | 11 | `ausencia | .env | ausente` · `testigo | ⊥ < .env < …` · `RC 0` | §1.4 | 25-Nov-2026 |
 | 12 | `ausencia | AGENTS.md | ausente` · `arbol-ausencia | presente` · `-> presente` · `RC 1` | §1.4 | 25-Nov-2026 |
