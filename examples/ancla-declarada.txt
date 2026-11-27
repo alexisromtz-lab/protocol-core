@@ -2,5 +2,5 @@
 # persona; lo que está a la derecha es una declaración, no una medición.
 # La fecha NO se declara aquí: se mide con `git show` sobre la propia ancla.
 repositorio=github.com/alexisromtz-lab/protocol-core
-ancla=bf86f5fee6a445553a747958a34e50a8af1dbd9d
+ancla=0dc27aaf229618fdb9bd3c6bf28e7b676ddd3aa9
 ruta=examples/predicado-censo.json

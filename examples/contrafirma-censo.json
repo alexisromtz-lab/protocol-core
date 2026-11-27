@@ -1,8 +1,8 @@
 {
-  "ancla": "bf86f5fee6a445553a747958a34e50a8af1dbd9d",
+  "ancla": "0dc27aaf229618fdb9bd3c6bf28e7b676ddd3aa9",
   "contrafirma": {
-    "ancla": "github.com/alexisromtz-lab/protocol-core@bf86f5fee6a4 · 2026-11-25T13:39:11-06:00",
-    "digest_del_predicado": "d41f5d305a8c15be7dc55c51b45a41a5f1c8956dd1e0429e582f1402794eb94e",
+    "ancla": "github.com/alexisromtz-lab/protocol-core@0dc27aaf2296 · 2026-11-27T13:26:14-06:00",
+    "digest_del_predicado": "7c746e8082e961c3efd2ea2909c50932e84d5a694bd6312ebe3479918f64ad82",
     "veredicto": "confirma",
     "verificador": "protocol-core/examples/contrafirmar_censo.py (auto-contrafirma)"
   },
