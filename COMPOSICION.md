@@ -58,6 +58,13 @@ dos páginas que lo sostienen. Sus digests **se recalculan del contenido**, nunc
 se aceptan de quien lo construye: un tramo que declara un digest que sus filas
 no producen no es un tramo con un dato raro, es un tramo falso.
 
+La excepción es `sha256_regla`, y va declarada como excepción: no es un digest
+del contenido del tramo, sino el de un artefacto que vive **fuera** del testigo
+—la especificación de la transformación—. Por eso es una *entrada* y se acepta
+de quien declara, con una obligación que la vuelve falsable: el verificador
+exige el artefacto y lo hashea él mismo (§6). Un `sha256_regla` que nadie
+coteja sería otro número que se cree medida.
+
 `es_identidad` es un tramo sin filas ni testigos cuyo origen y destino
 coinciden: el neutro.
 
@@ -146,6 +153,37 @@ comentario.
 Su límite va impreso en cada corrida, no en la letra pequeña:
 `limite | el verificador comprueba que las paginas encadenadas son las mismas; no que B hiciera su trabajo`.
 
+### La regla: de continuidad a autoría
+
+Un recibo `/1` certifica que los bytes viajaron. No certifica **con qué regla**
+los transformaron: una cadena de páginas inventadas, internamente consistente,
+cierra `intacta` con RC 0 — y con razón, porque cada digest es función de bytes
+que escribió el mismo que construyó la cadena. `intacta` significa entonces
+«los bytes que digo son los bytes que digo», que es una tautología con firma.
+
+`recibo-de-composicion/2` añade `sha256_regla` por tramo, y el tercero aporta el
+artefacto:
+
+```bash
+python3 examples/verificar_recibo_externo.py recibo.json --regla ab.md --regla bc.md
+```
+
+Una regla por salto, en orden. El verificador **hashea el archivo que recibe** y
+lo compara con lo declarado (`REGLA_NO_COINCIDE`). Regla declarada sin artefacto
+⇒ `REGLA_NO_APORTADA`; exigencia pedida sobre un `/1` (`--exigir-regla`) ⇒
+`REGLA_NO_DECLARADA`. Un `/2` exige la regla **por construcción**: el formato es
+el contrato, no una bandera que alguien pueda olvidar pasar.
+
+**No se añade `sha256_entrada`,** aunque el nombre lo pida. La entrada de B ya
+está medida: `verificar()` rehashea las filas de B y `_cruce()` compara ese
+digest recalculado con la salida de A (§3). Un `sha256_entrada` declarado sería
+la copia débil de una cantidad ya medida —dos fuentes para una arista—, y la
+misma disciplina que derivó `--saltos` de `--paginas` en el verificador de
+conservación es la que se aplica aquí.
+
+El límite nuevo se imprime junto al viejo: la regla **ata** el tramo a un
+artefacto declarado fuera; no prueba que B aplicara esa regla.
+
 ## 7. Lo que este objeto no hace — lista cerrada
 
 1. **No certifica la transformación.** Que B leyera lo que A dejó no dice nada
@@ -154,7 +192,10 @@ Su límite va impreso en cada corrida, no en la letra pequeña:
    ([`CONSERVACION.md`](CONSERVACION.md)) **acota** este hueco con una magnitud
    que el cliente declara y se recalcula de las páginas; no lo cierra: una
    medida puede sobrevivir a un valor mal calculado y la línea `limite` lo
-   publica en cada corrida (P-103).
+   publica en cada corrida (P-103). `sha256_regla` (§6) añade la pieza que
+   faltaba para que la firma del anillo 8 cubra algo más que bytes arbitrarios:
+   ata cada tramo a un artefacto declarado fuera del testigo. Sigue sin probar
+   que B aplicara esa regla.
 2. **No abarata la cadena larga.** Componer es barato; **verificar** un salto es
    O(página). La cadena de `n` nodos no se vuelve O(1) por componerla: el coste
    sigue en los extremos que alguien tenga que rehashear, y quien afirme lo
@@ -186,3 +227,7 @@ Su límite va impreso en cada corrida, no en la letra pequeña:
 | el verificador externo cierra y detecta manipulación | P-84a…P-84d |
 | el verificador no importa el generador | P-84e |
 | verificador y generador degradan igual | P-84f |
+| la forja sin regla cierra, y cae cuando se le exige | P-84g |
+| la regla declarada se coteja contra el artefacto aportado | P-84h |
+| un `/1` no se reconstruye como `/2` | P-84i |
+| `sha256_regla` sobrevive la ida y vuelta por JSON | P-84j |

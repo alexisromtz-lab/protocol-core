@@ -25,7 +25,7 @@
   "codigo": [
     {
       "ruta": "examples/verificar_sello.py",
-      "sha256": "2398c3eed748279040389daeda154ac9c40cab4dfd72db2621ec3a94f3015f4d"
+      "sha256": "8d4dc21af9827929c91ff5e2b23b1e41b4315a7afb34d9ce669449bc81b3d47a"
     },
     {
       "ruta": "src/protocol/predicado.py",
@@ -42,7 +42,7 @@
   ],
   "entorno": {
     "plataforma": "darwin",
-    "runtime": "CPython 3.9.6",
+    "runtime": "CPython 3.11.15",
     "no_medido": [
       "sin firma de tiempo externa: este acto mide un sello ya emitido, no lo emite",
       "1 rutas redactadas no viajan en entradas",
