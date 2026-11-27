@@ -37,6 +37,7 @@ y el coste de recomponer cadenas largas, que no se mide aqui.
 
 from __future__ import annotations
 
+import hashlib as _hashlib
 import importlib.util as _importlib_util
 import io as _io
 import json as _json
@@ -45,7 +46,7 @@ import subprocess as _subprocess
 import sys as _sys
 import tempfile as _tempfile
 import unittest as _unittest
-from typing import List, Sequence, Tuple
+from typing import Dict, List, Sequence, Tuple
 
 _RAIZ = _os.path.dirname(_os.path.dirname(_os.path.abspath(__file__)))
 _SRC = _os.path.join(_RAIZ, "src")
@@ -404,3 +405,142 @@ class TestVerificadorExterno(_unittest.TestCase):
         self.assertEqual(codigo, 0, salida)
         self.assertIn("veredicto | %s |" % compuesto.veredicto.value, salida)
         self.assertIn("sostiene no", salida)
+
+    # --- P-84g..P-84j · la autoria del tramo antes de firmar -----------------
+
+    def _forja(self, directorio: str) -> str:
+        """Tres paginas inventadas en dos tramos: la forja que la firma no arregla.
+
+        Los digests de fila son numeros que el falsificador elige; el digest de
+        pagina se **recalcula** de ellos, de modo que la cadena es coherente
+        consigo misma y no toca ningun objeto real. Es el sujeto de P-84g: cierra
+        sin prueba y la unica pregunta honesta es que la ata a algo de fuera.
+        """
+
+        def pagina(prefijo: str) -> List[Tuple[str, str]]:
+            return [("%s-a.tsv" % prefijo, "1" * 64), ("%s-b.tsv" % prefijo, "2" * 64)]
+
+        def digest_de(filas: Sequence[Tuple[str, str]]) -> str:
+            texto = "".join("%s  %s\n" % (d, r) for r, d in filas)
+            return _hashlib.sha256(texto.encode()).hexdigest()
+
+        def filas_json(filas: Sequence[Tuple[str, str]]) -> List[Dict[str, str]]:
+            return [{"ruta": r, "digest": d, "motivo": ""} for r, d in filas]
+
+        enero, febrero, marzo = (
+            pagina("acta-enero"),
+            pagina("acta-febrero"),
+            pagina("acta-marzo"),
+        )
+        d = {k: digest_de(v) for k, v in (("e", enero), ("f", febrero), ("m", marzo))}
+        datos = {
+            "formato": "recibo-de-composicion/1",
+            "origen": "A",
+            "destino": "C",
+            "veredicto": "intacta",
+            "sostiene": True,
+            "frontera": None,
+            "frontera_vacua": False,
+            "tramos": [
+                {
+                    "origen": "A",
+                    "destino": "B",
+                    "veredicto": "intacta",
+                    "digest_origen": d["e"],
+                    "digest_destino": d["f"],
+                    "pagina_origen": filas_json(enero),
+                    "pagina_destino": filas_json(febrero),
+                    "testigos": [],
+                },
+                {
+                    "origen": "B",
+                    "destino": "C",
+                    "veredicto": "intacta",
+                    "digest_origen": d["f"],
+                    "digest_destino": d["m"],
+                    "pagina_origen": filas_json(febrero),
+                    "pagina_destino": filas_json(marzo),
+                    "testigos": [],
+                },
+            ],
+        }
+        ruta = _os.path.join(directorio, "forja.json")
+        with _io.open(ruta, "w", encoding="utf-8") as flujo:
+            _json.dump(datos, flujo)
+        return ruta
+
+    def test_p84g_la_forja_cierra_sin_regla_y_cae_cuando_se_le_exige(self) -> None:
+        """P-84g · una cadena de paginas inventadas cierra sola; con `--exigir-regla` no.
+
+        El eje es el mismo recibo medido dos veces: sin la exigencia prueba
+        continuidad consigo misma (RC 0), y con ella ningun salto se ata a una
+        regla declarada fuera (RC 1). Esa diferencia es toda la autoria, y es la
+        que Ed25519 no aportaria: firmar una cadena que no ata sus tramos solo
+        autentica quien la fabrico.
+        """
+
+        with _tempfile.TemporaryDirectory() as directorio:
+            ruta = self._forja(directorio)
+            holgado, salida = _verificador("--recibo", ruta)
+            self.assertEqual(holgado, 0, salida)
+            exigido, salida = _verificador("--recibo", ruta, "--exigir-regla")
+            self.assertEqual(exigido, 1, salida)
+            self.assertIn("REGLA_NO_DECLARADA", salida)
+
+    def test_p84h_la_regla_declarada_se_coteja_contra_el_artefacto(self) -> None:
+        """P-84h · un `/2` ata cada tramo a la regla que el tercero tiene delante.
+
+        Un `sha256_regla` que no se puede cotejar es otro numero que se cree a si
+        mismo. La regla buena cierra; la que no coincide con el archivo se acusa.
+        """
+
+        with _tempfile.TemporaryDirectory() as directorio:
+            ruta = self._forja(directorio)
+            with _io.open(ruta, encoding="utf-8") as flujo:
+                datos = _json.load(flujo)
+            buena = _os.path.join(directorio, "regla-ab.txt")
+            otra = _os.path.join(directorio, "regla-otra.txt")
+            with _io.open(buena, "w", encoding="utf-8") as flujo:
+                flujo.write("de enero a febrero sin perder una fila\n")
+            with _io.open(otra, "w", encoding="utf-8") as flujo:
+                flujo.write("otra cosa\n")
+            with _io.open(buena, "rb") as flujo:
+                digest_buena = _hashlib.sha256(flujo.read()).hexdigest()
+            datos["formato"] = "recibo-de-composicion/2"
+            for tramo in datos["tramos"]:
+                tramo["sha256_regla"] = digest_buena
+            with _io.open(ruta, "w", encoding="utf-8") as flujo:
+                _json.dump(datos, flujo)
+            codigo, salida = _verificador("--recibo", ruta, "--regla", buena, "--regla", buena)
+            self.assertEqual(codigo, 0, salida)
+            self.assertIn("ata la transformacion", salida)
+            codigo, salida = _verificador("--recibo", ruta, "--regla", buena, "--regla", otra)
+            self.assertEqual(codigo, 1, salida)
+            self.assertIn("REGLA_NO_COINCIDE", salida)
+
+    def test_p84i_un_formato_dos_sin_regla_no_se_reconstruye(self) -> None:
+        """P-84i · el formato `/2` exige la regla en **cada** tramo, o no es `/2`."""
+
+        pagina = _pagina("a.tsv", "b.tsv")
+        datos = a_dict(_salto("A", "B", pagina))
+        datos["formato"] = "recibo-de-composicion/2"
+        with self.assertRaises(ContratoViolado):
+            desde_dict(datos)
+
+    def test_p84j_una_regla_ida_y_vuelta_sobrevive(self) -> None:
+        """P-84j · declarar la regla sube el recibo a `/2`, y el viaje la conserva."""
+
+        pagina = _pagina("a.tsv", "b.tsv")
+        regla = "9" * 64
+        tramo = Tramo(
+            origen="A",
+            destino="B",
+            veredicto=_V.INTACTA,
+            pagina_origen=pagina.filas,
+            pagina_destino=pagina.filas,
+            sha256_regla=regla,
+        )
+        datos = a_dict(Recibo(tramos=(tramo,)))
+        self.assertEqual(datos["formato"], "recibo-de-composicion/2")
+        vuelta = desde_dict(_json.loads(_json.dumps(datos)))
+        self.assertEqual(vuelta.tramos[0].sha256_regla, regla)

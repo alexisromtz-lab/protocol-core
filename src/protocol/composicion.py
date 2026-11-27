@@ -33,8 +33,11 @@ TRES DECISIONES QUE EL ALGEBRA NO TRAE Y AQUI SE DECLARAN.
 
 LO QUE ESTE MODULO NO HACE (lista cerrada). No lee disco: compone lo que ya se
 midio. No autentica quien produjo los recibos —eso es la contrafirma, otro
-acto—. No decide si B hizo bien su trabajo: comprueba que las paginas encadenadas
-sean las mismas, no que la transformacion fuera la correcta. No propaga una
+acto—. Transporta el `sha256_regla` que un tramo declare, pero no lo coteja:
+leer el artefacto de la regla es el acto del tercero, y por eso vive en el
+verificador externo y no aqui. No decide si B hizo bien su trabajo: comprueba
+que las paginas encadenadas sean las mismas y, si el recibo es `/2`, a que regla
+se ato cada salto; no que la transformacion fuera la correcta. No propaga una
 ausencia probada en A como ausencia en C: la conserva con la pagina que la
 prueba y la publica como `historica` si esa pagina ya no es la final.
 """
@@ -144,8 +147,20 @@ class Tramo:
     pagina_origen: Tuple[EntradaDeclarada, ...] = ()
     pagina_destino: Tuple[EntradaDeclarada, ...] = ()
     testigos: Tuple[Testigo, ...] = ()
+    #: El `sha256` del artefacto que declara **la regla** del salto —la
+    #: transformacion acordada fuera del testigo de `B`—, o `""` si el tramo no
+    #: ata su transformacion a nada. No es el digest de la pagina: ese se
+    #: recalcula de las filas. Este es una **entrada**, la unica de este objeto,
+    #: y por eso viaja declarada y el tercero la coteja contra el artefacto que
+    #: le entreguen. Sin ella la cadena prueba continuidad, no autoria.
+    sha256_regla: str = ""
 
     def __post_init__(self) -> None:
+        if self.sha256_regla and (
+            len(self.sha256_regla) != 64
+            or any(c not in "0123456789abcdef" for c in self.sha256_regla)
+        ):
+            raise ContratoViolado("la regla declarada no es un sha256", valor=self.sha256_regla)
         for etiqueta in (self.origen, self.destino):
             if not isinstance(etiqueta, str) or etiqueta.strip() == "":
                 raise ContratoViolado("el tramo no declara nodo", valor=etiqueta)
@@ -427,24 +442,32 @@ def a_dict(recibo: Recibo) -> Dict[str, object]:
 
     Los digests se publican **ademas** de las filas, aunque se deriven, para que
     un tercero pueda comprobar la derivacion en vez de creersela.
+
+    La version del formato dice que prueba la cadena. Si algun tramo declara su
+    `sha256_regla`, el recibo es `recibo-de-composicion/2` y **cada** tramo
+    publica la suya; si ninguno la declara, sigue siendo `/1` y el JSON es el de
+    antes, byte a byte. La version no es cosmetica: un `/1` solo afirma
+    continuidad de bytes; un `/2` afirma, ademas, a que regla se ato cada salto.
     """
 
+    con_regla = any(tramo.sha256_regla for tramo in recibo.tramos)
     tramos = []
     for tramo in recibo.tramos:
-        tramos.append(
-            {
-                "origen": tramo.origen,
-                "destino": tramo.destino,
-                "veredicto": tramo.veredicto.value,
-                "digest_origen": tramo.digest_origen,
-                "digest_destino": tramo.digest_destino,
-                "pagina_origen": [_fila_dict(f) for f in tramo.pagina_origen],
-                "pagina_destino": [_fila_dict(f) for f in tramo.pagina_destino],
-                "testigos": [_testigo_dict(t) for t in tramo.testigos],
-            }
-        )
+        entrada: Dict[str, object] = {
+            "origen": tramo.origen,
+            "destino": tramo.destino,
+            "veredicto": tramo.veredicto.value,
+            "digest_origen": tramo.digest_origen,
+            "digest_destino": tramo.digest_destino,
+            "pagina_origen": [_fila_dict(f) for f in tramo.pagina_origen],
+            "pagina_destino": [_fila_dict(f) for f in tramo.pagina_destino],
+            "testigos": [_testigo_dict(t) for t in tramo.testigos],
+        }
+        if con_regla:
+            entrada["sha256_regla"] = tramo.sha256_regla
+        tramos.append(entrada)
     return {
-        "formato": "recibo-de-composicion/1",
+        "formato": "recibo-de-composicion/2" if con_regla else "recibo-de-composicion/1",
         "origen": recibo.origen,
         "destino": recibo.destino,
         "veredicto": recibo.veredicto.value,
@@ -481,8 +504,12 @@ def desde_dict(datos: Dict[str, object]) -> Recibo:
 
     from .types import Hash
 
-    if not isinstance(datos, dict) or datos.get("formato") != "recibo-de-composicion/1":
+    if not isinstance(datos, dict) or datos.get("formato") not in (
+        "recibo-de-composicion/1",
+        "recibo-de-composicion/2",
+    ):
         raise ContratoViolado("el recibo no declara el formato", valor=datos.get("formato"))
+    formato = datos["formato"]
     crudos = datos.get("tramos")
     if not isinstance(crudos, list) or not crudos:
         raise ContratoViolado("el recibo no trae tramos")
@@ -503,6 +530,7 @@ def desde_dict(datos: Dict[str, object]) -> Recibo:
             pagina_origen=pagina_origen,
             pagina_destino=pagina_destino,
             testigos=_testigos(crudo.get("testigos"), pagina_origen, pagina_destino),
+            sha256_regla=str(crudo.get("sha256_regla", "") or ""),
         )
         for publicado, recalculado in (
             (crudo.get("digest_origen"), tramo.digest_origen),
@@ -523,6 +551,12 @@ def desde_dict(datos: Dict[str, object]) -> Recibo:
     vacua = datos.get("frontera_vacua", False)
     if not isinstance(vacua, bool):
         raise ContratoViolado("la bandera de frontera vacua no es booleana", valor=vacua)
+    if formato == "recibo-de-composicion/2":
+        sin_regla = [t.destino for t in tramos if not t.sha256_regla]
+        if sin_regla:
+            raise ContratoViolado("un recibo /2 declara la regla de cada tramo", nodos=sin_regla)
+    elif any(t.sha256_regla for t in tramos):
+        raise ContratoViolado("un recibo /1 no puede declarar reglas sin cambiar de formato")
     recibo = Recibo(tramos=tuple(tramos), frontera=frontera, frontera_vacua=vacua)
     publicado = datos.get("veredicto")
     if publicado is not None and publicado != recibo.veredicto.value:
