@@ -198,6 +198,52 @@ el veredicto sellado diga `OK`, la corrida que la incluyera sellaría `FAILED` p
 su causa y el punto fijo quedaría envenenado para siempre. El falsador de este
 acto es el verbo, no la prueba.
 
+## 5.quinquies La etiqueta también es un acto: su árbol es la salida
+
+Un `v0.1.1` sobre un árbol que declara `0.1.0` no es un descuido de disciplina:
+es un predicado cuya salida no corresponde a su entrada, publicado en el único
+sitio donde el nombre *es* el sujeto —el remoto—. Sobrevive porque
+`tests/test_version.py` verifica las nueve declaraciones **dentro** del árbol y
+nada cruzaba el nombre del ref contra el objeto que sostiene. Los dos universos
+son distintos y hacía falta un instrumento para el borde.
+
+`tools/verificar_etiqueta.py` mide ese borde. La versión se lee **desde el oid
+que la etiqueta apunta** (`git show <oid>:pyproject.toml`), nunca del directorio
+de trabajo: leer el disco mediría el árbol de hoy y aprobaría una etiqueta de
+ayer. Códigos: `0` coincide · `1` diverge y nombra las dos versiones · `2`
+`NO_MEDIDO` cuando el árbol no declara versión —un commit antiguo sin
+`pyproject.toml` no es un cero—. Los falsadores están en
+`tests/test_tag_version.py` (P-108a..l) y el censo real corre en P-108a.
+
+**Retirar no es cuarentenar.** Una etiqueta contradictoria no se arregla
+corrigiendo el árbol: el nombre ya circuló. Se retira en tres actos, y el
+primero es el único que borra algo:
+
+1. El nombre sale del remoto (`git push origin :refs/tags/vX`).
+2. El objeto se conserva en `refs/tags-retirados/vX`. Fuera de `refs/tags/`, así
+   que `git tag -l` y `git push --tags` no lo ven; dentro del disco, así que el
+   objeto sigue siendo auditable y restaurable.
+3. `examples/etiquetas-retiradas.json` guarda objeto, commit, versión declarada,
+   causa, sucesora y la orden de restauración — y se **vuelve a medir** en cada
+   `--todas`: si el nombre reaparece → `REAPARECIDA`; si el objeto ya no existe
+   o declara otra versión → `RETIRADA_RANCIA`. Las dos son RC 1.
+
+Una lista de cuarentena dentro del verificador habría dejado el rojo encendido
+para siempre: un guardián que no puede volver a verde enseña a ignorar el verde.
+La retirada deja el censo en `3 COINCIDE · 1 RETIRADA · RC 0`, y nombra el
+defecto en la fila en vez de esconderlo.
+
+**El hook no bloquea lo que no mide.** `--pre-push` lee las líneas de refs de
+`stdin` y juzga sólo las que empiezan por `refs/tags/`; sin etiquetas en el push
+sale `0` con `SIN ETIQUETAS EN ESTE PUSH`, y un borrado de etiqueta no se juzga.
+Un guardián que cerrara todos los pushes de rama sería el falso rojo que el
+propio §5.quater prohíbe. Instalación, en el clon que vaya a etiquetar:
+
+```
+printf '#!/bin/sh\nexec python3 -B tools/verificar_etiqueta.py --pre-push\n' \
+  > .git/hooks/pre-push && chmod +x .git/hooks/pre-push
+```
+
 ## 6. Proyección a in-toto Statement v1
 
 El predicado no compite con el estándar; se monta encima. La proyección es

@@ -154,8 +154,17 @@ from protocol.types import (  # noqa: E402
 #: 4 078 bytes** —tres líneas y 16 B más—, porque la entrada nueva no se inserta
 #: al final sino en el orden de ruta y desplaza la coma de la anterior. El
 #: archivo pesa 4 079 con su salto final. La cota se queda en la cifra medida.
-COPTA_LINEAS = 125
-COPTA_BYTES = 4079
+#: SUBIDO 2026-11-27 a 129 líneas y 4 217 bytes por `tests/test_tag_version.py`,
+#: una entrada más del bloque de código: cuatro líneas de JSON por entrada, y
+#: 138 B medidos sobre la entrada anterior. Aquí **no hay pronóstico que
+#: declarar**: la cota se sube después del acto, así que la cifra es medición y
+#: no predicción, y se escribe como tal. Lo que la cota sigue comprando es el
+#: trinquete: cualquier entrada futura que no la suba a mano la rompe.
+#: El acto imprimió 4 217 y el archivo pesa **4 218** con su salto final, que es
+#: lo que este test mide: la cota se queda en la cifra del archivo, no en la del
+#: acto. Es la misma diferencia de un byte que ya se declaró al abrir el anillo.
+COPTA_LINEAS = 129
+COPTA_BYTES = 4218
 #: Cota del acto de censo. Es más ancha que la de la suite porque lleva 12
 #: referencias vivas en vez de 10; se declara aparte para que una cota no mida
 #: el acto que la escribió (§medición con unidad: cada acto, su número).

@@ -1,0 +1,16 @@
+{
+  "que_es": "Etiquetas retiradas del remoto. Borrar el nombre quita la afirmacion falsa, no el hecho: el objeto se conserva en refs/tags-retirados/<t> y esta lapida se vuelve a medir en cada corrida de tools/verificar_etiqueta.py --todas. Si el nombre reaparece, REAPARECIDA; si el objeto o la version registrada ya no coinciden, RETIRADA_RANCIA. Ambas cosas son RC 1.",
+  "espacio": "refs/tags-retirados/",
+  "retiradas": [
+    {
+      "etiqueta": "v0.1.1",
+      "objeto": "15585dc31fbbb3a71ea209e8a49242bfdc966ddd",
+      "commit": "e43598cb931bbe7124c0ae0ff3c970cc946cbd1e",
+      "declara_en_su_arbol": "0.1.0",
+      "retirada": "2026-11-27",
+      "por_que": "la etiqueta decia 0.1.1 y el arbol que sostiene declara 0.1.0: un nombre publicado que su propio objeto refuta. Fue el unico CONTRADICE del censo de terceros sobre 24 repositorios.",
+      "sucesora": "v0.2.0",
+      "restaurar": "git update-ref refs/tags/v0.1.1 refs/tags-retirados/v0.1.1 && git push origin refs/tags/v0.1.1"
+    }
+  ]
+}

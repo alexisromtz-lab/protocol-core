@@ -39,11 +39,15 @@
     },
     {
       "ruta": "tests/test_predicado.py",
-      "sha256": "f040bc06ce9aa3a2ac64460bf0aec0ca52efd6896d81ee25373536d0587089db"
+      "sha256": "b4ec899f1a5e65e9903ab83f376102e8f551990e9ccbb3879d6720a86515737c"
     },
     {
       "ruta": "tests/test_sobre.py",
       "sha256": "b3275090875395b9d10f8831749eae0435230e4ae256978d0cf67ceb58e9d9f6"
+    },
+    {
+      "ruta": "tests/test_tag_version.py",
+      "sha256": "cfd87e33ac54f277ee48c964af4a9835d0b63f1ac5b8cfd00c92be205baa1d2f"
     },
     {
       "ruta": "tests/test_ubicacion.py",
@@ -118,7 +122,7 @@
   },
   "salida": {
     "ruta": "examples/veredicto-suite.txt",
-    "sha256": "37837189f8b608810c107059ee42e75769d5843b0e11207263f8fa823155e420"
+    "sha256": "d59fc8022b3fd5c12b506a619db3b62424c5a9fa874e157226305329cdd88607"
   },
   "veredicto": "conforme",
   "h_prev": null
