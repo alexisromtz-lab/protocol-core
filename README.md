@@ -47,7 +47,7 @@ acoplada) · y las extensiones declaradas `INV-6` (ficha fuera de banda), `INV-7
 Los comandos se corren **desde la raíz de este repositorio**:
 
 ```
-python3 -B -m unittest discover -s tests -v                      # 311 pruebas (corrida local: stdlib unittest)
+python3 -B -m unittest discover -s tests -v                      # 321 pruebas (corrida local: stdlib unittest)
 python3 -B examples/emitir_predicado.py                          # emite el recibo del acto: veredicto + página
 python3 -B examples/emitir_censo.py                               # el censo: declarado vs observado
 python3 -B examples/verificar_sello.py --manifiesto RUTA --raiz DIR --universo disco   # los seis veredictos
@@ -56,6 +56,7 @@ python3 -B examples/emitir_censo.py --check                       # REPRODUCE (R
 python3 -B examples/verificar_sello.py --check                    # REPRODUCE (RC 0) · REFUTA (RC 1) · RANCIO (RC 2) · NO_MEDIDO (RC 3)
 python3 -B examples/contrafirmar_censo.py --check                 # REPRODUCE (RC 0) · REFUTA (RC 1) · RANCIO (RC 2) · NO_MEDIDO (RC 3)
 PYTHONPATH=src python3 -B -c "import protocol; print(protocol.__version__)"   # 0.3.0
+python3 -B examples/emitir_recibo.py --tramo A=B --paginas A.txt,B.txt --salida RUTA   # el emisor: pliega los tramos en un /2
 python3 -B examples/firmar_recibo.py --recibo RUTA --semilla ARCHIVO          # anillo 8: firma el /2 en RUTA.firma y RUTA.pub
 python3 -B examples/verificar_recibo_externo.py RUTA --clave RUTA.pub --firma RUTA.firma   # el auditor coteja la firma
 ```

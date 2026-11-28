@@ -219,6 +219,33 @@ La firma **no** entra en el canon ni en ningún digest del recibo: no cambia el
 veredicto de composición, sólo añade una línea que dice quién emitió esos
 bytes. Un recibo firmado y uno sin firmar componen igual.
 
+### El acto del emisor: dos páginas por tramo
+
+La cadena quedaba abierta del lado del cliente: `componer()` no tenía CLI y el
+único recibo que se podía emitir era el de juguete de `--demo`. Lo cierra
+[`examples/emitir_recibo.py`](examples/emitir_recibo.py), que pliega los tramos
+declarados y escribe el JSON que el verificador externo ya sabe leer:
+
+```bash
+python3 -B examples/emitir_recibo.py \
+    --tramo A=B --paginas agenda-A.txt,agenda-B.txt \
+    --tramo B=C --paginas agenda-B.txt,agenda-C.txt \
+    --regla regla-AB.md --regla regla-BC.md \
+    --salida recibo.json
+```
+
+**Dos páginas por tramo, no una por nodo.** Con una sola página por nodo la
+frontera cierra por construcción: `B` no puede cambiar entre `A -> B` y `B -> C`
+porque sólo hay un `B`. Un acto así siempre diría `cierra` y no mediría nada.
+Con dos, la frontera que no cierra es expresable —el emisor sale con RC 1, el
+recibo lo declara en `frontera` y el tercero lo rechaza.
+
+El emisor **no** se auto-verifica: usa `componer`, que es el que mide las
+fronteras, y su `a_dict()` es el del núcleo, sin campos inventados. Si emitiera
+una forma que su propio auditor no entiende, el defecto no sería del cliente.
+Sin `--regla` el recibo es `/1`, y lo dice antes de que el cliente descubra que
+[`examples/firmar_recibo.py`](examples/firmar_recibo.py) se niega a firmarlo.
+
 ## 7. Lo que este objeto no hace — lista cerrada
 
 1. **No certifica la transformación.** Que B leyera lo que A dejó no dice nada
@@ -277,3 +304,8 @@ bytes. Un recibo firmado y uno sin firmar componen igual.
 | el canon firmado cubre la llave que ningún chequeo de campo mira | P-110d |
 | un byte en la firma o en la regla aportada no cierra | P-110d |
 | un `/1` no se firma ni se coteja como firmado | P-110e |
+| el emisor pliega y el tercero cierra bajo `env -i`, sin árbol | P-112a |
+| una frontera que no cierra se emite, se declara y no pasa | P-112b |
+| un byte en la regla aportada rompe el atajo | P-112c |
+| un nibble en la firma refuta | P-112d |
+| sin regla el recibo es `/1` y el firmador lo rechaza | P-112e |
