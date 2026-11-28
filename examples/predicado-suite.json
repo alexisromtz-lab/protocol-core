@@ -15,7 +15,7 @@
     },
     {
       "ruta": "tests/test_composicion.py",
-      "sha256": "879a3144df402a2ca4a77bfee90c85eb14e5dc9e269916e447566d5dd9eebc69"
+      "sha256": "1aaa4b03b04f6335f27e84e7e081a64153ec161915ece59fba68cb544e21cf4e"
     },
     {
       "ruta": "tests/test_conservacion.py",
@@ -130,7 +130,7 @@
   },
   "salida": {
     "ruta": "examples/veredicto-suite.txt",
-    "sha256": "babb05aa6d86e750090be4c96baec6232c1d35a1a5c8fc51aa5095dc812e0c66"
+    "sha256": "1c6478759eda159ef0e23c8272c019ffadb8f9684742dcfb732c1db3d78415e1"
   },
   "veredicto": "conforme",
   "h_prev": null

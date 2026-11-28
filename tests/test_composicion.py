@@ -544,3 +544,214 @@ class TestVerificadorExterno(_unittest.TestCase):
         self.assertEqual(datos["formato"], "recibo-de-composicion/2")
         vuelta = desde_dict(_json.loads(_json.dumps(datos)))
         self.assertEqual(vuelta.tramos[0].sha256_regla, regla)
+
+
+def _acto(ruta: str, *argumentos: str, cwd: str, limpio: bool = False) -> Tuple[int, str]:
+    """Corre un script como lo correria un tercero: fuera del arbol y, si se pide, sin entorno."""
+
+    corrida = _subprocess.run(
+        [_sys.executable, "-B", ruta, *argumentos],
+        cwd=cwd,
+        env={} if limpio else None,
+        stdout=_subprocess.PIPE,
+        stderr=_subprocess.STDOUT,
+        text=True,
+    )
+    return corrida.returncode, corrida.stdout
+
+
+_EMISOR = _os.path.join(_RAIZ, "examples", "emitir_recibo.py")
+_FIRMADOR = _os.path.join(_RAIZ, "examples", "firmar_recibo.py")
+_SEMILLA = "9d61b19deffd5a60ba844af492ec2cc44449c5697b326919703bac031cae7f60"
+
+
+class TestEmisorDeRecibo(_unittest.TestCase):
+    """P-112 · el acto del emisor: el pliegue de `componer` expuesto como CLI.
+
+    QUE MIDE. Que un cliente pueda emitir **su** recibo `/2` sin escribir codigo:
+    dos paginas por tramo, una regla por salto, y `componer` midiendo cada
+    frontera. Con una pagina por nodo la frontera cerraba por construccion y el
+    acto solo sabria decir «cierra»; con dos, la frontera que no cierra es
+    expresable, y por eso P-112b es el falsador que sostiene a P-112a.
+    """
+
+    def _agendas(self, directorio: str) -> None:
+        """Tres paginas y dos reglas: `A -> B -> C` conservando `B` entre ambos saltos."""
+
+        def fila(ruta: str) -> str:
+            return "%s  %s\n" % (_hashlib.sha256(ruta.encode()).hexdigest(), ruta)
+
+        for nombre, rutas in (
+            ("A", ("cita-09.tsv", "cita-10.tsv")),
+            ("B", ("cita-10.tsv", "cita-11.tsv")),
+            ("C", ("cita-11.tsv", "cita-12.tsv")),
+        ):
+            with _io.open(_os.path.join(directorio, "agenda-%s.txt" % nombre), "w", encoding="utf-8") as flujo:
+                flujo.write("".join(fila(r) for r in rutas))
+        for nombre, texto in (
+            ("regla-AB.txt", "de A a B sin perder una fila\n"),
+            ("regla-BC.txt", "de B a C sin ganar una fila\n"),
+        ):
+            with _io.open(_os.path.join(directorio, nombre), "w", encoding="utf-8") as flujo:
+                flujo.write(texto)
+
+    def _emitir(self, directorio: str, *extra: str, salida: str = "recibo.json") -> Tuple[int, str]:
+        return _acto(
+            _EMISOR,
+            "--tramo",
+            "A=B",
+            "--paginas",
+            "agenda-A.txt,agenda-B.txt",
+            "--tramo",
+            "B=C",
+            "--paginas",
+            "agenda-B.txt,agenda-C.txt",
+            "--regla",
+            "regla-AB.txt",
+            "--regla",
+            "regla-BC.txt",
+            *extra,
+            "--salida",
+            salida,
+            cwd=directorio,
+            limpio=True,
+        )
+
+    def test_p112a_el_emisor_pliega_y_el_tercero_cierra_sin_arbol(self) -> None:
+        """El emisor y el auditor corren desde un directorio ajeno, sin entorno."""
+
+        with _tempfile.TemporaryDirectory() as directorio:
+            self._agendas(directorio)
+            codigo, salida = self._emitir(directorio)
+            self.assertEqual(codigo, 0, salida)
+            self.assertIn("recibo | recibo-de-composicion/2 | A -> C | 2 tramos", salida)
+            self.assertIn("frontera | cierra", salida)
+            with _io.open(_os.path.join(directorio, "recibo.json"), encoding="utf-8") as flujo:
+                datos = _json.load(flujo)
+            self.assertIsNone(datos["frontera"])
+            self.assertTrue(datos["sostiene"])
+            veredicto, salida = _acto(
+                _EXTERNO,
+                "--recibo",
+                "recibo.json",
+                "--regla",
+                "regla-AB.txt",
+                "--regla",
+                "regla-BC.txt",
+                cwd=directorio,
+                limpio=True,
+            )
+            self.assertEqual(veredicto, 0, salida)
+            self.assertIn("-> cierra", salida)
+
+    def test_p112b_una_frontera_que_no_cierra_se_declara_y_no_pasa(self) -> None:
+        """`B` cambia entre los dos saltos: el acto lo emite, lo declara y el tercero lo rechaza.
+
+        Emitir con RC 1 y no escribir nada dejaria al cliente sin el hallazgo; el
+        defecto viaja **en el archivo**, que es lo que el tercero puede leer.
+        """
+
+        with _tempfile.TemporaryDirectory() as directorio:
+            self._agendas(directorio)
+            with _io.open(_os.path.join(directorio, "agenda-B2.txt"), "w", encoding="utf-8") as flujo:
+                for ruta in ("cita-10.tsv", "cita-11.tsv", "cita-99.tsv"):
+                    flujo.write("%s  %s\n" % (_hashlib.sha256(ruta.encode()).hexdigest(), ruta))
+            codigo, salida = _acto(
+                _EMISOR,
+                "--tramo", "A=B", "--paginas", "agenda-A.txt,agenda-B.txt",
+                "--tramo", "B=C", "--paginas", "agenda-B2.txt,agenda-C.txt",
+                "--regla", "regla-AB.txt", "--regla", "regla-BC.txt",
+                "--salida", "roto.json",
+                cwd=directorio,
+                limpio=True,
+            )
+            self.assertEqual(codigo, 1, salida)
+            self.assertIn("frontera | ROTA", salida)
+            with _io.open(_os.path.join(directorio, "roto.json"), encoding="utf-8") as flujo:
+                datos = _json.load(flujo)
+            self.assertIsNotNone(datos["frontera"])
+            self.assertFalse(datos["sostiene"])
+            veredicto, salida = _acto(
+                _EXTERNO, "--recibo", "roto.json", "--regla", "regla-AB.txt", "--regla", "regla-BC.txt",
+                cwd=directorio, limpio=True,
+            )
+            self.assertEqual(veredicto, 1, salida)
+            self.assertIn("frontera | rota", salida)
+
+    def test_p112c_un_byte_en_la_regla_rompe_el_atajo(self) -> None:
+        """La regla es lo unico que el emisor declara: si cambia, el tercero lo ve."""
+
+        with _tempfile.TemporaryDirectory() as directorio:
+            self._agendas(directorio)
+            codigo, salida = self._emitir(directorio)
+            self.assertEqual(codigo, 0, salida)
+            with _io.open(_os.path.join(directorio, "regla-BC.txt"), "a", encoding="utf-8") as flujo:
+                flujo.write("x")
+            veredicto, salida = _acto(
+                _EXTERNO, "--recibo", "recibo.json",
+                "--regla", "regla-AB.txt", "--regla", "regla-BC.txt",
+                cwd=directorio, limpio=True,
+            )
+            self.assertEqual(veredicto, 1, salida)
+            self.assertIn("REGLA_NO_COINCIDE", salida)
+
+    def test_p112d_un_nibble_en_la_firma_refuta(self) -> None:
+        """Firmar anade autoria; un bit cambiado en la firma no la conserva."""
+
+        with _tempfile.TemporaryDirectory() as directorio:
+            self._agendas(directorio)
+            with _io.open(_os.path.join(directorio, "semilla.txt"), "w", encoding="utf-8") as flujo:
+                flujo.write(_SEMILLA + "\n")
+            codigo, salida = self._emitir(directorio)
+            self.assertEqual(codigo, 0, salida)
+            codigo, salida = _acto(
+                _FIRMADOR, "--recibo", "recibo.json", "--semilla", "semilla.txt",
+                "--firma-salida", "R.firma", "--clave-salida", "R.pub",
+                cwd=directorio, limpio=True,
+            )
+            self.assertEqual(codigo, 0, salida)
+            argumentos = (
+                "--recibo", "recibo.json", "--regla", "regla-AB.txt", "--regla", "regla-BC.txt",
+                "--clave", "R.pub",
+            )
+            bueno, salida = _acto(
+                _EXTERNO, *argumentos, "--firma", "R.firma", cwd=directorio, limpio=True
+            )
+            self.assertEqual(bueno, 0, salida)
+            self.assertIn("firma | valida", salida)
+            firma = _os.path.join(directorio, "R.firma")
+            with _io.open(firma, encoding="utf-8") as flujo:
+                hexa = flujo.read().strip()
+            medio = len(hexa) // 2
+            cambiado = "0" if hexa[medio] != "0" else "1"
+            with _io.open(firma, "w", encoding="utf-8") as flujo:
+                flujo.write(hexa[:medio] + cambiado + hexa[medio + 1 :] + "\n")
+            malo, salida = _acto(
+                _EXTERNO, *argumentos, "--firma", "R.firma", cwd=directorio, limpio=True
+            )
+            self.assertEqual(malo, 1, salida)
+            self.assertIn("REFUTA", salida)
+
+    def test_p112e_sin_regla_el_recibo_es_uno_y_no_se_firma(self) -> None:
+        """El emisor no inventa la regla que no le dan, y el firmador es la puerta."""
+
+        with _tempfile.TemporaryDirectory() as directorio:
+            self._agendas(directorio)
+            with _io.open(_os.path.join(directorio, "semilla.txt"), "w", encoding="utf-8") as flujo:
+                flujo.write(_SEMILLA + "\n")
+            codigo, salida = _acto(
+                _EMISOR,
+                "--tramo", "A=B", "--paginas", "agenda-A.txt,agenda-B.txt",
+                "--salida", "uno.json",
+                cwd=directorio, limpio=True,
+            )
+            self.assertEqual(codigo, 0, salida)
+            self.assertIn("recibo-de-composicion/1", salida)
+            self.assertIn("firmar_recibo.py se niega a firmarlo", salida)
+            rechazo, salida = _acto(
+                _FIRMADOR, "--recibo", "uno.json", "--semilla", "semilla.txt",
+                "--firma-salida", "uno.firma",
+                cwd=directorio, limpio=True,
+            )
+            self.assertEqual(rechazo, 2, salida)
+            self.assertIn("solo se firma un recibo recibo-de-composicion/2", salida)
