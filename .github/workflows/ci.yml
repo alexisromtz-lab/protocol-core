@@ -259,7 +259,15 @@ jobs:
     # contrato en `skipped`, y el silencio no es un verde.
     runs-on: ubuntu-latest
     steps:
+      # HUELLA-CI-SUJETO-ENTERO-ETIQUETAS-20261127
+      # El defecto: un `--depth 1` no trae un solo ref de etiqueta, asi que el
+      # censo de `tools/verificar_etiqueta.py` medía un universo vacio y P-108a
+      # caia con el mensaje que pide justo lo contrario ("se mide con un `git
+      # clone` completo"). El sujeto que la prueba declara es el ODB entero: el
+      # aparato lo trae, en vez de rebajar la prueba a lo que el clon somero ve.
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        with:
+          fetch-depth: 0
       - uses: actions/setup-python@a26af69be951a213d495a4c3e4e4022e16d87065 # v5
         with:
           python-version: '3.12'
