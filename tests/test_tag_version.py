@@ -16,6 +16,7 @@ tirar para poder fabricar el defecto en vez de esperar a que ocurra.
 
 from __future__ import annotations
 
+import importlib.util
 import json
 import os
 import shutil
@@ -27,6 +28,12 @@ import unittest
 _RAIZ = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 _HERRAMIENTA = os.path.join(_RAIZ, "tools", "verificar_etiqueta.py")
 _CEROS = "0" * 40
+
+_SRC = os.path.join(_RAIZ, "src")
+if _SRC not in sys.path:
+    sys.path.insert(0, _SRC)
+
+from protocol.predicado import CodigoDeActo  # noqa: E402  (después del ajuste de `sys.path`)
 
 
 def _git(raiz, *argumentos):
@@ -113,12 +120,13 @@ class TestElParEtiquetaArbol(_Base):
         """El censo real: ninguna etiqueta publicada contradice a su arbol.
 
         El censo exige el sujeto entero, y un `--depth 1` no lo trae: el commit
-        de la lapida no viaja, la lapida sale `RETIRADA_NO_MEDIDA` (RC 2) y el
-        censo no puede dar `0`. Ese 2 se acepta **solo** cuando el commit
-        declarado falta de verdad, comprobado aqui con `git rev-parse`; si el
-        commit esta en el ODB y el censo aun responde 2, el test cae. Un clon
-        que no trae el sujeto no hereda un rojo, pero tampoco se disfraza de
-        cero: la distincion es la misma que hace el verificador.
+        de la lapida no viaja, la lapida sale `RETIRADA_NO_MEDIDA` (RC 3, el
+        `NO_MEDIDO` de la escalera del nucleo) y el censo no puede dar `0`. Ese
+        3 se acepta **solo** cuando el commit declarado falta de verdad,
+        comprobado aqui con `git rev-parse`; si el commit esta en el ODB y el
+        censo aun responde 3, el test cae. Un clon que no trae el sujeto no
+        hereda un rojo, pero tampoco se disfraza de cero: la distincion es la
+        misma que hace el verificador.
         """
 
         codigo, salida = self.correr(_RAIZ, "--todas", "--json")
@@ -130,7 +138,11 @@ class TestElParEtiquetaArbol(_Base):
             for entrada in _registro(_RAIZ)
             if _git(_RAIZ, "rev-parse", "--verify", "--quiet", str(entrada["commit"]) + "^{commit}").returncode != 0
         ]
-        self.assertEqual(codigo, 2 if faltan else 0, "%s\ncommits de lapida ausentes: %r" % (salida, faltan))
+        self.assertEqual(
+            codigo,
+            int(CodigoDeActo.NO_MEDIDO) if faltan else int(CodigoDeActo.REPRODUCE),
+            "%s\ncommits de lapida ausentes: %r" % (salida, faltan),
+        )
         self.assertTrue(
             [fila for fila in datos["filas"] if fila["veredicto"] == "COINCIDE"],
             "un censo sin ninguna coincidencia no mide nada: este clon no trae las "
@@ -143,15 +155,22 @@ class TestElParEtiquetaArbol(_Base):
         raiz = self.repo(version="2.0.0")
         _git(raiz, "tag", "v2.0.0")
         codigo, salida = self.correr(raiz, "--todas")
-        self.assertEqual(codigo, 0, salida)
+        self.assertEqual(codigo, int(CodigoDeActo.REPRODUCE), salida)
         self.assertIn("COINCIDE", salida)
         self.assertIn("declara=2.0.0", salida)
 
     def test_p108c_la_etiqueta_que_no_coincide_diverge_y_nombra_las_dos(self):
+        """`REFUTA`: la identidad publicada es falsa, y re-emitir no la arregla.
+
+        Par con P-108l: alli lo que no cuadra es el **registro** contra el objeto
+        que sostiene, y eso se re-emite; aqui lo que no cuadra es el nombre
+        contra el arbol, y eso se audita. Los dos codigos no se confunden.
+        """
+
         raiz = self.repo(version="2.0.0")
         _git(raiz, "tag", "v9.9.9")
         codigo, salida = self.correr(raiz, "--todas")
-        self.assertEqual(codigo, 1, salida)
+        self.assertEqual(codigo, int(CodigoDeActo.REFUTA), salida)
         self.assertIn("DIVERGE", salida)
         self.assertIn("la etiqueta dice 9.9.9 y el arbol declara 2.0.0", salida)
 
@@ -159,7 +178,7 @@ class TestElParEtiquetaArbol(_Base):
         raiz = self.repo()
         _git(raiz, "tag", "v1.0.0")
         codigo, salida = self.correr(raiz, "--todas")
-        self.assertEqual(codigo, 2, salida)
+        self.assertEqual(codigo, int(CodigoDeActo.NO_MEDIDO), salida)
         self.assertIn("NO_MEDIDO", salida)
         self.assertIn("no declara la version", salida)
 
@@ -170,7 +189,7 @@ class TestElParEtiquetaArbol(_Base):
         _git(raiz, "tag", "v2.0.0")
         _escribir(os.path.join(raiz, "src", "protocol", "__init__.py"), '__version__ = "7.7.7"\n')
         codigo, salida = self.correr(raiz, "--todas")
-        self.assertEqual(codigo, 0, salida)
+        self.assertEqual(codigo, int(CodigoDeActo.REPRODUCE), salida)
         self.assertIn("declara=2.0.0", salida)
         self.assertNotIn("7.7.7", salida)
 
@@ -179,8 +198,8 @@ class TestElParEtiquetaArbol(_Base):
 
         raiz = self.repo(version="2.0.0")
         codigo, salida = self.correr(raiz, "--todas")
-        self.assertEqual(codigo, 2, salida)
-        self.assertEqual(salida.strip(), "RESUMEN: 0 etiquetas ·  · RC 2")
+        self.assertEqual(codigo, int(CodigoDeActo.NO_MEDIDO), salida)
+        self.assertEqual(salida.strip(), "RESUMEN: 0 etiquetas ·  · RC 3")
 
 
 class TestElHookNoBloqueaLoQueNoMide(_Base):
@@ -188,14 +207,14 @@ class TestElHookNoBloqueaLoQueNoMide(_Base):
         raiz = self.repo(version="2.0.0")
         linea = "refs/heads/main %s refs/heads/main %s\n" % (_CEROS[:7], _CEROS)
         codigo, salida = self.correr(raiz, "--pre-push", entrada=linea)
-        self.assertEqual(codigo, 0, salida)
+        self.assertEqual(codigo, int(CodigoDeActo.REPRODUCE), salida)
         self.assertIn("SIN ETIQUETAS EN ESTE PUSH", salida)
 
     def test_p108h_un_borrado_de_etiqueta_no_se_juzga(self):
         raiz = self.repo(version="2.0.0")
         linea = "(delete) %s refs/tags/v2.0.0 %s\n" % (_CEROS, _CEROS)
         codigo, salida = self.correr(raiz, "--pre-push", entrada=linea)
-        self.assertEqual(codigo, 0, salida)
+        self.assertEqual(codigo, int(CodigoDeActo.REPRODUCE), salida)
 
     def test_p108i_la_etiqueta_discordante_del_push_se_rechaza(self):
         raiz = self.repo(version="2.0.0")
@@ -203,7 +222,7 @@ class TestElHookNoBloqueaLoQueNoMide(_Base):
         oid = _git(raiz, "rev-parse", "v3.0.0").stdout.strip()
         linea = "refs/tags/v3.0.0 %s refs/tags/v3.0.0 %s\n" % (oid, _CEROS)
         codigo, salida = self.correr(raiz, "--pre-push", entrada=linea)
-        self.assertEqual(codigo, 1, salida)
+        self.assertEqual(codigo, int(CodigoDeActo.REFUTA), salida)
         self.assertIn("DIVERGE", salida)
 
 
@@ -213,7 +232,7 @@ class TestLaLapidaSeVuelveAMedir(_Base):
         _git(raiz, "tag", "v1.0.0")
         self.retirar(raiz, "v1.0.0", "1.0.0")
         codigo, salida = self.correr(raiz, "--todas")
-        self.assertEqual(codigo, 0, salida)
+        self.assertEqual(codigo, int(CodigoDeActo.REPRODUCE), salida)
         self.assertIn("RETIRADA ", salida)
         self.assertIn("declara=1.0.0", salida)
 
@@ -226,15 +245,23 @@ class TestLaLapidaSeVuelveAMedir(_Base):
             json.dumps({"retiradas": [{"etiqueta": "v1.0.0", "objeto": objeto, "declara_en_su_arbol": "1.0.0"}]}),
         )
         codigo, salida = self.correr(raiz, "--todas")
-        self.assertEqual(codigo, 1, salida)
+        self.assertEqual(codigo, int(CodigoDeActo.REFUTA), salida)
         self.assertIn("REAPARECIDA", salida)
 
     def test_p108l_si_el_registro_miente_la_lapida_acusa(self):
+        """`RANCIO`: el registro describe otro objeto, y el registro se re-emite.
+
+        La lapida registra `8.8.8` y el arbol que sostiene declara `1.0.0`. Quien
+        arregla esto es quien tiene el registro, no quien tiene el arbol: por eso
+        `RANCIO` (2) y no `REFUTA` (1), que es lo que publica P-108c cuando el
+        nombre vivo contradice a su arbol.
+        """
+
         raiz = self.repo(version="1.0.0")
         _git(raiz, "tag", "v1.0.0")
         self.retirar(raiz, "v1.0.0", "8.8.8")
         codigo, salida = self.correr(raiz, "--todas")
-        self.assertEqual(codigo, 1, salida)
+        self.assertEqual(codigo, int(CodigoDeActo.RANCIO), salida)
         self.assertIn("RETIRADA_RANCIA", salida)
         self.assertIn("la retirada registra 8.8.8 y su arbol declara 1.0.0", salida)
 
@@ -268,7 +295,7 @@ class TestLaLapidaEnUnClonQueNoTraeElRefDeFueraDeBanda(_Base):
         )
         self.assertNotEqual(_git(frio, "rev-parse", "--verify", "--quiet", "v1.0.0").returncode, 0)
         codigo, salida = self.correr(frio, "--todas")
-        self.assertEqual(codigo, 0, salida)
+        self.assertEqual(codigo, int(CodigoDeActo.REPRODUCE), salida)
         self.assertIn("RETIRADA ", salida)
         self.assertIn("declara=1.0.0", salida)
         self.assertIn("sin refs/tags-retirados/v1.0.0 en este clon", salida)
@@ -296,7 +323,127 @@ class TestLaLapidaEnUnClonQueNoTraeElRefDeFueraDeBanda(_Base):
             ),
         )
         codigo, salida = self.correr(raiz, "--todas")
-        self.assertEqual(codigo, 2, salida)
+        self.assertEqual(codigo, int(CodigoDeActo.NO_MEDIDO), salida)
         self.assertIn("RETIRADA_NO_MEDIDA", salida)
         self.assertIn("git fetch origin", salida)
         self.assertNotIn("RETIRADA_RANCIA", salida)
+
+
+class TestLaEscaleraEsLaDelNucleo(unittest.TestCase):
+    """P-109 — el acto no publica su propio dialecto: lee la escalera del nucleo.
+
+    Medido el 27-Nov-2026, `UBICACION.md` §6.2 declaraba la deuda: este acto y
+    los cuatro `--check` hablaban idiomas distintos, y el `2` de aqui
+    (`NO_MEDIDO`) significaba lo contrario que el `2` del nucleo (`RANCIO`). Un
+    consumidor que solo recibe el entero no podia saber si re-emitir o auditar.
+    La cura no es una tabla nueva: es importar la que ya existe, y decirlo.
+    """
+
+    def herramienta(self):
+        """La herramienta **real**, cargada como modulo y sin ejecutar su `main`."""
+
+        especificacion = importlib.util.spec_from_file_location("etiqueta_bajo_prueba", _HERRAMIENTA)
+        modulo = importlib.util.module_from_spec(especificacion)
+        previo = sys.dont_write_bytecode
+        sys.dont_write_bytecode = True
+        self.addCleanup(setattr, sys, "dont_write_bytecode", previo)
+        especificacion.loader.exec_module(modulo)
+        return modulo
+
+    def test_p109_la_tabla_es_la_del_nucleo_y_cubre_los_ocho_veredictos(self):
+        modulo = self.herramienta()
+        # El objeto es el mismo, no uno igual: una copia con los mismos numeros
+        # vuelve a divergir el dia que el nucleo gane un codigo.
+        self.assertIs(modulo.CodigoDeActo, CodigoDeActo)
+        self.assertEqual(
+            set(modulo._DEL_VEREDICTO),
+            set(modulo._VEREDICTOS),
+            "un veredicto sin fila en la tabla caeria a `NO_MEDIDO` en silencio",
+        )
+        esperado = {
+            "COINCIDE": 0,
+            "RETIRADA": 0,
+            "DIVERGE": 1,
+            "REAPARECIDA": 1,
+            "RETIRADA_RANCIA": 2,
+            "IGNORADA": 3,
+            "NO_MEDIDO": 3,
+            "RETIRADA_NO_MEDIDA": 3,
+        }
+        self.assertEqual(
+            {clave: int(valor) for clave, valor in modulo._DEL_VEREDICTO.items()}, esperado
+        )
+        # Sin universo no hay verde, y la precedencia no se deja tapar: un censo
+        # con una etiqueta refutada y otra sin medir esta refutado.
+        self.assertEqual(int(modulo._codigo([])), int(CodigoDeActo.NO_MEDIDO))
+        self.assertEqual(
+            int(modulo._codigo([{"veredicto": "DIVERGE"}, {"veredicto": "RETIRADA_RANCIA"}])),
+            int(CodigoDeActo.REFUTA),
+        )
+        self.assertEqual(
+            int(modulo._codigo([{"veredicto": "RETIRADA_RANCIA"}, {"veredicto": "NO_MEDIDO"}])),
+            int(CodigoDeActo.RANCIO),
+        )
+        self.assertEqual(
+            int(modulo._codigo([{"veredicto": "COINCIDE"}, {"veredicto": "RETIRADA"}])),
+            int(CodigoDeActo.REPRODUCE),
+        )
+
+    def test_p109b_el_acto_no_deja_bytecode_en_el_universo_que_mide(self):
+        """Un instrumento que importa el nucleo no puede ensuciarlo al correr.
+
+        El acto de censo cuenta `__pycache__` como entrada de directorio y se
+        para con `OBSERVADOR` (65). Se corre la herramienta **sin `-B`** y sin
+        `PYTHONDONTWRITEBYTECODE` en el entorno —el caso de quien teclea
+        `python3 tools/verificar_etiqueta.py --todas`— sobre un arbol copiado:
+        lo que se mira es el arbol copiado, no el del repositorio.
+
+        El prefijo de cache se fija **dentro** de la copia a proposito: el
+        Python del sistema en macOS trae `sys.pycache_prefix` apuntando a
+        `~/Library/Caches` y sin esta linea la prueba mediria el default del
+        interprete —y saldria verde con la guarda quitada—. Con el prefijo
+        dentro de la copia, cualquier bytecode del nucleo copiado cae donde se
+        busca, en macOS y en Linux.
+        """
+
+        copia = tempfile.mkdtemp(prefix="protocol-etiqueta-copia-")
+        self.addCleanup(shutil.rmtree, copia, True)
+        ignorar = shutil.ignore_patterns("__pycache__", "*.pyc")
+        shutil.copytree(os.path.join(_RAIZ, "tools"), os.path.join(copia, "tools"), ignore=ignorar)
+        shutil.copytree(os.path.join(_RAIZ, "src"), os.path.join(copia, "src"), ignore=ignorar)
+        entorno = dict(os.environ)
+        entorno.pop("PYTHONDONTWRITEBYTECODE", None)
+        entorno["PYTHONPYCACHEPREFIX"] = os.path.join(copia, ".observador")
+        proceso = subprocess.run(
+            [
+                sys.executable,
+                os.path.join(copia, "tools", "verificar_etiqueta.py"),
+                "--todas",
+                "--raiz",
+                _RAIZ,
+            ],
+            capture_output=True,
+            text=True,
+            env=entorno,
+        )
+        self.assertEqual(
+            proceso.returncode, int(CodigoDeActo.REPRODUCE), proceso.stdout + proceso.stderr
+        )
+        # Bytecode de los modulos de la copia, este donde este el prefijo: la
+        # biblioteca estandar escriba la suya y no es universo del acto.
+        del_acto = [
+            os.path.relpath(os.path.join(directorio, nombre), copia)
+            for directorio, _, archivos in os.walk(copia)
+            for nombre in archivos
+            if nombre.endswith(".pyc") and os.sep + "src" + os.sep in os.path.join(directorio, nombre)
+        ]
+        del_acto += [
+            os.path.relpath(os.path.join(directorio, nombre), copia)
+            for directorio, subdirectorios, _ in os.walk(copia)
+            for nombre in subdirectorios
+            if nombre == "__pycache__"
+            and os.sep + "src" + os.sep in os.path.join(directorio, nombre)
+        ]
+        self.assertEqual(
+            del_acto, [], "el acto dejo bytecode de su propio nucleo: %r" % (del_acto,)
+        )

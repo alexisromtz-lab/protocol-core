@@ -1,2 +1,2 @@
-Ran 302 tests
+Ran 304 tests
 OK
