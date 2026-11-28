@@ -848,5 +848,57 @@ class TestCotejoDeLaPagina(_unittest.TestCase):
         )
         _medicion("P-27 separador del archivo", "REPRODUCE · y un espacio final REFUTA")
 
+
+class TestAparatoQueEjecutaLosActos(_unittest.TestCase):
+    """P-28 — la compuerta existe aunque nadie se acuerde de pedirla.
+
+    Medido el 2026-11-27 sobre `8a985f0`: `grep -c 'examples/emitir_'` en
+    `.github/workflows/ci.yml` daba `0`. Las cuatro páginas tenían lector —su
+    `--check`— y ninguna tenía quien lo llamara: el verde dependía de la memoria
+    de quien publicaba. Un lector que hay que recordar invocar no es un aparato,
+    es una costumbre.
+
+    Esta prueba es el lector del aparato, no del acto: exige que el workflow
+    nombre los cuatro `--check` y que **todo** `actions/checkout` traiga el ODB
+    entero, porque la suite que corre dentro del acto de predicado incluye
+    P-108a, que cuenta etiquetas y en un clon somero mide un universo vacío.
+    """
+
+    APARATO = _os.path.join(".github", "workflows", "ci.yml")
+    ACTOS = ("emitir_censo", "verificar_sello", "contrafirmar_censo", "emitir_predicado")
+
+    def test_p28_el_aparato_ejecuta_los_cuatro_actos_y_trae_el_odb_entero(self) -> None:
+        with open(_os.path.join(_RAIZ, self.APARATO), "r", encoding="utf-8") as flujo:
+            lineas = flujo.read().splitlines()
+
+        faltan = [
+            acto
+            for acto in self.ACTOS
+            if not any("examples/%s.py --check" % acto in linea for linea in lineas)
+        ]
+        # Un acto sin quien lo llame no coteja nada: su página envejece hasta que
+        # alguien la mira por casualidad.
+        self.assertEqual(
+            faltan,
+            [],
+            "el aparato no ejecuta %r; una página sin lector no envejece: se descubre tarde"
+            % (faltan,),
+        )
+
+        someros = [
+            indice + 1
+            for indice, linea in enumerate(lineas)
+            if "actions/checkout@" in linea
+            and "fetch-depth: 0" not in "".join(lineas[indice + 1 : indice + 5])
+        ]
+        self.assertEqual(
+            someros, [], "checkout sin `fetch-depth: 0` en las líneas %r" % (someros,)
+        )
+        _medicion(
+            "P-28 aparato",
+            (len(self.ACTOS), len(someros), sum(1 for l in lineas if "actions/checkout@" in l)),
+        )
+
+
 if __name__ == "__main__":
     _unittest.main()

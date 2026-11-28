@@ -7,7 +7,7 @@
     },
     {
       "ruta": "tests/test_audit.py",
-      "sha256": "b422d1d3c2f2be4e28abaa92ed291659a5cd14d2fa86c7771b5351a9a4eb30a6"
+      "sha256": "2af13b84f855f4b5264251eb8c03540f0b4ee379acb243dfe6ec8260d36ef118"
     },
     {
       "ruta": "tests/test_ausencia.py",
@@ -39,7 +39,7 @@
     },
     {
       "ruta": "tests/test_predicado.py",
-      "sha256": "c9140423e76351c895354d8e3bdba119dd15b020b187d7b20f3d19023135904d"
+      "sha256": "40f23cd4570fa74bb9d2a11f1de27666309ee935af4912e96dc49bebff92cfac"
     },
     {
       "ruta": "tests/test_sobre.py",
@@ -122,7 +122,7 @@
   },
   "salida": {
     "ruta": "examples/veredicto-suite.txt",
-    "sha256": "789ae7382a5b13ee028f8dcfb3e53b43828ce544ac829de7983e339f33287b6c"
+    "sha256": "648b09e8db272467690c935f70f5909a6be3d092baad73a8642a15c0553e6eb1"
   },
   "veredicto": "conforme",
   "h_prev": null

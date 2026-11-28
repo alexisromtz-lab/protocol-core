@@ -71,6 +71,7 @@ import datetime as _datetime
 import errno as _errno
 import importlib.util as _importlib_util
 import io as _io
+import json as _json
 import os as _os
 import pathlib as _pathlib
 import shutil as _shutil
@@ -816,6 +817,55 @@ class TestAnclaContenida(_unittest.TestCase):
                 self.assertIn("OPACO", salida)
                 self.assertIn(motivo, salida)
         _medicion("P-40 ancla | rutas hostiles rechazadas", len(casos))
+
+
+class TestCotejoDeLaContrafirma(_unittest.TestCase):
+    """El acto publicado contra la contrafirma publicada, en otra máquina.
+
+    El 2026-11-27 este cotejo era igualdad de bytes, así que el entorno del
+    observador entraba al acto: la contrafirma emitida en `darwin/CPython 3.9.6`
+    daba `REFUTA` al cotejarse en `linux/CPython 3.12.16`, y el ancla sólo valía
+    en la máquina que la firmó. Aquí el defecto no se veía porque firmante y
+    cotejador eran el mismo; lo destapó la compuerta de CI.
+    """
+
+    def setUp(self) -> None:
+        self.acto = _cargar_contrafirma()
+        ruta = _os.path.join(_RAIZ, "examples", "contrafirma-censo.json")
+        with open(ruta, encoding="utf-8") as flujo:
+            self.publicada = _json.load(flujo)
+
+    def _otra_maquina(self, **cambios) -> str:
+        cuerpo = _json.loads(_json.dumps(self.publicada))
+        cuerpo["entorno"].update(cambios)
+        return self.acto._pagina(cuerpo)
+
+    def _de_esta_maquina(self) -> str:
+        return self._otra_maquina(**self.acto._entorno())
+
+    def test_p29_el_observador_no_entra_al_cotejo_de_la_contrafirma(self) -> None:
+        # Publicada en otro sistema; cotejada aquí. El acto es el mismo y el
+        # observador es de cada uno: eso es `REPRODUCE`, no una divergencia.
+        previa = self._otra_maquina(plataforma="otro-sistema", runtime="python 9.9")
+
+        codigo, firmado, detalle = self.acto._cotejo(
+            previa.encode("utf-8"), self._de_esta_maquina() + "\n"
+        )
+
+        self.assertIs(CodigoDeActo.REPRODUCE, codigo, detalle)
+        _medicion("P-29 contrafirma | el observador no condena", codigo.name)
+
+    def test_p29_b_una_contrafirma_de_otro_acto_si_refuta(self) -> None:
+        # El falsador de arriba no puede ser «nunca condena»: cambiando el
+        # acto —aquí el ancla— el mismo cotejo tiene que caer.
+        previa = self._otra_maquina(ancla="otro@000000000000 · 2026-01-01T00:00:00-06:00")
+
+        codigo, _, detalle = self.acto._cotejo(
+            previa.encode("utf-8"), self._de_esta_maquina() + "\n"
+        )
+
+        self.assertIs(CodigoDeActo.REFUTA, codigo, detalle)
+        _medicion("P-29b contrafirma | otro acto refuta", codigo.name)
 
 
 if __name__ == "__main__":  # pragma: no cover

@@ -47,7 +47,7 @@ acoplada) · y las extensiones declaradas `INV-6` (ficha fuera de banda), `INV-7
 Los comandos se corren **desde la raíz de este repositorio**:
 
 ```
-python3 -B -m unittest discover -s tests -v                      # 299 pruebas (corrida local: stdlib unittest)
+python3 -B -m unittest discover -s tests -v                      # 302 pruebas (corrida local: stdlib unittest)
 python3 -B examples/emitir_predicado.py                          # emite el recibo del acto: veredicto + página
 python3 -B examples/emitir_censo.py                               # el censo: declarado vs observado
 python3 -B examples/verificar_sello.py --manifiesto RUTA --raiz DIR --universo disco   # los seis veredictos

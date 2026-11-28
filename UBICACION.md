@@ -367,8 +367,17 @@ nombre de quien reproduce daría dos identidades al mismo acto según la máquin
 Medido el 27-Nov-2026: la página sellada bajo `CPython 3.9.6` reproduce bajo
 `CPython 3.12.13` con RC 0; el nombre firmado es `80bee69d…` y el de la corrida
 `bfed7488…`, y el mismo archivo, sin reescribirse, sirve a los dos.
-Falsadores: P-32 (el entorno no condena) y P-27 (el separador del archivo no
-condena).
+
+**La excepción es una función, no una por acto.** `cotejar_pagina()` normaliza
+esos dos campos y compara el resto; un acto que traiga su propia copia reintroduce
+el defecto por su cuenta, y dos copias divergen. El 27-Nov-2026
+`contrafirmar_censo.py` comparaba **bytes**: su contrafirma, emitida en `darwin`,
+se declaraba `REFUTA` al cotejarse en `linux`, así que el ancla sólo valía en la
+máquina que la firmó. Aquí era invisible porque firmante y cotejador eran la
+misma máquina; lo destapó la compuerta de CI, que es el primer lector de ese acto
+que corre fuera de este árbol. Falsadores: P-32 (el entorno no condena), P-27 (el
+separador del archivo no condena), **P-29** (la contrafirma tampoco) y P-29b, que
+impide que la normalización absuelva un acto ajeno.
 
 ### 6.2 La escalera del código de salida, y por qué `RANCIO` no es `REFUTA`
 
@@ -423,8 +432,21 @@ contrario que aquí; migrarlo es un corte propio y hasta entonces dos actos del
 mismo árbol hablan dialectos distintos, cosa que se declara en vez de
 disimularse.
 
+**Quién ejecuta la compuerta es parte del contrato.** Un `--check` que hay que
+recordar invocar no es un aparato: es una costumbre. Medido el 2026-11-27 sobre
+`8a985f0`, `grep -c 'examples/emitir_' .github/workflows/ci.yml` daba `0` —los
+cuatro actos tenían lector y ninguno tenía quien lo llamara—, así que el verde de
+`main` dependía de la memoria de quien publicaba. El job `compuertas` corre las
+cuatro `--check` sobre un checkout fresco: ése es el universo limpio que el censo
+exige, y lo es **por construcción** y no por acordarse de ejecutarlo antes de
+`pytest`. Va como job propio y no como paso del job `tests` porque `pytest` deja
+`__pycache__`, que el censo cuenta como entrada de directorio y por el que se
+para con `65`: hacerlo convivir obligaría a silenciar el `65` con una variable de
+entorno, que es tapar el defecto en vez de no producirlo.
+
 Falsadores: P-25 (las seis filas de la escalera), P-26 (el nombre publicado es el
-del acto firmado), P-27 (el separador del archivo no condena la página), P-32 (un
+del acto firmado), P-27 (el separador del archivo no condena la página), P-28 (el
+aparato nombra los cuatro actos y todo `checkout` trae el ODB entero), P-32 (un
 árbol movido contesta `RANCIO`; una fila mentida, `REFUTA`), P-42b (la entrada
 ilegible cambia de código con el modo) y t14_b (el universo sucio sale por `65`).
 
