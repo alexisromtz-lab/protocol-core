@@ -87,6 +87,7 @@ if _SRC not in _sys.path:
     _sys.path.insert(0, _SRC)
 
 from protocol.atomic import reserve  # noqa: E402  (después del ajuste de `sys.path`)
+from protocol.predicado import CodigoDeActo  # noqa: E402
 from protocol.audit import (  # noqa: E402
     _SONDA_CASO_MENOR,
     _exigir_sin_movimiento,
@@ -755,8 +756,12 @@ class TestActoDeCenso(_BaseNamespace):
         # Falsador: el intérprete deja basura que no viaja con el código. Se
         # para; no la borra. Borrarla mediría un universo que ya no es el que hay.
         _os.mkdir(_os.path.join(limpio, "__pycache__"))
-        with self.assertRaises(SystemExit):
+        with self.assertRaises(SystemExit) as parada:
             acto._exigir_universo_limpio(limpio)
+        # El código dice quién tiene que actuar: `OBSERVADOR` (65) y no el `1`
+        # de `REFUTA`, porque el árbol no está mal — lo tocó quien corrió
+        # Python antes, y eso se arregla midiendo en un universo limpio.
+        self.assertEqual(int(CodigoDeActo.OBSERVADOR), parada.exception.code)
         self.assertTrue(_os.path.isdir(_os.path.join(limpio, "__pycache__")))
         _medicion("acto de censo | bytecode presente", "se para y no borra")
 

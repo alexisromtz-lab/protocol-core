@@ -14,6 +14,6 @@ tolerancia. El tag no entra en esa lista porque no vive dentro del árbol: se mi
 fuera, con `git describe --tags --exact-match`.
 """
 
-__version__ = "0.2.1"
+__version__ = "0.3.0"
 
 __all__ = ["__version__"]

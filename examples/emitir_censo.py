@@ -3,7 +3,8 @@
 Uso:
 
     python3 -B examples/emitir_censo.py           # observa, compara y sella la página
-    python3 -B examples/emitir_censo.py --check   # re-observa y compara: reproduce o diverge
+    python3 -B examples/emitir_censo.py --check   # re-observa y coteja: la escalera de `UBICACION.md` §6.2
+                                                  # 0 reproduce · 1 refuta · 2 rancio · 3 no medido
 
 Qué compra quien compra esto. La cifra honesta de un corpus no es «cuántos
 hay»: es el par `declarado − observado`. El lado declarado vive en
@@ -48,7 +49,13 @@ PAGINA = _os.path.join(EJEMPLOS, "predicado-censo.json")
 _sys.path.insert(0, _os.path.join(RAIZ, "src"))
 
 from protocol.audit import census, volumen_medido  # noqa: E402
-from protocol.predicado import Entorno, Predicado, VeredictoReclamado  # noqa: E402
+from protocol.predicado import (  # noqa: E402
+    CodigoDeActo,
+    Entorno,
+    Predicado,
+    VeredictoReclamado,
+    cotejar_pagina,
+)
 from protocol.types import (  # noqa: E402
     ALGORITMO,
     Contexto,
@@ -67,6 +74,13 @@ def _medicion(etiqueta: str, valor: object) -> None:
     print("MEDICION | %s | %s" % (etiqueta, valor))
 
 
+def _contrato(mensaje: str) -> None:
+    """Lo que rompió quien llamó, no el árbol: sale con `CodigoDeActo.CONTRATO`."""
+
+    print("CONTRATO | %s" % mensaje, file=_sys.stderr)
+    raise SystemExit(int(CodigoDeActo.CONTRATO))
+
+
 def _declaracion() -> dict:
     """Lee el lado declarado. Falla cerrado si falta un campo o sobra uno."""
 
@@ -83,10 +97,10 @@ def _declaracion() -> dict:
 
     faltan = [campo for campo in _CAMPOS_DECLARADOS if not valores.get(campo)]
     if faltan:
-        raise SystemExit("el lado declarado está incompleto: %r" % (faltan,))
+        _contrato("el lado declarado está incompleto: %r" % (faltan,))
     sobran = [clave for clave in valores if clave not in _CAMPOS_DECLARADOS + ("declarado",)]
     if sobran:
-        raise SystemExit("el lado declarado tiene claves que nadie lee: %r" % (sobran,))
+        _contrato("el lado declarado tiene claves que nadie lee: %r" % (sobran,))
     return valores
 
 
@@ -101,10 +115,16 @@ def _exigir_universo_limpio(raiz: str) -> None:
             _os.path.join(directorio, nombre) for nombre in archivos if nombre.endswith(".pyc")
         )
     if sucio:
-        raise SystemExit(
-            "el universo contiene artefactos de byte-compilación y no se mide: %r. "
-            "Contarlos ata el número a quién ejecutó Python antes." % (sorted(sucio)[:3],)
+        # OBSERVADOR y no REFUTA: el árbol no está mal, lo tocó quien corrió
+        # Python antes. Un cliente que lee `1` auditaría un acto que sólo hay
+        # que volver a medir en un universo limpio.
+        print(
+            "OBSERVADOR | el universo trae artefactos de byte-compilacion y no se "
+            "mide: %r. Contarlos ata el numero a quien ejecuto Python antes."
+            % (sorted(sucio)[:3],),
+            file=_sys.stderr,
         )
+        raise SystemExit(int(CodigoDeActo.OBSERVADOR))
 
 
 def _observado(declaracion: dict) -> int:
@@ -253,22 +273,32 @@ def main(argv: tuple) -> int:
 
     if "--check" in argv:
         if not _os.path.exists(PAGINA) or not _os.path.exists(SALIDA):
-            print("NO_MEDIDO: no hay pagina previa que reproducir")
-            return 2
+            print("NO_MEDIDO | no hay pagina previa que reproducir")
+            return int(CodigoDeActo.NO_MEDIDO)
         with open(SALIDA, "rb") as flujo:
             salida_previa = flujo.read()
         with open(PAGINA, "rb") as flujo:
             pagina_previa = flujo.read()
+        # La página se compara entera salvo el entorno del observador (§6.1 de
+        # `UBICACION.md`), y el fallo se nombra con la escalera de
+        # `CodigoDeActo`: comparar sólo la salida dejaría pasar una página
+        # rancia con cifra fresca, que es el falso verde que este acto mide.
+        codigo, firmado, detalle = cotejar_pagina(
+            pagina_previa,
+            pagina + "\n",
+            (_sys.platform, "CPython %d.%d.%d" % _sys.version_info[:3]),
+        )
+        if codigo is CodigoDeActo.REPRODUCE and salida_previa != salida:
+            codigo = CodigoDeActo.REFUTA
+            detalle = "la salida emitida no es la que la pagina nombra"
         _medicion("salida reproducida", salida_previa == salida)
-        # La página se compara entera: comparar sólo la salida dejaría pasar una
-        # página rancia con cifra fresca, que es el falso verde que este acto mide.
-        _medicion("pagina reproducida", pagina_previa == (pagina + "\n").encode("utf-8"))
-        if salida_previa != salida or pagina_previa != (pagina + "\n").encode("utf-8"):
-            print("DIVERGE | la pagina declarada no describe este arbol")
-            return 1
-        print("REPRODUCE | %s" % digest.digest)
+        _medicion("pagina reproducida", codigo is CodigoDeActo.REPRODUCE)
+        if codigo is not CodigoDeActo.REPRODUCE:
+            print("%s | %s" % (codigo.name, detalle))
+            return int(codigo)
+        print("REPRODUCE | %s" % firmado)
         _medicion("veredicto declarado", veredicto.value)
-        return 0
+        return int(CodigoDeActo.REPRODUCE)
 
     with open(SALIDA, "wb") as flujo:
         flujo.write(salida)

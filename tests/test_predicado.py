@@ -50,6 +50,7 @@ if _SRC not in _sys.path:
 from protocol.predicado import (  # noqa: E402
     TIPO_DE_ESTATUTO,
     TIPO_DE_PREDICADO,
+    CodigoDeActo,
     Contrafirma,
     Entorno,
     Eslabon,
@@ -58,6 +59,7 @@ from protocol.predicado import (  # noqa: E402
     VeredictoReclamado,
     canonizar,
     contrafirmar,
+    cotejar_pagina,
     desde_cuerpo,
     desde_in_toto,
     verificar_cadena,
@@ -717,6 +719,134 @@ class TestVerificacionDesdeLaPagina(_unittest.TestCase):
             (cuerpo["veredicto"], otro, resultado.medido[:16]),
         )
 
+class TestCotejoDeLaPagina(_unittest.TestCase):
+    """P-25 · P-26 — el cotejo nombra el fallo y no elige identidad.
+
+    Los cuatro `--check` comparaban bytes y devolvían `1` para todo. Medido el
+    2026-11-27 en `examples/emitir_predicado.py:133`: un árbol movido —re-emitir,
+    gratis— y una página que miente sobre este árbol —auditar— salían con el
+    mismo número, así que el cliente que no puede leer prosa tenía que adivinar.
+    La distinción ya estaba escrita en `VeredictoDeAncla`; lo que faltaba era
+    que sobreviviera al `exit`.
+    """
+
+    PAGINA = "examples/predicado-suite.json"
+
+    def _previa(self) -> bytes:
+        with open(_os.path.join(_RAIZ, self.PAGINA), "rb") as flujo:
+            return flujo.read()
+
+    def _entorno(self, cuerpo: dict) -> tuple:
+        return (cuerpo["entorno"]["plataforma"], cuerpo["entorno"]["runtime"])
+
+    def test_p25_el_cotejo_distingue_rancio_de_refuta(self) -> None:
+        previa = self._previa()
+        corriente = previa.decode("utf-8").rstrip("\n")
+        cuerpo = _json.loads(corriente)
+        entorno = self._entorno(cuerpo)
+
+        def cotejo(alterado: dict):
+            return cotejar_pagina(
+                (_json.dumps(alterado, indent=2, ensure_ascii=False) + "\n").encode("utf-8"),
+                corriente,
+                entorno,
+            )[0]
+
+        # Positivo: la misma página bajo el mismo observador.
+        self.assertIs(CodigoDeActo.REPRODUCE, cotejo(cuerpo))
+
+        # Otro intérprete no condena: `plataforma` y `runtime` son del observador
+        # y no del árbol (§6.1 de `UBICACION.md`).
+        otro = _json.loads(corriente)
+        otro["entorno"]["plataforma"] = "otro-sistema"
+        otro["entorno"]["runtime"] = "CPython 0.0.0"
+        self.assertIs(CodigoDeActo.REPRODUCE, cotejo(otro))
+
+        # Una entrada movida nombra otro árbol: el remedio es re-emitir.
+        movida = _json.loads(corriente)
+        movida["entradas"][0][ALGORITMO] = "0" * 64
+        self.assertIs(CodigoDeActo.RANCIO, cotejo(movida))
+
+        # El código del acto también es árbol: tocar `src/` rancia la página, y
+        # por eso el acto que edita el módulo tiene que re-emitir las tres.
+        codigo = _json.loads(corriente)
+        codigo["codigo"][0][ALGORITMO] = "0" * 64
+        self.assertIs(CodigoDeActo.RANCIO, cotejo(codigo))
+
+        # Mismo árbol y otra salida: la página habla de éste y miente. Aquí no
+        # se re-emite nada, se audita.
+        salida = _json.loads(corriente)
+        salida["salida"][ALGORITMO] = "0" * 64
+        self.assertIs(CodigoDeActo.REFUTA, cotejo(salida))
+
+        # La laguna borrada vive en el entorno y aun así condena: lo que se
+        # normaliza son dos campos del observador, no lo que el acto confiesa.
+        laguna = _json.loads(corriente)
+        laguna["entorno"]["no_medido"] = []
+        self.assertIs(CodigoDeActo.REFUTA, cotejo(laguna))
+
+        _medicion("P-25 escalera del cotejo", "REPRODUCE x2 · RANCIO x2 · REFUTA x2")
+
+    def test_p26_el_cotejo_publica_el_digest_de_la_pagina_firmada(self) -> None:
+        """El nombre del acto es uno, no uno por máquina que lo mire.
+
+        Si el cotejo publicara el digest de la corrida de turno, el mismo acto
+        tendría dos nombres —uno por intérprete— y el cliente que verifica no
+        podría citarlo.
+        """
+
+        previa = self._previa()
+        cuerpo = _json.loads(previa.decode("utf-8"))
+        corriente_ajena = _json.dumps(
+            dict(
+                cuerpo,
+                entorno=dict(
+                    cuerpo["entorno"],
+                    plataforma="otro-sistema",
+                    runtime="CPython 0.0.0",
+                ),
+            ),
+            indent=2,
+            ensure_ascii=False,
+        )
+        codigo, firmado, detalle = cotejar_pagina(
+            previa, corriente_ajena, ("otro-sistema", "CPython 0.0.0")
+        )
+        self.assertIs(CodigoDeActo.REPRODUCE, codigo, detalle)
+        # El publicado es el de la página firmada, y coincide con el nombre que
+        # la propia página declara (`Predicado.digest`), sin receta duplicada.
+        self.assertEqual(desde_cuerpo(previa.decode("utf-8")).digest().digest, firmado)
+        self.assertNotEqual(
+            _hashlib.sha256(corriente_ajena.encode("utf-8")).hexdigest(), firmado
+        )
+        _medicion("P-26 identidad publicada", firmado[:16])
+
+
+    def test_p27_el_salto_de_linea_del_archivo_no_condena_la_pagina(self) -> None:
+        """El que escribe deja un `\\n` final; el que compara no puede cobrarlo.
+
+        Medido el 2026-11-27 en `examples/verificar_sello.py:475`: el acto escribe
+        la página como `pagina + "\\n"`, y el cotejo comparaba contra el texto sin
+        ese salto. Resultado: recién emitida, la página salía `REFUTA` —«la
+        pagina nombra este arbol y no lo describe»— sin que nadie hubiera tocado
+        nada. Un falso rojo aquí no absuelve, pero enseña a ignorar la puerta.
+
+        El falsador mira el archivo tal como está en disco: si el cotejo vuelve a
+        pedir el byte del separador, este acto deja de reproducirse.
+        """
+
+        previa = self._previa()
+        corriente = previa.decode("utf-8")
+        self.assertTrue(corriente.endswith("}\n"), "la página en disco termina en salto de línea")
+        cuerpo = _json.loads(corriente)
+        codigo, firmado, detalle = cotejar_pagina(previa, corriente, self._entorno(cuerpo))
+        self.assertIs(CodigoDeActo.REPRODUCE, codigo, detalle)
+        # Y el espacio final sí condena: lo que se descuenta es el separador.
+        self.assertIs(
+            CodigoDeActo.REFUTA,
+            cotejar_pagina(previa, corriente + " ", self._entorno(cuerpo))[0],
+        )
+        _medicion("P-27 separador del archivo", "REPRODUCE · y un espacio final REFUTA")
 
 if __name__ == "__main__":
     _unittest.main()

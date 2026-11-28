@@ -7,7 +7,7 @@
     },
     {
       "ruta": "tests/test_audit.py",
-      "sha256": "07fa271f86a736acb5bb89ab1cf9fbb53e52e53f9a7188709b7be55a7c339008"
+      "sha256": "b422d1d3c2f2be4e28abaa92ed291659a5cd14d2fa86c7771b5351a9a4eb30a6"
     },
     {
       "ruta": "tests/test_ausencia.py",
@@ -39,7 +39,7 @@
     },
     {
       "ruta": "tests/test_predicado.py",
-      "sha256": "b4ec899f1a5e65e9903ab83f376102e8f551990e9ccbb3879d6720a86515737c"
+      "sha256": "c9140423e76351c895354d8e3bdba119dd15b020b187d7b20f3d19023135904d"
     },
     {
       "ruta": "tests/test_sobre.py",
@@ -51,7 +51,7 @@
     },
     {
       "ruta": "tests/test_ubicacion.py",
-      "sha256": "4ef334485f729321c45214761e66c146de0c4d7ea5fe9d6acf97574a898f6fff"
+      "sha256": "88ddeae3b187284670d9eb20c0201a8162f55aba597ef3f49b8cff4298dbbc23"
     },
     {
       "ruta": "tests/test_version.py",
@@ -61,11 +61,11 @@
   "codigo": [
     {
       "ruta": "examples/emitir_predicado.py",
-      "sha256": "fedcdbef44ba102a6073643d4dd784d52f80115f5c6d4f5b9a23bb108cf542a8"
+      "sha256": "719c0e3547144a90c7042c4038339a837625e1109a31e968d1a623ea3c4aea70"
     },
     {
       "ruta": "src/protocol/__init__.py",
-      "sha256": "3032cae4fdbb6498ea410046f749752f7d90965a627bc14a3bfc82836ba36116"
+      "sha256": "81a5a222f30b6ec17fa5142b4ae2de8493cb3195cf68119d0b60a838ffea11c9"
     },
     {
       "ruta": "src/protocol/atomic.py",
@@ -97,7 +97,7 @@
     },
     {
       "ruta": "src/protocol/predicado.py",
-      "sha256": "389b0485f0df6219590ae67ec863dabbe301723c1889925e4fdef5a47308f651"
+      "sha256": "c72936e7d4f7c15d259da248bbec21591f71db07de04b615a26a3d88937bca47"
     },
     {
       "ruta": "src/protocol/sobre.py",
@@ -122,7 +122,7 @@
   },
   "salida": {
     "ruta": "examples/veredicto-suite.txt",
-    "sha256": "f4d121ea323c6ae9450094339abe8a4865733c3a5cdcf3b7ff94a586ea0fcc2b"
+    "sha256": "789ae7382a5b13ee028f8dcfb3e53b43828ce544ac829de7983e339f33287b6c"
   },
   "veredicto": "conforme",
   "h_prev": null

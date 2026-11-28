@@ -3,7 +3,8 @@
 Uso:
 
     python3 -B examples/verificar_sello.py                 # fixture de muestra
-    python3 -B examples/verificar_sello.py --check         # reproduce o diverge
+    python3 -B examples/verificar_sello.py --check         # reproduce, refuta, rancio o no medido
+                                                           # (escalera de `UBICACION.md` §6.2)
     python3 -B examples/verificar_sello.py \\
         --manifiesto ../platino-labs/sellos-fecha-cierta-20261009/SHA256SUMS_SELLO_A \\
         --raiz ../platino-labs
@@ -55,14 +56,24 @@ El recibo se **publica en stdout** con cualquier sujeto, no sólo con la fixture
 Un acto que se vende por acto tiene que entregar el recibo: quien pide la
 verificación se lleva estas líneas, y su página es el sha256 de ellas.
 
-Código de salida, y por qué no es decorativo: `0` la afirmación se sostiene
-(`intacta` o `reubicada`), `1` no se sostiene (`divergente`, `suplantada`,
-`intercambiada`) **o** no se pudo medir (`no_medida`), `2` la entrada no se puede
-usar (no hay página, el manifiesto falta o está en un dialecto que no se admite,
-la raíz no es un directorio). Un verificador que sale en cero con el sello roto
-es el falso verde que este acto existe para nombrar; la línea `veredicto` dice
-cuál de los dos unos es. Un manifiesto ilegible no es un veredicto: es una
-entrada inválida, y por eso no comparte el `1` de un sello partido.
+Código de salida, y por qué no es decorativo. El acto contesta **dos** preguntas
+y el argumento elige cuál se pregunta, así que cada modo declara su gramática:
+
+- **Sin `--check`** la pregunta es por el **sujeto**: `0` la afirmación se
+  sostiene (`intacta` o `reubicada`), `1` no se sostiene (`divergente`,
+  `suplantada`, `intercambiada`) **o** no se pudo medir (`no_medida`), `2` la
+  entrada no se puede usar (el manifiesto falta, está en un dialecto que no se
+  admite, o la raíz no es un directorio). Un verificador que sale en cero con el
+  sello roto es el falso verde que este acto existe para nombrar; la línea
+  `veredicto` dice cuál de los dos unos es. Un manifiesto ilegible no es un
+  veredicto: es una entrada inválida, y por eso no comparte el `1` de un sello
+  partido.
+- **Con `--check`** la pregunta es por la **página** —¿describe este árbol?— y
+  manda la escalera de `UBICACION.md` §6.2: `0` reproduce, `1` refuta, `2`
+  rancio, `3` no medido, `64` contrato, `65` observador. Aquí `1` es «la página
+  nombra este árbol y no lo describe: se audita» y `2` es «nombra otro árbol: se
+  re-emite», y una entrada ilegible **no** sale `2` —saldría RANCIO por la prosa
+  y no por el hecho—: sale `64`, porque el defecto es de quien llamó.
 
 Lo que este script **no** hace: no re-sella. Re-sellar es un acto externo con su
 propio pre-vuelo y su propia fecha cierta; este acto sólo mide lo que un sello
@@ -77,6 +88,7 @@ import os as _os
 import subprocess as _subprocess
 import sys as _sys
 import time as _time
+from typing import NoReturn as _NoReturn
 
 RAIZ = _os.path.dirname(_os.path.dirname(_os.path.abspath(__file__)))
 EJEMPLOS = _os.path.join(RAIZ, "examples")
@@ -86,7 +98,13 @@ PAGINA = _os.path.join(EJEMPLOS, "predicado-sello.json")
 
 _sys.path.insert(0, _os.path.join(RAIZ, "src"))
 
-from protocol.predicado import Entorno, Predicado, VeredictoReclamado, canonizar  # noqa: E402
+from protocol.predicado import (  # noqa: E402
+    CodigoDeActo,
+    Entorno,
+    Predicado,
+    VeredictoReclamado,
+    cotejar_pagina,
+)
 from protocol.types import (  # noqa: E402
     ALGORITMO,
     ContratoViolado,
@@ -118,45 +136,16 @@ def _medicion(etiqueta: str, valor: object) -> None:
     print("MEDICION | %s | %s" % (etiqueta, valor))
 
 
-def _pagina_firmada(previa: bytes):
-    """El acto que la pagina previa declara: su digest, no el de este acto.
+def _contrato(mensaje: str) -> _NoReturn:
+    """Lo que rompió quien llamó, no el árbol: `CodigoDeActo.CONTRATO`.
 
-    Con el entorno normalizado, el nombre que se publica tiene que ser el de la
-    pagina firmada. Publicar el de la corrida de turno daría dos identidades al
-    mismo acto según el intérprete que lo reproduzca.
+    Antes estos defectos subían como `SystemExit("texto")`, que sale `1`: el
+    mismo entero con el que `--check` nombra una REFUTA. Un `1` por haber
+    tecleado mal el argumento mandaba a auditar un árbol sano.
     """
 
-    return Hash(
-        algoritmo=ALGORITMO,
-        digest=_hashlib.sha256(canonizar(_json.loads(previa.decode("utf-8")))).hexdigest(),
-    )
-
-
-def _entorno_del_acto(previa: bytes, actual: str):
-    """La pagina previa y la actual son la misma salvo el entorno del acto.
-
-    La pagina publica `plataforma` y `runtime`, y esos dos campos son del
-    observador, no del objeto: el mismo arbol medido con otro interprete produce
-    la misma salida y otra pagina. Devuelve `(firmado, corriente)` cuando, una vez
-    normalizado el entorno, los dos documentos coinciden byte a byte, y `None` en
-    cualquier otro caso: una entrada movida no es el entorno, es el objeto, y esa
-    si condena la pagina.
-    """
-
-    try:
-        previo = _json.loads(previa.decode("utf-8"))
-    except (ValueError, UnicodeDecodeError):
-        return None
-    if not isinstance(previo, dict) or not isinstance(previo.get("entorno"), dict):
-        return None
-    firmado = (previo["entorno"].get("plataforma"), previo["entorno"].get("runtime"))
-    corriente = (_sys.platform, "CPython %d.%d.%d" % _sys.version_info[:3])
-    if firmado == corriente:
-        return None
-    previo["entorno"] = dict(previo["entorno"], plataforma=corriente[0], runtime=corriente[1])
-    if _json.dumps(previo, indent=2, ensure_ascii=False) != actual:
-        return None
-    return firmado, corriente
+    print("CONTRATO | %s" % mensaje, file=_sys.stderr)
+    raise SystemExit(int(CodigoDeActo.CONTRATO))
 
 
 def _referencias(relativas: tuple) -> tuple:
@@ -212,7 +201,7 @@ def _regimen(raiz: str, modo: str) -> str:
         if _raiz_git(raiz) is not None:
             return "git"
         if modo == "git":
-            raise SystemExit("--universo git exige que --raiz sea la raiz de un arbol git")
+            _contrato("--universo git exige que --raiz sea la raiz de un arbol git")
     return "caminata"
 
 
@@ -267,12 +256,12 @@ def _universo(raiz: str, modo: str = "auto") -> tuple:
     """
 
     if modo not in ("auto", "git", "disco"):
-        raise SystemExit("--universo admite auto, git o disco")
+        _contrato("--universo admite auto, git o disco")
     if _regimen(raiz, modo) == "git":
         por_git = _universo_git(raiz)
         if por_git is not None:
             return por_git, "git ls-files"
-        raise SystemExit("--universo git exige que --raiz sea la raiz de un arbol git")
+        _contrato("--universo git exige que --raiz sea la raiz de un arbol git")
     return _universo_caminata(raiz), "caminata con %d exclusiones" % len(EXCLUSIONES)
 
 
@@ -354,13 +343,18 @@ def _argumento(argv: tuple, nombre: str, defecto: str) -> str:
     if nombre in argv:
         posicion = argv.index(nombre)
         if posicion + 1 >= len(argv):
-            raise SystemExit("falta el valor de %s" % nombre)
+            _contrato("falta el valor de %s" % nombre)
         return argv[posicion + 1]
     return defecto
 
 
 def main(argv: tuple) -> int:
     marca = _time.monotonic()
+    # La entrada ilegible es `2` cuando la pregunta es por el sujeto (gramática
+    # documentada arriba y fijada por P-42) y `64` cuando es por la página: bajo
+    # `--check` el `2` es RANCIO, y una errata de argumento no puede disfrazarse
+    # de página rancia.
+    _RC_ENTRADA = int(CodigoDeActo.CONTRATO) if "--check" in argv else 2
     ruta_manifiesto = _argumento(argv, "--manifiesto", _os.path.join(MUESTRA, "MANIFIESTO.txt"))
     raiz = _argumento(argv, "--raiz", MUESTRA)
     modo = _argumento(argv, "--universo", "auto")
@@ -374,13 +368,13 @@ def main(argv: tuple) -> int:
     except (OSError, UnicodeDecodeError) as fallo:
         print("ENTRADA INVALIDA | %s | no se puede leer" % ruta_manifiesto)
         _medicion("motivo", type(fallo).__name__)
-        return 2
+        return _RC_ENTRADA
     except ContratoViolado as fallo:
         print("ENTRADA INVALIDA | %s | %s" % (_os.path.basename(ruta_manifiesto), fallo))
-        return 2
+        return _RC_ENTRADA
     if not _os.path.isdir(raiz):
         print("ENTRADA INVALIDA | %s | la raiz del universo no es un directorio" % raiz)
-        return 2
+        return _RC_ENTRADA
     declaradas = manifiesto.filas
     # El barrido del universo es una continuación y no un peaje: `intacta` se
     # decide con las rutas declaradas, y sólo cuando alguna deja de sostenerse
@@ -452,35 +446,48 @@ def main(argv: tuple) -> int:
 
     if "--check" in argv:
         if not _os.path.exists(PAGINA) or not _os.path.exists(SALIDA):
-            print("NO_MEDIDO: no hay pagina previa que reproducir")
-            return 2
+            print("NO_MEDIDO | no hay pagina previa que reproducir")
+            return int(CodigoDeActo.NO_MEDIDO)
         with open(SALIDA, "rb") as flujo:
             salida_previa = flujo.read()
         with open(PAGINA, "rb") as flujo:
             pagina_previa = flujo.read()
-        actual = (pagina + "\n").encode("utf-8")
+        # Un solo cotejo para las cuatro puertas: `protocol.predicado` decide si
+        # el fallo es RANCIO (otro arbol: se re-emite) o REFUTA (este arbol, mal
+        # descrito: se audita). Antes cada script traia su copia de la excepcion
+        # del entorno y su propio `DIVERGE`, y dos copias divergen.
+        codigo, firmado, detalle = cotejar_pagina(
+            pagina_previa,
+            pagina + "\n",
+            (_sys.platform, "CPython %d.%d.%d" % _sys.version_info[:3]),
+        )
+        if codigo is CodigoDeActo.REPRODUCE and salida_previa != salida:
+            codigo = CodigoDeActo.REFUTA
+            detalle = "la salida emitida no es la que la pagina nombra"
         _medicion("salida reproducida", salida_previa == salida)
-        if salida_previa == salida and pagina_previa == actual:
-            _medicion("pagina reproducida", True)
-            print("REPRODUCE | %s" % digest.digest)
-            _medicion("veredicto declarado", _json.loads(pagina_previa.decode("utf-8"))["veredicto"])
-            return 0
-        # El entorno del acto no se confunde con el arbol: si lo unico que cambia
-        # es la regla con la que se mide, la pagina se reproduce y el cambio se
-        # publica en vez de condenar un objeto que nadie toco.
-        entorno = _entorno_del_acto(pagina_previa, pagina) if salida_previa == salida else None
-        if entorno is not None:
-            firmada = _pagina_firmada(pagina_previa)
-            _medicion("pagina reproducida", "modulo el entorno del acto")
-            _medicion("entorno del acto", "firmada en %s/%s | reproducida en %s/%s" % (entorno[0] + entorno[1]))
-            _medicion("digest del acto declarado", firmada.digest)
+        _medicion("pagina reproducida", codigo is CodigoDeActo.REPRODUCE)
+        if codigo is not CodigoDeActo.REPRODUCE:
+            print("%s | %s" % (codigo.name, detalle))
+            return int(codigo)
+        print("REPRODUCE | %s" % firmado)
+        if firmado != digest.digest:
+            # El acto se reproduce y el nombre cambia: lo unico que movio el
+            # entorno fue el observador. Se publica en vez de condenar.
+            entorno_previo = _json.loads(pagina_previa.decode("utf-8"))["entorno"]
+            _medicion(
+                "entorno del acto",
+                "firmada en %s/%s | reproducida en %s/%s"
+                % (
+                    entorno_previo.get("plataforma"),
+                    entorno_previo.get("runtime"),
+                    _sys.platform,
+                    "CPython %d.%d.%d" % _sys.version_info[:3],
+                ),
+            )
+            _medicion("digest del acto declarado", firmado)
             _medicion("digest de este acto", digest.digest)
-            print("REPRODUCE | %s" % firmada.digest)
-            _medicion("veredicto declarado", _json.loads(pagina_previa.decode("utf-8"))["veredicto"])
-            return 0
-        _medicion("pagina reproducida", False)
-        print("DIVERGE | la pagina declarada no describe este arbol")
-        return 1
+        _medicion("veredicto declarado", _json.loads(pagina_previa.decode("utf-8"))["veredicto"])
+        return int(CodigoDeActo.REPRODUCE)
 
     es_fixture = (
         _os.path.realpath(raiz) == _os.path.realpath(MUESTRA)

@@ -52,6 +52,7 @@ from protocol.types import (  # noqa: E402
     Hash,
 )
 from protocol import ubicacion as _ubicacion  # noqa: E402
+from protocol.predicado import CodigoDeActo  # noqa: E402
 from protocol.ubicacion import (  # noqa: E402
     DIALECTO_ADMITIDO,
     Adjudicacion,
@@ -584,15 +585,23 @@ class TestActoDeSello(_unittest.TestCase):
         self.assertIn("entorno del acto", crudo)
 
     def test_p32_una_entrada_movida_si_condena_la_pagina(self) -> None:
-        """Normalizar el entorno no puede absolver un byte del árbol."""
+        """Normalizar el entorno no puede absolver un byte del árbol.
+
+        Condena, y con el código que dice qué hacer: `RANCIO` (2), no `REFUTA`
+        (1). La página nombra **otro árbol** y ninguna lectura de la página
+        puede probar que ese árbol existió: eso lo prueba el ancla, que compara
+        el digest contra el blob del commit declarado. Confundir los dos hacía
+        que un árbol movido se leyera como una mentira y una mentira como un
+        árbol movido.
+        """
 
         def mover_entrada(cuerpo: dict) -> None:
             cuerpo["entradas"][0]["sha256"] = "0" * 64
 
         rc, crudo = self._con_pagina_alterada(mover_entrada)
         _medicion("P-32 RC con entrada movida", rc)
-        self.assertEqual(1, rc, crudo)
-        self.assertIn("DIVERGE", crudo)
+        self.assertEqual(int(CodigoDeActo.RANCIO), rc, crudo)
+        self.assertIn("RANCIO", crudo)
 
     def test_p32_la_laguna_no_viaja_en_el_entorno_normalizado(self) -> None:
         """`no_medido` vive en el entorno y no se normaliza: es lo que el acto confiesa."""
@@ -600,10 +609,13 @@ class TestActoDeSello(_unittest.TestCase):
         def borrar_laguna(cuerpo: dict) -> None:
             cuerpo["entorno"]["no_medido"] = []
 
+        # Las entradas y el código son los de este árbol: la página no es de
+        # otro sitio, miente sobre éste. Eso es `REFUTA`, y borrar una laguna
+        # tiene que costar más que mover el árbol.
         rc, crudo = self._con_pagina_alterada(borrar_laguna)
         _medicion("P-32 RC con laguna borrada", rc)
-        self.assertEqual(1, rc, crudo)
-        self.assertIn("DIVERGE", crudo)
+        self.assertEqual(int(CodigoDeActo.REFUTA), rc, crudo)
+        self.assertIn("REFUTA", crudo)
 
 
 class TestLagunaYNoPerdida(_unittest.TestCase):
@@ -950,6 +962,43 @@ class TestRcDelActo(_unittest.TestCase):
         self.assertEqual(2, corrida.returncode)
         self.assertIn("dialecto no admitido", salida)
         _medicion("P-42 RC | dialecto ajeno", corrida.returncode)
+
+    def test_p42_la_misma_entrada_mala_cambia_de_codigo_con_el_modo(self) -> None:
+        """P-42b — el `2` de la entrada ilegible y el `2` de RANCIO no son el mismo.
+
+        Sin `--check` la pregunta es por el sujeto y una entrada ilegible sale
+        `2`. Con `--check` la pregunta es por la página, donde `2` ya significa
+        RANCIO: sostener el `2` ahí hacía que una errata de argumento se leyera
+        como «la página describe otro árbol, re-emítela», y re-emitir con el
+        manifiesto mal escrito no arregla nada. El defecto es de quien llamó, así
+        que en ese modo sale `64` y lo dice con la línea `CONTRATO`.
+        """
+
+        ausente = _os.path.join(self.raiz, "NOHAY.txt")
+        sin_check = self._correr_crudo(ausente, self.raiz)
+        con_check = _subprocess.run(
+            [
+                _sys.executable,
+                "-B",
+                _os.path.join(_RAIZ, "examples", "verificar_sello.py"),
+                "--check",
+                "--manifiesto",
+                ausente,
+                "--raiz",
+                self.raiz,
+            ],
+            cwd=_RAIZ,
+            stdout=_subprocess.PIPE,
+            stderr=_subprocess.STDOUT,
+            check=False,
+        )
+        salida = con_check.stdout.decode("utf-8", "replace")
+        _medicion("P-42b RC | sujeto / pagina", (sin_check.returncode, con_check.returncode))
+        self.assertEqual(2, sin_check.returncode)
+        self.assertEqual(64, con_check.returncode)
+        self.assertIn("ENTRADA INVALIDA", salida)
+        self.assertNotIn("RANCIO", salida)
+        self.assertNotIn("Traceback", salida)
 
 
 class TestViaRapida(_unittest.TestCase):

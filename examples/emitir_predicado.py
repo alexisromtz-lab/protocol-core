@@ -3,10 +3,15 @@
 Uso:
 
     python3 -B examples/emitir_predicado.py           # escribe el veredicto y la página
-    python3 -B examples/emitir_predicado.py --check   # re-ejecuta y compara: reproduce o diverge
+    python3 -B examples/emitir_predicado.py --check   # re-ejecuta y coteja: la escalera de `UBICACION.md` §6.2
+                                                      # 0 reproduce · 1 refuta · 2 rancio · 3 no medido
 
 `--check` RC 0 es la compuerta de publicación: el veredicto que se comitea es el
-que la página reproduce, no el que quedó de una corrida anterior.
+que la página reproduce, no el que quedó de una corrida anterior. El `--check`
+**nombra su fallo** con la escalera de `protocol.predicado.CodigoDeActo`: `2`
+la página describe otro árbol (se re-emite), `3` no hay página que leer, `1` la
+página nombra este árbol y no lo describe (se audita). Compartir un solo `1`
+entre los tres obligaba al cliente a parsear prosa para saber qué hacer.
 
 Reducción declarada. Del crudo de `unittest` se conserva el conteo (`Ran N
 tests`) y el veredicto (`OK` / `FAILED (...)`); se descarta la duración porque es
@@ -37,7 +42,13 @@ PAGINA = _os.path.join(EJEMPLOS, "predicado-suite.json")
 
 _sys.path.insert(0, _os.path.join(RAIZ, "src"))
 
-from protocol.predicado import Entorno, Predicado, VeredictoReclamado  # noqa: E402
+from protocol.predicado import (  # noqa: E402
+    CodigoDeActo,
+    Entorno,
+    Predicado,
+    VeredictoReclamado,
+    cotejar_pagina,
+)
 from protocol.types import ALGORITMO, EntradaManifiesto, Hash, RutaRelativa  # noqa: E402
 
 
@@ -132,24 +143,35 @@ def main(argv: tuple) -> int:
 
     if "--check" in argv:
         if not _os.path.exists(PAGINA) or not _os.path.exists(SALIDA):
-            print("NO_MEDIDO: no hay pagina previa que reproducir")
-            return 2
+            print("NO_MEDIDO | no hay pagina previa que reproducir")
+            return int(CodigoDeActo.NO_MEDIDO)
         with open(SALIDA, "rb") as flujo:
             salida_previa = flujo.read()
         with open(PAGINA, "rb") as flujo:
             pagina_previa = flujo.read()
-        declarado = _json.loads(pagina_previa.decode("utf-8"))
+        # La pagina se compara entera salvo el entorno del observador (§6.1 de
+        # `UBICACION.md`): quien reproduce en otro interprete no miente, y
+        # hasta hoy lo pagaba como si mintiera. Lo que si condena es que la
+        # pagina nombre otro arbol —eso es RANCIO, y se re-emite— o que nombre
+        # este y no lo describa —eso es REFUTA, y se audita—.
+        codigo, firmado, detalle = cotejar_pagina(
+            pagina_previa,
+            pagina + "\n",
+            (_sys.platform, "CPython %d.%d.%d" % _sys.version_info[:3]),
+        )
+        # La salida es artefacto del acto, no del arbol: si la pagina reproduce
+        # y el archivo no, la pagina miente sobre su propia salida.
+        if codigo is CodigoDeActo.REPRODUCE and salida_previa != veredicto:
+            codigo = CodigoDeActo.REFUTA
+            detalle = "la salida emitida no es la que la pagina nombra"
         _medicion("salida reproducida", salida_previa == veredicto)
-        # La pagina se compara entera: si una sola fuente cambio de bytes desde
-        # que se emitio, el acto ya no es este acto. Comparar solo la salida
-        # dejaria pasar una pagina rancia con veredicto fresco.
-        _medicion("pagina reproducida", pagina_previa == (pagina + "\n").encode("utf-8"))
-        if salida_previa != veredicto or pagina_previa != (pagina + "\n").encode("utf-8"):
-            print("DIVERGE | la pagina declarada no describe este arbol")
-            return 1
-        print("REPRODUCE | %s" % digest.digest)
-        _medicion("veredicto declarado", declarado["veredicto"])
-        return 0
+        _medicion("pagina reproducida", codigo is CodigoDeActo.REPRODUCE)
+        if codigo is not CodigoDeActo.REPRODUCE:
+            print("%s | %s" % (codigo.name, detalle))
+            return int(codigo)
+        print("REPRODUCE | %s" % firmado)
+        _medicion("veredicto declarado", _json.loads(pagina_previa)["veredicto"])
+        return int(CodigoDeActo.REPRODUCE)
 
     _escribir(SALIDA, veredicto)
     _escribir(PAGINA, (pagina + "\n").encode("utf-8"))
