@@ -9,6 +9,8 @@ Uso:
     python3 -B examples/verificar_recibo_externo.py --recibo recibo.json \\
         --regla regla-A-B.txt --regla regla-B-C.txt      # un --regla por tramo, en orden
     python3 -B examples/verificar_recibo_externo.py --recibo recibo.json --exigir-regla
+    python3 -B examples/verificar_recibo_externo.py --recibo recibo.json \\
+        --clave R.pub --firma R.firma                    # autoria del recibo
 
 QUE PRUEBA. Que un recibo se pueda cerrar **sin ejecutar el codigo que lo
 produjo**. El verificador no importa `protocol`: reescribe por su cuenta el
@@ -32,8 +34,19 @@ asi que el tercero lo coteja contra el archivo que le pasan con `--regla`
 por construccion; `--exigir-regla` se la exige tambien a un `/1`.
 
 QUE RECIBE. Solo el JSON del recibo (que lleva sus paginas dentro) y, si se le
-da, el manifiesto publicado. Nada mas: ni el arbol, ni el generador, ni la
-maquina donde se produjo.
+da, el manifiesto publicado, los artefactos de regla y —para medir autoria— una
+clave publica y una firma. Nada mas: ni el arbol, ni el generador, ni la maquina
+donde se produjo.
+
+LA FIRMA, Y QUE ANADE. Una regla ata el tramo a un artefacto; no dice **quien**
+emitio el recibo, y una cadena autentica de bytes puede presentarla cualquiera.
+Con `--clave` y `--firma` el tercero coteja una firma Ed25519 —implementada
+aqui, bajo la misma prohibicion de importar el generador— sobre el dominio y el
+canon del recibo entero. El canon cubre hasta las llaves que este verificador no
+conoce: anadir un campo al JSON invalida la firma aunque ninguna otra
+comprobacion lo note. Solo se firma un `/2`: un `/1` no ata sus tramos y su
+firma solo autenticaria a quien lo fabrico, asi que se acusa (`FIRMA_NO_FIRMABLE`)
+en vez de cotejarse.
 
 QUE QUEDA FUERA, y se publica. Comprueba que las paginas encadenadas son las
 mismas de punta a punta; **no comprueba que el nodo intermedio hiciera su
@@ -52,9 +65,10 @@ parte del archivo habia medido.
 Codigo de salida:
 
 - `0` la prueba cierra.
-- `1` algo fue alterado (digest, frontera, vecinos, veredicto publicado).
+- `1` algo fue alterado (digest, frontera, vecinos, veredicto publicado, firma
+  que no coteja, o un `/1` presentado como firmado).
 - `2` la entrada no se puede leer (JSON roto, pagina desordenada, falta un
-  campo obligatorio).
+  campo obligatorio, firma o clave mal formadas).
 """
 
 from __future__ import annotations
@@ -63,11 +77,17 @@ import hashlib as _hashlib
 import json as _json
 import re as _re
 import sys as _sys
+import unicodedata as _unicodedata
 from typing import Dict, List, Optional, Sequence, Tuple
 
 #: Se reescribe, no se importa. Es la unica forma de que la comparacion mida
 #: algo: dos modulos que importan la misma constante siempre coinciden.
 FORMATO_CANONICO = "%s  %s\n"
+
+#: El dominio y la version que el generador firma, reescritos aqui por la misma
+#: razon que `FORMATO_CANONICO`: la firma coteja si los dos lados dicen lo mismo.
+DOMINIO_FIRMA = b"recibo-de-composicion/2\n"
+FORMATO_FIRMABLE = "recibo-de-composicion/2"
 
 #: El orden declarado en `UBICACION.md` §4, de mejor a peor, con `frontera_rota`
 #: encima porque un empalme roto invalida la cadena entera y no un tramo.
@@ -327,6 +347,145 @@ def _vecinos(filas: Sequence[Tuple[str, str, str]], consulta: str) -> Dict[str, 
     return {"estado": "ausente", "anterior": anterior, "siguiente": siguiente, "posicion": posicion}
 
 
+def _canonizar(objeto: object) -> bytes:
+    """El canon del recibo, reescrito: NFC, llaves ordenadas, sin espacios, UTF-8.
+
+    Las cuatro decisiones del generador. Si una sola faltara, la firma no
+    cotejaria nunca y el verificador culparia al recibo de su propia deriva.
+    """
+
+    def canon(nodo: object) -> object:
+        if isinstance(nodo, float):
+            raise ValueError("el canon rechaza flotantes: su representacion no es portable")
+        if isinstance(nodo, str):
+            return _unicodedata.normalize("NFC", nodo)
+        if isinstance(nodo, bool) or nodo is None or isinstance(nodo, int):
+            return nodo
+        if isinstance(nodo, dict):
+            return {_unicodedata.normalize("NFC", clave): canon(valor) for clave, valor in nodo.items()}
+        if isinstance(nodo, (list, tuple)):
+            return [canon(valor) for valor in nodo]
+        raise ValueError("tipo no admisible en el canon: %s" % type(nodo).__name__)
+
+    return _json.dumps(
+        canon(objeto), sort_keys=True, separators=(",", ":"), ensure_ascii=False, allow_nan=False
+    ).encode("utf-8")
+
+
+# --- Ed25519 (RFC 8032 §5.1.7) -------------------------------------------
+#
+# El cotejo de la firma, escrito aqui desde la curva y no importado: un
+# verificador que llama al firmador para saber si la firma vale no verifica,
+# reproduce. Los cinco vectores oficiales de §7.1 se miden contra **este** bloque
+# en P-110a, junto a los del generador; sin esa atadura dos copias divergen solas.
+
+_P = 2 ** 255 - 19
+_L = 2 ** 252 + 27742317777372353535851937790883648493
+_D = -121665 * pow(121666, _P - 2, _P) % _P
+_D2 = 2 * _D % _P
+_I = pow(2, (_P - 1) // 4, _P)
+_B = (
+    15112221349535400772501151409588531511454012693041857206046113283949847762202,
+    46316835694926478169428394003475163141307993866256225615783033603165251855960,
+    1,
+    0,
+)
+_B = (_B[0], _B[1], 1, _B[0] * _B[1] % _P)
+
+
+def _punto_suma(p, q):
+    x1, y1, z1, t1 = p
+    x2, y2, z2, t2 = q
+    a = (y1 - x1) * (y2 - x2) % _P
+    b = (y1 + x1) * (y2 + x2) % _P
+    c = t1 * _D2 % _P * t2 % _P
+    d = 2 * z1 * z2 % _P
+    e, f, g, h = b - a, d - c, d + c, b + a
+    return (e * f % _P, g * h % _P, f * g % _P, e * h % _P)
+
+
+def _punto_dobla(p):
+    x1, y1, z1, _ = p
+    a = x1 * x1 % _P
+    b = y1 * y1 % _P
+    c = 2 * z1 * z1 % _P
+    h = a + b
+    e = h - (x1 + y1) * (x1 + y1) % _P
+    g = a - b
+    f = c + g
+    return (e * f % _P, g * h % _P, f * g % _P, e * h % _P)
+
+
+def _punto_escala(k: int, punto) -> tuple:
+    resultado = (0, 1, 1, 0)
+    for bit in bin(k)[2:]:
+        resultado = _punto_dobla(resultado)
+        if bit == "1":
+            resultado = _punto_suma(resultado, punto)
+    return resultado
+
+
+def _punto_comprime(p) -> bytes:
+    x, y, z, _ = p
+    inversa = pow(z, _P - 2, _P)
+    return ((y * inversa % _P) | (((x * inversa % _P) & 1) << 255)).to_bytes(32, "little")
+
+
+def _punto_descomprime(bruto: bytes) -> tuple:
+    if len(bruto) != 32:
+        raise ValueError("un punto Ed25519 mide 32 bytes")
+    crudo = int.from_bytes(bruto, "little")
+    signo, y = crudo >> 255, crudo & ((1 << 255) - 1)
+    if y >= _P:
+        raise ValueError("la coordenada y no es canonica")
+    x2 = (y * y - 1) * pow(_D * y * y + 1, _P - 2, _P) % _P
+    if x2 == 0:
+        if signo:
+            raise ValueError("x = 0 no tiene signo negativo")
+        return (0, y, 1, 0)
+    x = pow(x2, (_P + 3) // 8, _P)
+    if (x * x - x2) % _P:
+        x = x * _I % _P
+    if (x * x - x2) % _P:
+        raise ValueError("el punto no esta sobre la curva")
+    if x & 1 != signo:
+        x = _P - x
+    return (x, y, 1, x * y % _P)
+
+
+def verificar_firma(mensaje: bytes, firma: bytes, publica: bytes) -> bool:
+    """`[S]B = R + [k]A` sin cofactor: lo que no mide esa igualdad es `False`."""
+
+    if len(firma) != 64 or len(publica) != 32:
+        return False
+    s = int.from_bytes(firma[32:], "little")
+    if s >= _L:
+        return False
+    try:
+        a = _punto_descomprime(publica)
+        r = _punto_descomprime(firma[:32])
+    except ValueError:
+        return False
+    k = int.from_bytes(_hashlib.sha512(firma[:32] + publica + mensaje).digest(), "little") % _L
+    return _punto_comprime(_punto_escala(s, _B)) == _punto_comprime(_punto_suma(r, _punto_escala(k, a)))
+
+
+def _leer_hex(ruta: str, que: str, bytes_esperados: int) -> bytes:
+    """Un archivo de hex con comentarios `#` y espacios; el largo se exige, no se adivina."""
+
+    with open(ruta, "r", encoding="utf-8") as flujo:
+        crudo = "".join(
+            linea.split("#", 1)[0] for linea in flujo.read().splitlines()
+        )
+    limpio = "".join(crudo.split())
+    if len(limpio) != 2 * bytes_esperados:
+        raise EntradaInvalida("%s declara %d bytes hex y trae %d" % (que, 2 * bytes_esperados, len(limpio)))
+    try:
+        return bytes.fromhex(limpio)
+    except ValueError:
+        raise EntradaInvalida("%s no es hexadecimal" % que) from None
+
+
 def verificar(
     recibo: Dict[str, object],
     manifiesto: Optional[str],
@@ -335,9 +494,36 @@ def verificar(
     nombre: Optional[str] = None,
     reglas: Sequence[str] = (),
     exigir_regla: bool = False,
+    firma: Optional[bytes] = None,
+    clave: Optional[bytes] = None,
 ) -> Tuple[int, List[str]]:
     lineas: List[str] = []
     fallos = 0
+    if firma is not None or clave is not None:
+        if firma is None or clave is None:
+            raise EntradaInvalida("la firma se coteja contra su clave: faltan --clave o --firma")
+        formato = str(recibo.get("formato", ""))
+        if formato != FORMATO_FIRMABLE:
+            fallos += 1
+            lineas.append(
+                "firma | FIRMA_NO_FIRMABLE | el recibo declara %s | solo un %s ata sus tramos y su regla"
+                % (formato or "sin formato", FORMATO_FIRMABLE)
+            )
+        else:
+            try:
+                mensaje = DOMINIO_FIRMA + _canonizar(recibo)
+            except ValueError as fallo:
+                raise EntradaInvalida("el recibo no se puede canonizar: %s" % fallo) from None
+            if verificar_firma(mensaje, firma, clave):
+                lineas.append(
+                    "firma | valida | clave %s | %d bytes firmados" % (clave.hex()[:12], len(mensaje))
+                )
+            else:
+                fallos += 1
+                lineas.append(
+                    "firma | REFUTA | la firma no coteja este recibo | clave %s | %d bytes firmados"
+                    % (clave.hex()[:12], len(mensaje))
+                )
     tramos = recibo.get("tramos")
     if not isinstance(tramos, list) or not tramos:
         raise EntradaInvalida("el recibo no trae tramos")
@@ -521,6 +707,10 @@ def verificar(
         lineas.append(
             "limite | la regla ata %d tramo(s) a un artefacto declarado fuera; no prueba que B aplicara esa regla" % ata
         )
+    if firma is not None and not fallos:
+        lineas.append(
+            "limite | la firma dice quien emitio estos bytes; no que el emisor dijera la verdad ni que la cadena mida lo que afirma medir"
+        )
     return (0 if fallos == 0 else 1), lineas
 
 
@@ -549,7 +739,7 @@ def main(argv: Sequence[str]) -> int:
         print(
             "uso: verificar_recibo_externo.py --recibo RECIBO.json [--manifiesto F]"
             " [--ausente RUTA] [--portador auto|coreutils|bsd|deb822|suelto] [--nombre F]"
-            " [--regla F ...] [--exigir-regla]"
+            " [--regla F ...] [--exigir-regla] [--clave R.pub --firma R.firma]"
         )
         return 2
     ruta = argumentos[argumentos.index("--recibo") + 1]
@@ -580,12 +770,24 @@ def main(argv: Sequence[str]) -> int:
         else:
             posicion += 1
     exigir_regla = "--exigir-regla" in argumentos
+    firma = None
+    clave = None
+    tiene_clave = "--clave" in argumentos
+    tiene_firma = "--firma" in argumentos
+    if tiene_clave != tiene_firma:
+        print("entrada-invalida | --clave y --firma se dan juntas: una firma sin su clave no se coteja")
+        return 2
     try:
         with open(ruta, "r", encoding="utf-8") as flujo:
             datos = _json.load(flujo)
         if not exigir_regla and isinstance(datos, dict):
             exigir_regla = str(datos.get("formato", "")) == "recibo-de-composicion/2"
-        codigo, lineas = verificar(datos, manifiesto, ausente, portador, nombre, reglas, exigir_regla)
+        if tiene_clave:
+            clave = _leer_hex(argumentos[argumentos.index("--clave") + 1], "la clave publica", 32)
+            firma = _leer_hex(argumentos[argumentos.index("--firma") + 1], "la firma", 64)
+        codigo, lineas = verificar(
+            datos, manifiesto, ausente, portador, nombre, reglas, exigir_regla, firma, clave
+        )
     except EntradaInvalida as fallo:
         print("entrada-invalida | %s" % fallo)
         return 2

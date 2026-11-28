@@ -39,6 +39,14 @@
 # dejado medir la discrepancia— se descartó porque borra el único número que el
 # acto puede producir cuando alguien se atreve a declarar antes.
 
+# 2026-11-27, segundo acto del día: el anillo 8 entra con `src/protocol/firma.py`
+# y el acto midió declarado 12 contra observado 13 con discrepancia 1 (página
+# 8c3d8a6de748). Misma regla, por octava vez: se declara el 13, que es el número
+# medido. El módulo es el firmador, y el censo lo cuenta como lo que es —otro
+# archivo del paquete, con su digest—; que sea el que firma no lo exime de la
+# resta. La página que midió la discrepancia se nombra aquí en vez de
+# sustituirse: el árbol que publica el 13 no es el que midió el 1.
+
 ruta=src/protocol
 universo=protocol-core.src.protocol
 unidad=archivo
@@ -46,4 +54,4 @@ motor=python3 -B examples/emitir_censo.py
 t_utc=2026-11-25T15:50:00Z
 ventana=no medida: el censo declara movimiento del conjunto, no duracion
 umbral=ninguno: el censo no aplica umbral
-declarado=12
+declarado=13

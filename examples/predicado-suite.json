@@ -22,6 +22,10 @@
       "sha256": "fdd745d5a06398c2729c716898c4be24783d9f73527a62a08ec3d89a9d007fb1"
     },
     {
+      "ruta": "tests/test_firma.py",
+      "sha256": "634991c3ccdfda8333e0d002e2ac6f748fbd6b56c5b2b304b83d417db011b75d"
+    },
+    {
       "ruta": "tests/test_guiones.py",
       "sha256": "fcdc3ac06fbab66f481a0579403e510ca09474828c94a6cfff46f25f38dea7fb"
     },
@@ -39,7 +43,7 @@
     },
     {
       "ruta": "tests/test_predicado.py",
-      "sha256": "635153e27278bcd42fdfa4289949e063cf3ea71bfedd839d6f09cc7d46a34f7f"
+      "sha256": "ecb17651ef577654154cf29235ac9c903f00c5eb22910a99fca8d32afb587f76"
     },
     {
       "ruta": "tests/test_sobre.py",
@@ -88,6 +92,10 @@
       "sha256": "af2ae66fe00b705063848f36cbcb67ee43aae130c59e6b2010065b11da392fff"
     },
     {
+      "ruta": "src/protocol/firma.py",
+      "sha256": "9dcce21490c5440db6110915909d085419deb446792a51e1f788098da9fef588"
+    },
+    {
       "ruta": "src/protocol/metrics.py",
       "sha256": "b0ffe59125d335352eeea25bc90e6765807bab67fc59f58d7c44f4dff062a767"
     },
@@ -122,7 +130,7 @@
   },
   "salida": {
     "ruta": "examples/veredicto-suite.txt",
-    "sha256": "a980c18b9c47d1ec0b3f22baaf0431a47799770040e37ea321b6173b60f660ee"
+    "sha256": "adedd4bc8c2af3cb52a5d3df0639fba8ffcdfc6641fbf41a75ed66010c417f87"
   },
   "veredicto": "conforme",
   "h_prev": null

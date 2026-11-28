@@ -165,8 +165,14 @@ from protocol.types import (  # noqa: E402
 #: El acto imprimió 4 217 y el archivo pesa **4 218** con su salto final, que es
 #: lo que este test mide: la cota se queda en la cifra del archivo, no en la del
 #: acto. Es la misma diferencia de un byte que ya se declaró al abrir el anillo.
-COPTA_LINEAS = 129
-COPTA_BYTES = 4218
+#: SUBIDO 2026-11-27 a 137 líneas y 4 486 bytes por el anillo 8, con la cifra
+#: **pre-registrada antes de emitir**: dos entradas nuevas (`src/protocol/firma.py`
+#: y `tests/test_firma.py`), cuatro líneas de JSON por entrada, 129 + 8 = 137. La
+#: predicción de líneas acertó y la de bytes se declaró sólo como «más»: el acto
+#: escribió 4 485 y el archivo pesa 4 486 con su salto final, que es lo que este
+#: test mide. La cota se queda en la cifra del archivo.
+COPTA_LINEAS = 137
+COPTA_BYTES = 4486
 #: Cota del acto de censo. Es más ancha que la de la suite porque lleva 12
 #: referencias vivas en vez de 10; se declara aparte para que una cota no mida
 #: el acto que la escribió (§medición con unidad: cada acto, su número).
@@ -189,8 +195,16 @@ COPTA_BYTES = 4218
 #: 2 889 y el acto escribió 2 901, doce más, porque el nombre de la ruta nueva es
 #: más largo que la media que sirvió de base. Se declara la diferencia en vez de
 #: re-emitir hasta que la predicción cuadre.
-COPTA_CENSO_LINEAS = 86
-COPTA_CENSO_BYTES = 2901
+#: Subida del 2026-11-27 a 90 líneas y 3 034 bytes por el anillo 8, con la cifra
+#: **pre-registrada antes de emitir**: `src/protocol/firma.py` es una entrada más,
+#: 86 + 4 = 90 líneas. La predicción de líneas acertó. La de bytes se declaró sólo
+#: como «más» porque la `afirmacion` cambia de longitud con cada discrepancia. La
+#: que abrió el anillo es la página 8c3d8a6d (discrepancia 1, nombrada en
+#: `censo-declarado.txt`), y la que la cierra declarando 13 —la que queda en el
+#: árbol— imprimió **3 033** bytes; el archivo pesa 3 034 con su salto final, que
+#: es lo que este test mide. La cota se queda en la del archivo.
+COPTA_CENSO_LINEAS = 90
+COPTA_CENSO_BYTES = 3034
 
 H_A = Hash(ALGORITMO, "a" * 64)
 H_B = Hash(ALGORITMO, "b" * 64)
