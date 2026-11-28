@@ -1,0 +1,26 @@
+# HUELLA-CEROS-GATE-PROTOCOL-CORE-20261127
+# Una compuerta, no un censo. El censo de este arbol publica 5 hallazgos; todos son anteriores al
+# PR, y por eso aqui no se declara ninguno: el minuendo es el arbol de la base, que los resta solo.
+# Sin `--excluir`: la compuerta mide el arbol entero hasta que su dueno decida acotarla, y una
+# compuerta estricta por defecto es la unica que no puede fabricar un verde.
+name: ceros
+
+on:
+  pull_request:
+
+jobs:
+  ceros:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: install the gate
+        run: pip install "git+https://github.com/alexisromtz-lab/frontera-runner@v0.1.0"
+      - name: the base tree, as its own witness
+        run: git worktree add --detach /tmp/base "${{ github.event.pull_request.base.sha }}"
+      - name: no new implicit zero
+        run: ceros-implicitos --base /tmp/base .
