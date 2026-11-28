@@ -21,12 +21,26 @@ MODO:
 
 Opciones: `--raiz RUTA` (por defecto, la del archivo), `--json`.
 
-RC: `0` todas coinciden · `1` alguna diverge (CONTRADICE) · `2` NO_MEDIDO (no se
-pudo juzgar: ninguna etiqueta, un arbol sin version declarada, o una lapida
-cuyo sujeto no viaja en este clon) · `20` uso.
-`NO_MEDIDO` nunca degrada a `0`: un padron vacio no es un padron limpio.
+RC — la escalera de `protocol.predicado.CodigoDeActo`, importada y no copiada:
+`0` REPRODUCE (todas coinciden, o la retirada esta bien hecha y solo informa) ·
+`1` REFUTA (una etiqueta publica una version que su arbol no declara, o un
+nombre retirado volvio a publicarse: actua quien lo publico) · `2` RANCIO (la
+lapida registra otra version que la que declara el objeto que sostiene: actua
+quien tiene el registro, y re-emitirlo es gratis) · `3` NO_MEDIDO (no se pudo
+juzgar: ninguna etiqueta, un arbol sin version declarada, o una lapida cuyo
+sujeto no viaja en este clon) · `64` CONTRATO (uso).
+`NO_MEDIDO` nunca degrada a `0`: un padron vacio no es un padron limpio. Ni
+`RANCIO` ni `NO_MEDIDO` se disfrazan de `REFUTA`: cada codigo dice quien tiene
+que actuar, y el `2` de este acto no significa lo mismo que el `3` de otro.
 En `--pre-push` un push sin etiquetas no tiene sujeto y sale `0`: la guarda no
 opina sobre lo que no mide, y bloquear un push de ramas seria un falso rojo.
+
+LA ESCALERA VIVE EN EL NUCLEO, NO AQUI. Este acto no trae su propio dialecto:
+importa `CodigoDeActo` de `src/protocol` **del arbol del instrumento** —nunca
+del arbol medido (`--raiz`), porque el contrato de quien actua es del acto y no
+del sujeto— y declara `dont_write_bytecode` antes de importar, porque el acto de
+censo cuenta `__pycache__` como entrada de directorio y se para con `OBSERVADOR`
+(65): un instrumento no ensucia el universo que mide.
 
 RETIRADAS. Una etiqueta cuyo nombre contradice a su arbol no se arregla sin
 reescribir el commit que la sostiene, asi que se **retira**: se borra el nombre
@@ -45,7 +59,7 @@ ausencia del transporte, no por un defecto—, que es la forma exacta del falso
 rojo que este acto prohibe en `--pre-push`. Por eso la lapida se mide en tres
 escalones, del mas fuerte al mas debil: (1) el ref fuera de banda, si el clon lo
 trajo; (2) el commit registrado, que **si** viaja porque la etiqueta apuntaba a
-un commit de la historia; (3) nada de los dos, que es `RETIRADA_NO_MEDIDA` —RC 2,
+un commit de la historia; (3) nada de los dos, que es `RETIRADA_NO_MEDIDA` —RC 3,
 con la orden de medida impresa— y nunca un cero ni una rancia. Un rojo se gana
 midiendo; no se hereda de no haber medido.
 
@@ -55,6 +69,9 @@ LIMITES DECLARADOS (lista cerrada):
 2. Sigue una etiqueta anotada hasta su commit; no juzga firmas ni el mensaje.
 3. Solo entiende `vX.Y.Z`. Un nombre que no case se publica `IGNORADA`, no se
    aprueba: el universo medido se declara.
+4. No coteja una pagina contra un arbol, asi que no tiene `--check`: su
+   universo son las etiquetas y la lapida del clon que lo corre, y un clon que
+   no las trae mide un universo vacio, que es `NO_MEDIDO` y nunca `0`.
 """
 
 from __future__ import annotations
@@ -67,6 +84,22 @@ import sys
 from typing import Dict, List, Optional, Sequence, Tuple
 
 _RAIZ = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+
+# El censo cuenta el bytecode como suciedad del universo y se para con
+# `OBSERVADOR` (65). Este acto importa el nucleo, asi que se declara antes del
+# import y no despues de haber ensuciado el arbol.
+sys.dont_write_bytecode = True
+_SRC = os.path.join(_RAIZ, "src")
+if _SRC not in sys.path:
+    sys.path.insert(0, _SRC)
+try:
+    from protocol.predicado import CodigoDeActo  # noqa: E402  (despues del ajuste de `sys.path`)
+except Exception as error:  # pragma: no cover  (arbol incompleto: no hay acto)
+    # Sin escalera no se puede nombrar el fallo, y se nombra con el mismo `64`
+    # que la escalera reserva a quien llamo: un instrumento incompleto no
+    # informa de un arbol roto.
+    print("NO INSTALADO: falta la escalera de `protocol.predicado` (%s)" % error, file=sys.stderr)
+    sys.exit(64)
 
 _CANONICO = "src/protocol/__init__.py"
 _ALTERNO = "pyproject.toml"
@@ -86,12 +119,42 @@ REAPARECIDA = "REAPARECIDA"
 RETIRADA_RANCIA = "RETIRADA_RANCIA"
 RETIRADA_NO_MEDIDA = "RETIRADA_NO_MEDIDA"
 
-#: Gravedad: lo que impide que el acto pase. `RETIRADA` informa y no absolve a
-#: nadie de nada — solo dice que el nombre ya no esta donde estaba.
-#: `RETIRADA_NO_MEDIDA` no esta aqui a proposito: no haber traido el ref de
-#: fuera de banda no es un defecto del objeto, es ausencia de medicion, y una
-#: ausencia de medicion no se cobra como rojo (RC 2, no RC 1).
-_GRAVES = (DIVERGE, REAPARECIDA, RETIRADA_RANCIA)
+#: Que codigo reclama cada veredicto. La escalera no ordena por gravedad sino
+#: por quien tiene que actuar, y por eso `RETIRADA` —un nombre que ya no esta—
+#: informa y no condena: el acto esta hecho. `RETIRADA_RANCIA` es `RANCIO` y no
+#: `REFUTA` porque lo que no cuadra es el **registro** contra el objeto que
+#: sostiene, y el registro se re-emite; `REAPARECIDA` es `REFUTA` porque el
+#: nombre vivo contradice una retirada declarada y eso se audita.
+_DEL_VEREDICTO = {
+    COINCIDE: CodigoDeActo.REPRODUCE,
+    RETIRADA: CodigoDeActo.REPRODUCE,
+    DIVERGE: CodigoDeActo.REFUTA,
+    REAPARECIDA: CodigoDeActo.REFUTA,
+    RETIRADA_RANCIA: CodigoDeActo.RANCIO,
+    IGNORADA: CodigoDeActo.NO_MEDIDO,
+    NO_MEDIDO: CodigoDeActo.NO_MEDIDO,
+    RETIRADA_NO_MEDIDA: CodigoDeActo.NO_MEDIDO,
+}
+
+#: Los veredictos que este acto puede publicar. P-109 exige que `_DEL_VEREDICTO`
+#: los cubra todos: un veredicto sin fila cae a `NO_MEDIDO`, que no dice verde,
+#: pero la tabla incompleta es un defecto del acto y se acusa en la suite.
+_VEREDICTOS = (
+    COINCIDE,
+    DIVERGE,
+    NO_MEDIDO,
+    IGNORADA,
+    RETIRADA,
+    REAPARECIDA,
+    RETIRADA_RANCIA,
+    RETIRADA_NO_MEDIDA,
+)
+
+#: Precedencia de la actuacion, de la mas fuerte a la mas debil: una refutacion
+#: no se tapa con una rancia, y una rancia no se tapa con un no medido. Un censo
+#: con una etiqueta refutada y otra sin medir esta refutado, porque re-emitir no
+#: arregla una identidad falsa. El orden no es el de la escalera.
+_PRECEDENCIA = (CodigoDeActo.REFUTA, CodigoDeActo.RANCIO, CodigoDeActo.NO_MEDIDO)
 
 
 def _git(raiz: str, *argumentos: str) -> Tuple[int, str, str]:
@@ -274,16 +337,23 @@ def _desde_prepush(raiz: str, lineas: Sequence[str]) -> List[Dict[str, object]]:
     return filas
 
 
-def _codigo(filas: Sequence[Dict[str, object]]) -> int:
+def _codigo(filas: Sequence[Dict[str, object]]) -> CodigoDeActo:
+    """El codigo que reclama la actuacion, con el orden declarado en `_PRECEDENCIA`.
+
+    Sin universo no hay verde: un padron vacio no es un padron limpio. Un
+    veredicto que no tenga fila en `_DEL_VEREDICTO` no se adivina: cae a
+    `NO_MEDIDO`, que nunca dice verde.
+    """
+
     if not filas:
-        return 2
-    if any(fila["veredicto"] in _GRAVES for fila in filas):
-        return 1
-    if any(fila["veredicto"] == NO_MEDIDO or fila["veredicto"] == RETIRADA_NO_MEDIDA for fila in filas):
-        return 2
-    if all(fila["veredicto"] == IGNORADA for fila in filas):
-        return 2
-    return 0
+        return CodigoDeActo.NO_MEDIDO
+    reclamados = {
+        _DEL_VEREDICTO.get(str(fila["veredicto"]), CodigoDeActo.NO_MEDIDO) for fila in filas
+    }
+    for codigo in _PRECEDENCIA:
+        if codigo in reclamados:
+            return codigo
+    return CodigoDeActo.REPRODUCE
 
 
 def _hook(raiz: str) -> int:
@@ -299,18 +369,18 @@ def _hook(raiz: str) -> int:
             previo = maneja.read()
         if _MARCA not in previo:
             print("NO INSTALADO: %s ya existe y no es de este actor." % ruta, file=sys.stderr)
-            return 20
+            return int(CodigoDeActo.CONTRATO)
     os.makedirs(os.path.dirname(ruta), exist_ok=True)
     with open(ruta, "w", encoding="utf-8") as maneja:
         maneja.write(texto)
     os.chmod(ruta, 0o755)
     print("INSTALADO: %s" % ruta)
-    return 0
+    return int(CodigoDeActo.REPRODUCE)
 
 
 def _uso() -> int:
     print(__doc__, file=sys.stderr)
-    return 20
+    return int(CodigoDeActo.CONTRATO)
 
 
 def main(argumentos: Sequence[str]) -> int:
@@ -346,7 +416,7 @@ def main(argumentos: Sequence[str]) -> int:
         filas = _desde_prepush(raiz, sys.stdin.read().split("\n"))
         if not filas:
             print("SIN ETIQUETAS EN ESTE PUSH: el acto no tiene sujeto y no opina (RC 0)")
-            return 0
+            return int(CodigoDeActo.REPRODUCE)
     elif todas:
         filas = [medir(raiz, nombre) for nombre in _todas(raiz)]
         filas = auditar_retiradas(raiz, filas)
@@ -358,7 +428,7 @@ def main(argumentos: Sequence[str]) -> int:
     codigo = _codigo(filas)
 
     if como_json:
-        print(json.dumps({"filas": filas, "rc": codigo}, ensure_ascii=False, indent=2))
+        print(json.dumps({"filas": filas, "rc": int(codigo)}, ensure_ascii=False, indent=2))
         return codigo
 
     for fila in filas:

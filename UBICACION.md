@@ -381,9 +381,10 @@ impide que la normalización absuelva un acto ajeno.
 
 ### 6.2 La escalera del código de salida, y por qué `RANCIO` no es `REFUTA`
 
-Cuatro actos —`emitir_predicado.py`, `emitir_censo.py`, `verificar_sello.py`,
-`contrafirmar_censo.py`— contestan con los mismos códigos, que viven en
-`protocol.predicado.CodigoDeActo` y no en la prosa de cada uno:
+Cinco actos —`emitir_predicado.py`, `emitir_censo.py`, `verificar_sello.py`,
+`contrafirmar_censo.py`, `verificar_etiqueta.py`— contestan con los mismos
+códigos, que viven en `protocol.predicado.CodigoDeActo` y no en la prosa de cada
+uno:
 
 | código | nombre | lo que prueba |
 |---|---|---|
@@ -425,30 +426,64 @@ mismo, lo que subía como `SystemExit("texto")` salía `1`, el código de
 `REFUTA`: teclear mal el argumento mandaba a auditar un árbol sano. Falsador:
 P-42b, que corre la misma entrada ausente en los dos modos y exige `(2, 64)`.
 
-**La escalera no cubre `tools/verificar_etiqueta.py`**, que publica su propio
-contrato —`0` todas coinciden · `1` alguna diverge · `2` NO_MEDIDO—. Ese acto no
-coteja una página sino etiquetas contra la historia, y su `2` significa lo
-contrario que aquí; migrarlo es un corte propio y hasta entonces dos actos del
-mismo árbol hablan dialectos distintos, cosa que se declara en vez de
-disimularse.
+**La quinta compuerta habla el mismo idioma**, y la deuda que declaraba el
+párrafo anterior está cerrada. `tools/verificar_etiqueta.py` publicaba su propio
+contrato —`0` todas coinciden · `1` alguna diverge · `2` NO_MEDIDO—, donde su `2`
+significaba lo contrario que aquí: quien recibía el entero no sabía si re-emitir
+o auditar. Hoy importa `CodigoDeActo` del núcleo y no una copia de sus números:
+una tabla gemela con los mismos enteros volvería a divergir el día que el núcleo
+gane un código.
+
+El acto no coteja una página sino **etiquetas contra la historia**, así que su
+traducción no es la de `--check` sino la de un censo; y no es mecánica, porque
+separa dos cosas que el dialecto viejo confundía:
+
+| veredicto | código | por qué |
+|---|---|---|
+| `COINCIDE`, `RETIRADA` | 0 | el nombre publicado y el árbol que lo sostiene concuerdan |
+| `DIVERGE`, `REAPARECIDA` | 1 `REFUTA` | la identidad publicada es falsa, o un nombre declarado muerto está vivo: hay que auditar quién publicó |
+| `RETIRADA_RANCIA` | 2 `RANCIO` | el **registro** describe otro objeto; se repara re-emitiendo el registro, gratis |
+| `IGNORADA`, `NO_MEDIDO`, `RETIRADA_NO_MEDIDA` | 3 `NO_MEDIDO` | el acto no pudo leer el sujeto, y no medir nunca es un cero |
+
+La precedencia —`REFUTA` > `RANCIO` > `NO_MEDIDO` > `REPRODUCE`— también es una
+decisión y no el orden de la tabla: un censo con una etiqueta refutada y otra sin
+medir está **refutado**, porque re-emitir no arregla una identidad falsa. Y un
+veredicto que no esté en la tabla cae a `NO_MEDIDO`, nunca a verde: la tabla es
+una lista cerrada, y lo que no reconoce no lo aprueba.
+
+El acto importa el núcleo desde `_RAIZ/src` —la raíz del **acto**, no la de
+`--raiz`— porque el contrato de quién debe actuar pertenece al instrumento y no
+al sujeto que audita; y declara `sys.dont_write_bytecode = True` **antes** de
+importar, porque el censo cuenta `__pycache__` como suciedad del universo y se
+para con `OBSERVADOR`: un instrumento que ensucia lo que mide se bloquea a sí
+mismo. Si la escalera no está, contesta `64` y lo dice, en vez de inventar una
+tabla.
 
 **Quién ejecuta la compuerta es parte del contrato.** Un `--check` que hay que
 recordar invocar no es un aparato: es una costumbre. Medido el 2026-11-27 sobre
 `8a985f0`, `grep -c 'examples/emitir_' .github/workflows/ci.yml` daba `0` —los
-cuatro actos tenían lector y ninguno tenía quien lo llamara—, así que el verde de
+actos tenían lector y ninguno tenía quien lo llamara—, así que el verde de
 `main` dependía de la memoria de quien publicaba. El job `compuertas` corre las
-cuatro `--check` sobre un checkout fresco: ése es el universo limpio que el censo
-exige, y lo es **por construcción** y no por acordarse de ejecutarlo antes de
-`pytest`. Va como job propio y no como paso del job `tests` porque `pytest` deja
+cuatro `--check` y, desde el cierre de §6.2, `verificar_etiqueta.py --todas`
+sobre un checkout fresco: ése es el universo limpio que el censo exige, y lo es
+**por construcción** y no por acordarse de ejecutarlo antes de `pytest`. Esa
+quinta compuerta se midió antes de encenderla: un `git clone --no-local` sólo
+transporta `refs/heads/*` y `refs/tags/*`, y como el commit de la etiqueta
+retirada viaja en la historia, el acto contesta `0` por el escalón 2 sin el ref
+fuera de banda. Un verde de CI que dependiera de un ref que no viaja sería un
+rojo por la ausencia del transporte, no por un defecto. Va como job propio y no como paso del job `tests` porque `pytest` deja
 `__pycache__`, que el censo cuenta como entrada de directorio y por el que se
 para con `65`: hacerlo convivir obligaría a silenciar el `65` con una variable de
 entorno, que es tapar el defecto en vez de no producirlo.
 
 Falsadores: P-25 (las seis filas de la escalera), P-26 (el nombre publicado es el
 del acto firmado), P-27 (el separador del archivo no condena la página), P-28 (el
-aparato nombra los cuatro actos y todo `checkout` trae el ODB entero), P-32 (un
+aparato nombra los cinco actos y todo `checkout` trae el ODB entero), P-32 (un
 árbol movido contesta `RANCIO`; una fila mentida, `REFUTA`), P-42b (la entrada
-ilegible cambia de código con el modo) y t14_b (el universo sucio sale por `65`).
+ilegible cambia de código con el modo), P-109 (la tabla del acto de etiqueta **es**
+la del núcleo y cubre los ocho veredictos, con su precedencia), P-109b (corrido
+sin `-B`, el acto no deja bytecode de su propio núcleo) y t14_b (el universo sucio
+sale por `65`).
 
 La fixture `examples/sello-de-muestra/` tiene un caso de cada estado y está
 escrita a mano: los digests son los del sello y el árbol es el de hoy, y la

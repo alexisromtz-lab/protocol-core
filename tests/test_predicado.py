@@ -859,22 +859,28 @@ class TestAparatoQueEjecutaLosActos(_unittest.TestCase):
     es una costumbre.
 
     Esta prueba es el lector del aparato, no del acto: exige que el workflow
-    nombre los cuatro `--check` y que **todo** `actions/checkout` traiga el ODB
+    nombre las cinco compuertas y que **todo** `actions/checkout` traiga el ODB
     entero, porque la suite que corre dentro del acto de predicado incluye
     P-108a, que cuenta etiquetas y en un clon somero mide un universo vacío.
     """
 
     APARATO = _os.path.join(".github", "workflows", "ci.yml")
-    ACTOS = ("emitir_censo", "verificar_sello", "contrafirmar_censo", "emitir_predicado")
+    # La quinta compuerta no es un `--check`: el acto de etiqueta no coteja una
+    # página, así que se nombra por su invocación y no por su forma.
+    ACTOS = (
+        "examples/emitir_censo.py --check",
+        "examples/verificar_sello.py --check",
+        "examples/contrafirmar_censo.py --check",
+        "examples/emitir_predicado.py --check",
+        "tools/verificar_etiqueta.py --todas",
+    )
 
-    def test_p28_el_aparato_ejecuta_los_cuatro_actos_y_trae_el_odb_entero(self) -> None:
+    def test_p28_el_aparato_ejecuta_los_cinco_actos_y_trae_el_odb_entero(self) -> None:
         with open(_os.path.join(_RAIZ, self.APARATO), "r", encoding="utf-8") as flujo:
             lineas = flujo.read().splitlines()
 
         faltan = [
-            acto
-            for acto in self.ACTOS
-            if not any("examples/%s.py --check" % acto in linea for linea in lineas)
+            acto for acto in self.ACTOS if not any(acto in linea for linea in lineas)
         ]
         # Un acto sin quien lo llame no coteja nada: su página envejece hasta que
         # alguien la mira por casualidad.
