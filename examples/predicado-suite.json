@@ -39,7 +39,7 @@
     },
     {
       "ruta": "tests/test_predicado.py",
-      "sha256": "c9140423e76351c895354d8e3bdba119dd15b020b187d7b20f3d19023135904d"
+      "sha256": "40f23cd4570fa74bb9d2a11f1de27666309ee935af4912e96dc49bebff92cfac"
     },
     {
       "ruta": "tests/test_sobre.py",
@@ -122,7 +122,7 @@
   },
   "salida": {
     "ruta": "examples/veredicto-suite.txt",
-    "sha256": "789ae7382a5b13ee028f8dcfb3e53b43828ce544ac829de7983e339f33287b6c"
+    "sha256": "a74dc9c3654ced7ba3345a6af54c96fe71a9671211df2a1c49324f8b74cf9499"
   },
   "veredicto": "conforme",
   "h_prev": null

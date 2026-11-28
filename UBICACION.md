@@ -423,8 +423,21 @@ contrario que aquí; migrarlo es un corte propio y hasta entonces dos actos del
 mismo árbol hablan dialectos distintos, cosa que se declara en vez de
 disimularse.
 
+**Quién ejecuta la compuerta es parte del contrato.** Un `--check` que hay que
+recordar invocar no es un aparato: es una costumbre. Medido el 2026-11-27 sobre
+`8a985f0`, `grep -c 'examples/emitir_' .github/workflows/ci.yml` daba `0` —los
+cuatro actos tenían lector y ninguno tenía quien lo llamara—, así que el verde de
+`main` dependía de la memoria de quien publicaba. El job `compuertas` corre las
+cuatro `--check` sobre un checkout fresco: ése es el universo limpio que el censo
+exige, y lo es **por construcción** y no por acordarse de ejecutarlo antes de
+`pytest`. Va como job propio y no como paso del job `tests` porque `pytest` deja
+`__pycache__`, que el censo cuenta como entrada de directorio y por el que se
+para con `65`: hacerlo convivir obligaría a silenciar el `65` con una variable de
+entorno, que es tapar el defecto en vez de no producirlo.
+
 Falsadores: P-25 (las seis filas de la escalera), P-26 (el nombre publicado es el
-del acto firmado), P-27 (el separador del archivo no condena la página), P-32 (un
+del acto firmado), P-27 (el separador del archivo no condena la página), P-28 (el
+aparato nombra los cuatro actos y todo `checkout` trae el ODB entero), P-32 (un
 árbol movido contesta `RANCIO`; una fila mentida, `REFUTA`), P-42b (la entrada
 ilegible cambia de código con el modo) y t14_b (el universo sucio sale por `65`).
 

@@ -402,7 +402,7 @@ The same chain, the same pages, two opposite verdicts. It is not a contradiction
 
 | t | screen | voice |
 |---|---|---|
-| 0,0–5,0 | `$ git clone …` + `Ran 299 tests` + `OK` | «A public clone. The whole suite.» |
+| 0,0–5,0 | `$ git clone …` + `Ran 300 tests` + `OK` | «A public clone. The whole suite.» |
 | 5,0–13,0 | `$ python3 -B examples/verificar_sello.py --manifiesto … --check` ⇒ `REPRODUCE \| <digest>` | «Re-emitted and compared to itself.» |
 | 13,0–21,0 | four grey `real` lines: `343,61 s` · `164,11 s` · `67,11 s` · `264,35 s` | «Four runs. Sixty-seven seconds, or three hundred.» |
 | 21,0–29,0 | `coste \| 14 declaradas \| 87855 barridas \| 87819 hasheadas` (cyan) | «So the clock stays out. Counters go in.» |
@@ -427,7 +427,7 @@ The same chain, the same pages, two opposite verdicts. It is not a contradiction
 | 6 | `coste \| 2 declaradas \| 4 barridas \| 4 hasheadas` | ensayo, step 6/7 | 25-Nov-2026 |
 | 7 | `1 fuera del universo` · `opaco __pycache__/x.pyc` | ensayo, step 7/7 | 25-Nov-2026 |
 | 8 | `343,61 / 164,11 / 67,11 / 264,35 s` | `/usr/bin/time -p` over the act, four machine states | 24–25 Nov-2026 |
-| 9 | `Ran 299 tests` · `OK` | `python3 -B -m unittest discover -s tests` | 27-Nov-2026 |
+| 9 | `Ran 300 tests` · `OK` | `python3 -B -m unittest discover -s tests` | 27-Nov-2026 |
 | 10 | `redundancia \| 5942c9b0… \| 1 declaradas \| 3 observadas` | [`GUIONES.md` §1.3](GUIONES.md) (jq 1.7.1, official manifest) | 25-Nov-2026 |
 | 11 | `ausencia \| .env \| ausente` · `testigo \| ⊥ < .env < …` · `RC 0` | [`GUIONES.md` §1.4](GUIONES.md) | 25-Nov-2026 |
 | 12 | `ausencia \| AGENTS.md \| ausente` · `arbol-ausencia \| presente` · `RC 1` | [`GUIONES.md` §1.4](GUIONES.md) | 25-Nov-2026 |
