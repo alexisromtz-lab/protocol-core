@@ -21,6 +21,12 @@ con una fila redactada tiene un agujero en el orden y no acota nada (P-53); y un
 nombre que existe como **directorio** no es una ruta declarada (P-56). Las tres
 dan verde en un verificador ingenuo.
 
+LA PUERTA QUE SE ABRE AQUI (P-111). El acto deja de importar el generador y
+reproduce por su cuenta la lectura, el orden, el testigo y el arbol. La
+equivalencia no se afirma: P-111c compara el digest y el testigo de cinco formas
+del mismo manifiesto contra el modulo, P-111d corre el acto bajo `env -i` desde
+un directorio ajeno, y P-111a vigila que el import no vuelva.
+
 NO CUBIERTO (lista cerrada): la firma y el ancla —el acto no fecha—; el coste en
 segundos, que se publica como medicion y no como umbral; y la corrida contra el
 sello real de platino-labs, que es un acto externo por comando.
@@ -29,6 +35,8 @@ sello real de platino-labs, que es un acto externo por comando.
 from __future__ import annotations
 
 import hashlib as _hashlib
+import dataclasses as _dataclasses
+import importlib.util as _importlib_util
 import os as _os
 import shutil as _shutil
 import subprocess as _subprocess
@@ -480,6 +488,138 @@ class TestFalsadorReservado(_Acto):
         self.assertEqual(3, corrida.returncode, crudo)
         self.assertIn("no_medida", self._linea(crudo, "arbol-ausencia |"))
         self.assertNotIn("ausencia | el universo lo indexa", crudo)
+
+
+_ACTO_MODULO = None
+
+
+def _acto_como_modulo():
+    """Carga el acto como modulo suelto, sin anadir nada a `sys.path`."""
+
+    global _ACTO_MODULO
+    if _ACTO_MODULO is None:
+        especificacion = _importlib_util.spec_from_file_location("acto_de_ausencia", _ACTO)
+        modulo = _importlib_util.module_from_spec(especificacion)
+        _sys.modules["acto_de_ausencia"] = modulo
+        especificacion.loader.exec_module(modulo)
+        _ACTO_MODULO = modulo
+    return _ACTO_MODULO
+
+
+def _acto_en_frio(manifiesto: str, consulta: str, extra=(), cwd=None):
+    """`env -i` desde un directorio ajeno al arbol: sin PYTHONPATH, sin maquina."""
+
+    corrida = _subprocess.run(
+        [_sys.executable, "-B", _ACTO, "--manifiesto", manifiesto, "--ausente", consulta] + list(extra),
+        cwd=cwd or _tempfile.mkdtemp(prefix="frio-"),
+        env={},
+        stdout=_subprocess.PIPE,
+        stderr=_subprocess.STDOUT,
+        check=False,
+    )
+    return corrida.returncode, corrida.stdout.decode("utf-8", "replace")
+
+
+class TestTerceraPuertaSinGenerador(_unittest.TestCase):
+    """P-111 · la ausencia se verifica **sin** importar el generador (§7, 3/4).
+
+    Lo que se mide aqui no es que el acto haga lo mismo —eso ya lo dicen P-56 a
+    P-60, que corren bajo los dos—, sino que lo haga **por su cuenta**: cero
+    imports del generador, mismas tablas declaradas, mismo digest de pagina, y la
+    corrida bajo `env -i` en un directorio ajeno al arbol.
+    """
+
+    def test_p111a_cero_imports_del_generador(self) -> None:
+        with open(_ACTO, "r", encoding="utf-8") as flujo:
+            fuente = flujo.read()
+        for prohibido in ("import protocol", "from protocol"):
+            self.assertNotIn(prohibido, fuente)
+        # Y no llega al arbol por la puerta de atras: sin `sys.path` no hay `src/`.
+        self.assertNotIn("sys.path", fuente)
+
+    def test_p111b_las_tablas_declaradas_son_las_del_contrato(self) -> None:
+        acto = _acto_como_modulo()
+        self.assertEqual(ORDEN_DECLARADO, acto.ORDEN_DECLARADO)
+        self.assertEqual(FORMATO_CANONICO, acto.FORMATO_CANONICO)
+        self.assertEqual("ausente", acto.VeredictoDeAusencia.AUSENTE.value)
+        self.assertEqual("presente", acto.VeredictoDeAusencia.PRESENTE.value)
+        self.assertEqual("no_medida", acto.VeredictoDeAusencia.NO_MEDIDA.value)
+
+    def test_p111c_misma_pagina_y_mismo_testigo_sobre_el_mismo_texto(self) -> None:
+        acto = _acto_como_modulo()
+        textos = (
+            _texto(["a.md", "b.md", "d.md"]),
+            _texto(["d.md", "a.md", "b.md"]),
+            "".join("%s  ./%s\n" % (_digest(r), r) for r in ("a.md", "b.md", "d.md")),
+            "".join("%s *%s\n" % (_digest(r), r) for r in ("a.md", "b.md", "d.md")),
+            _texto(["a.md", "b.md"]) + "%s  <expediente>/VERIFICAR.sh\n" % _digest("x"),
+        )
+        for texto in textos:
+            nucleo = pagina_desde_manifiesto(leer_manifiesto(texto, "prueba"))
+            copia = acto.leer_pagina(texto, "prueba")
+            self.assertEqual(nucleo.digest, copia.digest, texto)
+            self.assertEqual(nucleo.desordenada, copia.desordenada, texto)
+            self.assertEqual(nucleo.redactadas, copia.redactadas, texto)
+            self.assertEqual(
+                [f.ruta for f in nucleo.filas], [f.ruta for f in copia.filas], texto
+            )
+            for consulta in ("a.md", "b.md", "c.md", "e.md", "0.md"):
+                uno = consultar(nucleo, consulta)
+                otro = acto.consultar(copia, consulta)
+                self.assertEqual(uno.estado, otro.estado, (texto, consulta))
+                self.assertEqual(uno.intervalo(), otro.intervalo(), (texto, consulta))
+
+    def test_p111d_env_i_fuera_del_arbol(self) -> None:
+        directorio = _tempfile.mkdtemp(prefix="ausencia-fria-")
+        self.addCleanup(_shutil.rmtree, directorio, True)
+        manifiesto = _os.path.join(directorio, "SHA256SUMS")
+        with open(manifiesto, "w", encoding="utf-8") as flujo:
+            flujo.write(_texto(["a.md", "b.md", "d.md"]))
+
+        codigo, crudo = _acto_en_frio(manifiesto, "c.md", cwd=directorio)
+        self.assertEqual(0, codigo, crudo)
+        self.assertIn("-> ausente", crudo)
+        self.assertIn("verificado | si", crudo)
+
+        # Un byte del vecino: la pagina sigue ordenada, el testigo ya no la ata.
+        with open(manifiesto, "w", encoding="utf-8") as flujo:
+            flujo.write(
+                "".join(
+                    "%s  %s\n" % (_digest(r)[:-1] + ("0" if _digest(r)[-1] != "0" else "1"), r)
+                    for r in ("a.md", "b.md", "d.md")
+                )
+            )
+        codigo2, crudo2 = _acto_en_frio(manifiesto, "c.md", cwd=directorio)
+        self.assertEqual(0, codigo2, crudo2)
+        self.assertNotIn(pagina_desde_manifiesto(leer_manifiesto(_texto(["a.md", "b.md", "d.md"]), "x")).digest, crudo2)
+
+        # Fila redactada: el orden tiene un hueco y no se acota.
+        with open(manifiesto, "w", encoding="utf-8") as flujo:
+            flujo.write(_texto(["a.md", "d.md"]) + "%s  <x>/s.sh\n" % _digest("x"))
+        codigo3, crudo3 = _acto_en_frio(manifiesto, "c.md", cwd=directorio)
+        self.assertEqual(3, codigo3, crudo3)
+        self.assertIn("-> no_medida", crudo3)
+
+        # Dialecto ajeno: se rechaza, no se normaliza.
+        with open(manifiesto, "w", encoding="utf-8") as flujo:
+            flujo.write("SHA256 (a.md) = %s\n" % _digest("a.md"))
+        codigo4, crudo4 = _acto_en_frio(manifiesto, "c.md", cwd=directorio)
+        self.assertEqual(2, codigo4, crudo4)
+        self.assertIn("ENTRADA INVALIDA", crudo4)
+
+    def test_p111e_el_testigo_merkle_se_verifica_sin_la_pagina(self) -> None:
+        acto = _acto_como_modulo()
+        pagina = acto.leer_pagina(_texto(["a.md", "b.md", "d.md"]), "prueba")
+        testigo = acto.testigo_merkle(pagina, "c.md")
+        self.assertTrue(acto.verificar_merkle(testigo))
+        self.assertEqual(3, testigo.tamano)
+        self.assertEqual(("b.md", "d.md"), (testigo.hoja_anterior[0], testigo.hoja_siguiente[0]))
+        # La raiz es el unico dato que hay que recibir de fuera: cambiarla rompe.
+        roto = _dataclasses.replace(testigo, raiz=("00" if testigo.raiz[:2] != "00" else "11") + testigo.raiz[2:])
+        self.assertFalse(acto.verificar_merkle(roto))
+        # Y cambiar la consulta del testigo, sin tocar los caminos, tambien.
+        desplazado = _dataclasses.replace(testigo, consulta="a.md")
+        self.assertFalse(acto.verificar_merkle(desplazado))
 
 
 if __name__ == "__main__":

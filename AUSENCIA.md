@@ -7,7 +7,7 @@
 
 Acto: [`examples/verificar_ausencia.py`](examples/verificar_ausencia.py) ·
 Módulo: [`src/protocol/ausencia.py`](src/protocol/ausencia.py) ·
-Falsadores: [`tests/test_ausencia.py`](tests/test_ausencia.py) (P-48 … P-60).
+Falsadores: [`tests/test_ausencia.py`](tests/test_ausencia.py) (P-48 … P-60, P-111).
 
 ---
 
@@ -287,3 +287,46 @@ en `->`. Así el cliente ve *por qué* su manifiesto no era suficiente.
 5. **No decide qué significa «suficiente».** Si el cliente quiere saber si su
    paquete lleva un archivo de más, el acto contesta por ruta; el juicio sobre
    qué rutas importan es del cliente.
+
+---
+
+## §7 · La tercera puerta: el acto se verifica **sin** el generador
+
+Hasta aquí el acto importaba tres símbolos de `src/protocol` (`ausencia` ×10,
+`types.ContratoViolado`, `ubicacion.leer_manifiesto`). Un verificador que
+importa al generador no es un verificador: es el generador con otro `__main__`,
+y un tercero que no tiene el árbol no puede correrlo. Ahora **no importa nada
+del árbol** —`import protocol` y `from protocol` aparecen cero veces, y tampoco
+toca `sys.path`— y aun así publica las mismas líneas byte a byte.
+
+Lo que se interiorizó son funciones **puras de un texto**: la gramática de
+`sha256sum` (`leer_pagina`), la canonicalización y el alfabeto (§2.1, §2.4), el
+orden declarado, `consultar` / `verificar` / `autenticar`, y el bloque RFC 6962.
+La partición se midió antes de copiar: `ausencia.py` importa `bisect`,
+`hashlib`, `dataclasses`, `enum`, `typing` y nada más; `ubicacion.py` y
+`types.py`, lo mismo. **Ninguna de las cuatro puertas necesita el ODB de Git** —
+`git ls-files` es un *universo de proyección*, no una lectura de historia—, así
+que la frontera «esto exige clon» no aplicaba a este acto.
+
+**Que las dos implementaciones coincidan no se afirma: se mide.** P-111b compara
+las tablas declaradas (`ORDEN_DECLARADO`, `FORMATO_CANONICO`, los tres
+veredictos); P-111c compara el digest de la página y el testigo de cinco formas
+del mismo manifiesto (ordenado, desordenado, con `./`, con `*`, con fila
+redactada) contra el módulo; P-111d corre el acto bajo `env -i` desde un
+directorio ajeno al árbol —RC 0 ausente, RC 0 con los digests alterados, RC 3
+redactada, RC 2 dialecto ajeno—; y P-111e verifica el testigo Merkle contra 32
+bytes de raíz **sin** la página. Los falsadores P-56 … P-60 siguen corriendo el
+acto sin cambios: son la equivalencia de comportamiento.
+
+**Dos diferencias declaradas, ninguna en el veredicto.** La prosa del dialecto
+ajeno ya no nombra el dialecto que adivinó (sigue siendo RC 2: un dialecto no
+admitido se rechaza, no se normaliza), y el campo `digest` de la fila es texto
+en vez del tipo `Hash` — la igualdad estructural que `verificar` usa compara los
+mismos campos.
+
+**La copia no es una segunda fuente de verdad.** La especificación es este
+documento; las dos implementaciones se miden contra él, y cualquier cambio del
+formato canónico tiene que mover el módulo y el acto **en el mismo commit** o
+P-111b/P-111c se ponen rojos. Lo que se gana es la única cosa que un catálogo
+puede vender: el recibo de ausencia se verifica en una máquina que no tiene
+`protocol-core`.

@@ -11,7 +11,7 @@
     },
     {
       "ruta": "tests/test_ausencia.py",
-      "sha256": "1933e3e0ed3ae8cdb3ee93e431e1a129828e700fa2280ffa8f3ede5ff33f95ef"
+      "sha256": "a555e6ea70bd4f9f30e7ab9f34fa7a98b3115d3ecd4eb00bb198510b6480ab11"
     },
     {
       "ruta": "tests/test_composicion.py",
@@ -130,7 +130,7 @@
   },
   "salida": {
     "ruta": "examples/veredicto-suite.txt",
-    "sha256": "adedd4bc8c2af3cb52a5d3df0639fba8ffcdfc6641fbf41a75ed66010c417f87"
+    "sha256": "babb05aa6d86e750090be4c96baec6232c1d35a1a5c8fc51aa5095dc812e0c66"
   },
   "veredicto": "conforme",
   "h_prev": null
