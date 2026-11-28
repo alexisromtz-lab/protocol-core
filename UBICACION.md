@@ -329,17 +329,17 @@ que existe.
   declaradas, no sobre cuántas copias hay.
 - **No cronometra dentro del recibo.** `coste | declaradas | barridas |
   hasheadas` son contadores y reproducen; la duración va al stream de medición.
-- **No decide entre `RANCIO` y `REFUTA` con el código de salida.** El acto de
-  contrafirma (`contrafirmar_censo.py`) devuelve `VeredictoDeAncla` —`vigente`,
-  `rancio`, `refuta`, `no_medida`— en su propia línea; RC 1 agrupa los tres que
-  no están vigentes.
+- **No decide por su cuenta entre `RANCIO` y `REFUTA`.** El acto de contrafirma
+  devuelve el `VeredictoDeAncla` en su línea y el código de salida lo traduce
+  (§6.2); el sello no adivina el veredicto ajeno.
 
 ## 6. Reproducción
 
     python3 -B examples/verificar_sello.py --check
 
 Lee `examples/predicado-sello.json`, recompone la página y la compara contra la
-emitida. RC 0 = reproduce; RC 1 = diverge; RC 2 = no hay página previa.
+emitida con la escalera de §6.2: `REPRODUCE` (0), `REFUTA` (1), `RANCIO` (2),
+`NO_MEDIDO` (3).
 
 ### 6.1 La única excepción es el entorno del acto, y son dos campos
 
@@ -350,23 +350,83 @@ sólo bajo el intérprete que lo firmó: un rojo por el entorno condena y un ver
 por el entorno absuelve, y ninguno de los dos midió el árbol.
 
 El acto normaliza esos dos campos y compara **el resto byte a byte**. Todo lo
-demás condena: un digest movido en `entradas` es del árbol y sale `DIVERGE`; una
+demás condena: un digest movido en `entradas` es del árbol y sale `REFUTA`; una
 fila borrada de `entorno.no_medido` también, porque la laguna es lo que el acto
 confiesa y normalizarla le dejaría absolverse de su propia confesión.
 
 La reproducción no elige identidad: publica las dos.
 
-    MEDICION | pagina reproducida | modulo el entorno del acto
-    MEDICION | entorno del acto | firmada en darwin/CPython 3.11.15 | reproducida en darwin/CPython 3.9.6
+    MEDICION | pagina reproducida | True
+    MEDICION | entorno del acto | firmada en darwin/CPython 3.9.6 | reproducida en darwin/CPython 3.12.13
     MEDICION | digest del acto declarado | <sha256 de la pagina firmada>
     MEDICION | digest de este acto | <sha256 de la pagina de esta corrida>
     REPRODUCE | <sha256 de la pagina firmada>
 
 `REPRODUCE` nombra el acto **firmado**, no el de la corrida de turno: publicar el
 nombre de quien reproduce daría dos identidades al mismo acto según la máquina.
-Medido el 27-Nov-2026: la página sellada bajo `CPython 3.11.15` reproduce bajo
-`CPython 3.9.6` con RC 0, y la suite deja `examples/predicado-sello.json`
-byte-idéntico (`c32f548b…`) bajo los dos intérpretes. Falsador: P-32.
+Medido el 27-Nov-2026: la página sellada bajo `CPython 3.9.6` reproduce bajo
+`CPython 3.12.13` con RC 0; el nombre firmado es `80bee69d…` y el de la corrida
+`bfed7488…`, y el mismo archivo, sin reescribirse, sirve a los dos.
+Falsadores: P-32 (el entorno no condena) y P-27 (el separador del archivo no
+condena).
+
+### 6.2 La escalera del código de salida, y por qué `RANCIO` no es `REFUTA`
+
+Cuatro actos —`emitir_predicado.py`, `emitir_censo.py`, `verificar_sello.py`,
+`contrafirmar_censo.py`— contestan con los mismos códigos, que viven en
+`protocol.predicado.CodigoDeActo` y no en la prosa de cada uno:
+
+| código | nombre | lo que prueba |
+|---|---|---|
+| 0 | `REPRODUCE` | la página nombra este árbol y este veredicto |
+| 1 | `REFUTA` | el árbol es el mismo y la página miente sobre él: `salida`, `veredicto` o `no_medido` no cuadran |
+| 2 | `RANCIO` | la página nombra **otro** árbol: sus `entradas` o su `codigo` no son los de hoy |
+| 3 | `NO_MEDIDO` | no hay página previa, o el acto no pudo leer el sujeto |
+| 64 | `CONTRATO` | la declaración del acto está mal formada |
+| 65 | `OBSERVADOR` | el universo está sucio por un observador ajeno |
+
+**El orden de las comparaciones es la regla.** Primero `entradas` y `codigo`;
+sólo si cuadran se mira `salida`. Invertirlo convierte cada movimiento del árbol
+en una acusación: tocar una fuente mueve los dos lados de la página, y llamar a
+eso `REFUTA` sería condenar al árbol por haberse movido. `RANCIO` se repara
+emitiendo de nuevo, y emitir de nuevo es gratis; `REFUTA` obliga a auditar quién
+escribió la página.
+
+**Una página forjada es `RANCIO` aquí y `REFUTA` en la contrafirma**, y por eso
+existen los dos actos. El cotejo de página sólo puede probar que la página y el
+árbol de hoy no se corresponden; probar que un árbol **existió** es del ancla,
+que nombra un commit y no un archivo. Un cotejo que contestara `REFUTA` en los
+dos casos estaría afirmando lo que no mide.
+
+`REFUTA` conserva el `1` porque los consumidores que ya existen sólo conocían dos
+códigos (`0` y «algo va mal»); `RANCIO` toma el `2` que antes significaba «no hay
+página previa», y `NO_MEDIDO` se muda al `3`. `64`/`65` no son `4`/`5` porque
+`sysexits.h` reserva `64`–`78` para el uso del acto y el `4` ya es el `grep` de
+«no puedo leer».
+
+**Un mismo acto puede tener dos gramáticas, y la elige el argumento.**
+`verificar_sello.py` contesta dos preguntas distintas: sin `--check` pregunta por
+el **sujeto** —`0` la afirmación se sostiene, `1` no se sostiene o no se pudo
+medir, `2` la entrada no se puede usar— y con `--check` pregunta por la
+**página**, que es la tabla de arriba. Las dos tablas no se mezclan: bajo
+`--check` una entrada ilegible **no** sale `2`, porque ese `2` ya es `RANCIO` y
+una errata de argumento disfrazada de página rancia manda a re-emitir lo que no
+está rancio; sale `64`, que es lo que el defecto es —de quien llamó—. Por lo
+mismo, lo que subía como `SystemExit("texto")` salía `1`, el código de
+`REFUTA`: teclear mal el argumento mandaba a auditar un árbol sano. Falsador:
+P-42b, que corre la misma entrada ausente en los dos modos y exige `(2, 64)`.
+
+**La escalera no cubre `tools/verificar_etiqueta.py`**, que publica su propio
+contrato —`0` todas coinciden · `1` alguna diverge · `2` NO_MEDIDO—. Ese acto no
+coteja una página sino etiquetas contra la historia, y su `2` significa lo
+contrario que aquí; migrarlo es un corte propio y hasta entonces dos actos del
+mismo árbol hablan dialectos distintos, cosa que se declara en vez de
+disimularse.
+
+Falsadores: P-25 (las seis filas de la escalera), P-26 (el nombre publicado es el
+del acto firmado), P-27 (el separador del archivo no condena la página), P-32 (un
+árbol movido contesta `RANCIO`; una fila mentida, `REFUTA`), P-42b (la entrada
+ilegible cambia de código con el modo) y t14_b (el universo sucio sale por `65`).
 
 La fixture `examples/sello-de-muestra/` tiene un caso de cada estado y está
 escrita a mano: los digests son los del sello y el árbol es el de hoy, y la

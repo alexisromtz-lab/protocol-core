@@ -36,9 +36,9 @@
 # gate contó DOLARES=1 sobre un archivo que se declaraba limpio.
 cff-version: 1.2.0
 message: "If you use this software or specification, please cite it as below."
-title: "Protocolo de Custodia Determinista y Reserva de Ranuras — protocol-core 0.2.1 (Materia A)"
+title: "Protocolo de Custodia Determinista y Reserva de Ranuras — protocol-core 0.3.0 (Materia A)"
 abstract: "Almacenamiento atómico y auditoría determinista: sustitución atómica de archivos, aislamiento de manifiestos por namespace, reserva determinista de ranuras y auditoría criptográfica en frío (sin red, sin credenciales, sin re-sellar nada). Materia A: tipos y primitivas, invariantes de custodia, interfaz abstracta y matriz de pruebas. Cero dependencias de ejecución."
-version: "0.2.1"
+version: "0.3.0"
 date-released: "2026-10-09"
 authors:
   - family-names: "Roman Martinez"

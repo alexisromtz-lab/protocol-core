@@ -45,7 +45,7 @@ import hashlib as _hashlib
 import json as _json
 import unicodedata as _unicodedata
 from dataclasses import dataclass
-from enum import Enum
+from enum import Enum, IntEnum
 from typing import Final, Literal, Optional, Tuple, Union
 
 from .types import (
@@ -58,6 +58,8 @@ from .types import (
 )
 
 __all__ = [
+    "CAMPOS_DEL_OBSERVADOR",
+    "CodigoDeActo",
     "Contrafirma",
     "Entorno",
     "Eslabon",
@@ -69,6 +71,7 @@ __all__ = [
     "VeredictoReclamado",
     "canonizar",
     "contrafirmar",
+    "cotejar_pagina",
     "desde_cuerpo",
     "desde_in_toto",
     "verificar_cadena",
@@ -226,6 +229,136 @@ class VeredictoDeAncla(str, Enum):
     RANCIO = "rancio"
     REFUTA = "refuta"
     NO_MEDIDA = "no_medida"
+
+
+# ---------------------------------------------------------------------------
+# La escalera de salida — el acto nombra su fallo con un número, no con prosa
+# ---------------------------------------------------------------------------
+
+
+class CodigoDeActo(IntEnum):
+    """Qué le pasó al acto, en el único idioma que un guion de shell entiende.
+
+    Los cinco veredictos de arriba son tipos: quien los lee es Python. Un
+    `pre-commit`, un `if` de CI o un consumidor escrito en otra lengua sólo
+    recibe un entero, y hasta hoy recibía `1` para todo. Medido el 2026-11-27 en
+    `examples/contrafirmar_censo.py:285`: un ancla atrasada un commit y un ancla
+    que no cubre el acto salían con el mismo `1`, así que el cliente no podía
+    saber si re-emitir (reparable, gratis) o auditar (hay algo mal emitido). La
+    distinción ya estaba escrita en `VeredictoDeAncla`; lo que faltaba era que
+    sobreviviera al `exit`.
+
+    El orden de los valores **es** la escalera, y la escalera se lee de arriba
+    abajo: cada código dice quién tiene que actuar.
+
+    - `REPRODUCE = 0` — el acto se reprodujo. Nadie actúa.
+    - `REFUTA = 1` — el árbol está mal, o la página miente sobre él. Actúa quien
+      emitió: no se re-emite nada, se audita. **Conserva el `1` de siempre** para
+      que un cliente que sólo conoce el contrato viejo no lea un fallo como un
+      éxito.
+    - `RANCIO = 2` — la página describe **otro árbol**. Actúa quien tiene el
+      reloj: se re-emite y se vuelve a anclar. Es el único fallo que se arregla
+      sin mirar el contenido, y por eso no puede compartir código con `REFUTA`.
+    - `NO_MEDIDO = 3` — no se pudo leer lo que hacía falta. Actúa quien tiene el
+      acceso, no quien tiene el código. No saber nunca vale cero.
+    - `CONTRATO = 64` — quien llamó no respetó la forma del acto (argumentos,
+      ruta de la declaración, JSON que no es JSON). Actúa quien llamó.
+    - `OBSERVADOR = 65` — el universo que se iba a medir trae artefactos del
+      intérprete (`__pycache__`, `*.pyc`). Actúa quien ejecutó Python antes: el
+      número mediría la máquina, no el acto.
+
+    `64`/`65` y no `4`/`5` porque `sysexits.h` reserva el rango `64..78` para
+    «el uso es incorrecto» y «no se pudo leer la entrada», que es exactamente lo
+    que estos dos son; y porque un `4` se confunde con el `4` de `grep` sin
+    fallo. La escalera de veredicto ocupa `0..3` y no crece: un veredicto nuevo
+    en `VeredictoDeAncla` sin código aquí lo detecta P-25, no un cliente.
+    """
+
+    REPRODUCE = 0
+    REFUTA = 1
+    RANCIO = 2
+    NO_MEDIDO = 3
+    CONTRATO = 64
+    OBSERVADOR = 65
+
+
+# Los dos campos de la página que miden la máquina y no el árbol. Se declaran en
+# un solo lugar porque son la excepción de §6.1 de `UBICACION.md`: se normalizan
+# antes de cotejar y nunca condenan una página. Todo lo demás se compara byte a
+# byte.
+CAMPOS_DEL_OBSERVADOR: Final[Tuple[str, ...]] = ("plataforma", "runtime")
+
+
+def _identidades(cuerpo: dict, campo: str) -> list:
+    """Las rutas y sus digests de un bloque `entradas` o `codigo`, sin el resto.
+
+    Devuelve `[]` si el bloque falta o no tiene la forma esperada: dos páginas
+    igual de rotas en el mismo sitio son la misma página, y quien decide si el
+    formato es válido es `desde_cuerpo`, no este cotejo.
+    """
+
+    bloque = cuerpo.get(campo)
+    if not isinstance(bloque, list):
+        return []
+    return [
+        (fila.get("ruta"), fila.get(ALGORITMO)) for fila in bloque if isinstance(fila, dict)
+    ]
+
+
+def cotejar_pagina(
+    previa: bytes, corriente: str, entorno: Tuple[str, str]
+) -> Tuple[CodigoDeActo, str, str]:
+    """Clasifica la página previa contra la de esta corrida, sin elegir identidad.
+
+    Las preguntas van en este orden porque el orden es la regla. Primero, qué
+    árbol nombra la página: si sus `entradas` o su `codigo` no son los de este
+    árbol, la página no es falsa, es `RANCIO`, y el remedio es re-emitirla.
+    Después, si lo describe: los mismos digests con otra `salida` o otro
+    `veredicto` es `REFUTA`, y ahí no se re-emite nada. Invertir el orden
+    convierte todo movimiento del árbol en una acusación.
+
+    `entorno` es la pareja `(plataforma, runtime)` de quien coteja; se escribe
+    sobre la página previa antes de comparar, y sólo esos dos campos. Si la
+    página trae `no_medido` —o cualquier otra llave—, se compara tal cual: una
+    diferencia ahí sí es materia del acto.
+
+    Devuelve `(código, digest_firmado, detalle)`. El digest es el de la página
+    **previa**, no el de esta corrida: publicar el de quien reproduce daría dos
+    nombres al mismo acto según la máquina que lo miró, y el nombre de un acto
+    tiene que ser uno.
+    """
+
+    try:
+        declarado = _json.loads(previa.decode("utf-8"))
+    except (UnicodeDecodeError, ValueError):
+        return CodigoDeActo.REFUTA, "", "la pagina previa no es JSON"
+    if not isinstance(declarado, dict) or not isinstance(declarado.get("entorno"), dict):
+        return CodigoDeActo.REFUTA, "", "la pagina previa no declara entorno"
+    firmado = _hashlib.sha256(canonizar(declarado)).hexdigest()
+    try:
+        actual = _json.loads(corriente)
+    except ValueError:
+        return CodigoDeActo.CONTRATO, firmado, "la pagina de esta corrida no es JSON"
+    if not isinstance(actual, dict):
+        return CodigoDeActo.CONTRATO, firmado, "la pagina de esta corrida no es un objeto"
+
+    normalizado = dict(declarado)
+    normalizado["entorno"] = dict(
+        declarado["entorno"],
+        plataforma=entorno[0],
+        runtime=entorno[1],
+    )
+    # El salto de línea final es el separador del archivo, no un campo de la
+    # página: quien escribe la deja caer y quien compara la recibe. Se descuenta
+    # sólo eso —espacios y tabulaciones finales siguen condenando—, porque un
+    # cotejo que pidiera el byte exacto del separador declararía `REFUTA` sobre
+    # la página que acaba de escribir el mismo acto.
+    if _json.dumps(normalizado, indent=2, ensure_ascii=False) == corriente.rstrip("\n"):
+        return CodigoDeActo.REPRODUCE, firmado, ""
+    for campo in ("entradas", "codigo"):
+        if _identidades(declarado, campo) != _identidades(actual, campo):
+            return CodigoDeActo.RANCIO, firmado, "la pagina nombra otro arbol (%s)" % campo
+    return CodigoDeActo.REFUTA, firmado, "la pagina nombra este arbol y no lo describe"
 
 
 # ---------------------------------------------------------------------------

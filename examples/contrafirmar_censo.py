@@ -13,12 +13,13 @@ Lo que este acto **no** mide, y por eso lo declara:
   · El verificador es el mismo árbol que emitió la página. Es una
     auto-contrafirma: prueba que el acto es verificable por quien no lo emitió,
     no que un tercero independiente lo haya verificado. El nombre lo dice.
-  · `RANCIO` y `REFUTA` comparten RC 1. El código de salida dice si la ancla
-    está vigente; el valor tipado dice **qué** hacer con ella.
+  · el código de salida es la escalera de `protocol.predicado.CodigoDeActo`:
+    `RANCIO` sale 2 (re-emitir y re-anclar, sin auditar nada) y `REFUTA` sale 1
+    (hay algo mal emitido: re-anclar a ciegas propagaría el defecto).
 
 Uso:  contrafirmar_censo.py [--check]
-RC:   0 ancla vigente · 1 rancio, refuta o no medida (la línea `VEREDICTO DE ANCLA`
-      dice cuál) · 2 contrato
+RC:   0 ancla vigente · 1 refuta · 2 rancio · 3 no medida · 64 contrato ·
+      65 observador
 """
 
 from __future__ import annotations
@@ -33,6 +34,7 @@ if str(RAIZ / "src") not in _sys.path:
     _sys.path.insert(0, str(RAIZ / "src"))
 
 from protocol.predicado import (  # noqa: E402
+    CodigoDeActo,
     Contrafirma,
     VeredictoAdjudicado,
     VeredictoDeAncla,
@@ -196,16 +198,30 @@ def _adjudicar(contrafirma, decl):
     return VeredictoDeAncla.VIGENTE
 
 
+#: La tabla que traduce veredicto a código de salida. Es exhaustiva por
+#: construcción (`VeredictoDeAncla` tiene cuatro valores) y P-25 falla si el
+#: tipo gana un quinto sin código: un veredicto sin número vuelve a esconderse
+#: detrás de la prosa, que es el defecto que este acto corrige.
+_RC_DEL_ANCLA = {
+    VeredictoDeAncla.VIGENTE: CodigoDeActo.REPRODUCE,
+    VeredictoDeAncla.REFUTA: CodigoDeActo.REFUTA,
+    VeredictoDeAncla.RANCIO: CodigoDeActo.RANCIO,
+    VeredictoDeAncla.NO_MEDIDA: CodigoDeActo.NO_MEDIDO,
+}
+
+
 def _cierre(veredicto, detalle):
     """Publica el veredicto de ancla y lo traduce a RC.
 
-    Los cuatro valores salen por la línea `VEREDICTO DE ANCLA`, no por el código
-    de salida: `RANCIO` y `REFUTA` comparten RC 1 porque los dos son "no está
-    vigente", y quien tenga que decidir entre re-emitir y auditar lee la línea.
+    Los cuatro valores salen por la línea `VEREDICTO DE ANCLA` **y** por el
+    código de salida, porque son dos preguntas distintas y el cliente no siempre
+    puede leer la línea: un `pre-commit` o un `if` de CI sólo recibe un entero.
+    Hasta el 2026-11-27 `RANCIO` y `REFUTA` compartían el `1`, así que el único
+    cliente que distingue re-emitir de auditar era quien parseaba prosa.
     """
 
     print("VEREDICTO DE ANCLA | %s | %s" % (veredicto.value, detalle))
-    return 0 if veredicto is VeredictoDeAncla.VIGENTE else 1
+    return int(_RC_DEL_ANCLA[veredicto])
 
 
 def main(argumentos):
@@ -241,4 +257,4 @@ if __name__ == "__main__":
         raise SystemExit(main(_sys.argv[1:]))
     except ContratoViolado as exc:
         print("CONTRATO | %s" % exc)
-        raise SystemExit(2)
+        raise SystemExit(int(CodigoDeActo.CONTRATO))

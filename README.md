@@ -1,12 +1,12 @@
 # protocol-core
 
-**Protocolo de Custodia Determinista y Reserva de Ranuras — Versión 0.2.1**
+**Protocolo de Custodia Determinista y Reserva de Ranuras — Versión 0.3.0**
 
 Almacenamiento atómico y auditoría determinista: sustitución atómica de archivos, aislamiento de
 manifiestos por namespace, reserva determinista de ranuras y auditoría criptográfica **en frío** (sin
 red, sin credenciales, sin re-sellar nada).
 
-- **Versión**: `0.2.1` (congelada `2026-11-27T19:36:19Z`)
+- **Versión**: `0.3.0` (congelada `2026-11-27T23:39:42Z`)
 - **Python**: `>= 3.11` · **dependencias de ejecución**: ninguna
 - **Licencia dual**: el **código** bajo **AGPL-3.0** (`LICENSE`); el **SPEC** bajo
   **CC BY 4.0** (`LICENSE_SPEC_CC-BY-4.0.txt`). Resumen y terceros: `NOTICE`, en este repositorio.
@@ -47,15 +47,15 @@ acoplada) · y las extensiones declaradas `INV-6` (ficha fuera de banda), `INV-7
 Los comandos se corren **desde la raíz de este repositorio**:
 
 ```
-python3 -B -m unittest discover -s tests -v                      # 102 pruebas (corrida local: stdlib unittest)
+python3 -B -m unittest discover -s tests -v                      # 299 pruebas (corrida local: stdlib unittest)
 python3 -B examples/emitir_predicado.py                          # emite el recibo del acto: veredicto + página
 python3 -B examples/emitir_censo.py                               # el censo: declarado vs observado
 python3 -B examples/verificar_sello.py --manifiesto RUTA --raiz DIR --universo disco   # los seis veredictos
-python3 -B examples/emitir_predicado.py --check                   # REPRODUCE (RC 0) o DIVERGE (RC 1)
-python3 -B examples/emitir_censo.py --check                       # REPRODUCE (RC 0) o DIVERGE (RC 1)
-python3 -B examples/verificar_sello.py --check                    # REPRODUCE (RC 0) o DIVERGE (RC 1)
-python3 -B examples/contrafirmar_censo.py --check                 # REPRODUCE (RC 0) o DIVERGE (RC 1)
-PYTHONPATH=src python3 -B -c "import protocol; print(protocol.__version__)"   # 0.2.1
+python3 -B examples/emitir_predicado.py --check                   # REPRODUCE (RC 0) · REFUTA (RC 1) · RANCIO (RC 2) · NO_MEDIDO (RC 3)
+python3 -B examples/emitir_censo.py --check                       # REPRODUCE (RC 0) · REFUTA (RC 1) · RANCIO (RC 2) · NO_MEDIDO (RC 3)
+python3 -B examples/verificar_sello.py --check                    # REPRODUCE (RC 0) · REFUTA (RC 1) · RANCIO (RC 2) · NO_MEDIDO (RC 3)
+python3 -B examples/contrafirmar_censo.py --check                 # REPRODUCE (RC 0) · REFUTA (RC 1) · RANCIO (RC 2) · NO_MEDIDO (RC 3)
+PYTHONPATH=src python3 -B -c "import protocol; print(protocol.__version__)"   # 0.3.0
 ```
 
 **Motor único: `unittest` de la biblioteca estándar.** Los 5 archivos de `tests/` hacen
@@ -94,12 +94,12 @@ El ejemplo es el acto real de este repositorio, no una simulación:
 
 ```
 python3 -B examples/emitir_predicado.py          # corre la suite, reduce, emite la página
-python3 -B examples/emitir_predicado.py --check   # REPRODUCE (RC 0) · DIVERGE (RC 1)
+python3 -B examples/emitir_predicado.py --check   # REPRODUCE (RC 0) · REFUTA (RC 1) · RANCIO (RC 2) · NO_MEDIDO (RC 3)
 ```
 
 El falsador se ve en un byte: se toca cualquier fuente, la suite **sigue verde**
-—`salida reproducida | True`— y la página declara `DIVERGE`, porque el árbol ya
-no es el que produjo ese veredicto. Un verde sin recibo es exactamente el falso
+—`salida reproducida | True`— y el acto contesta `RANCIO` (RC 2), porque el
+árbol ya no es el que produjo ese veredicto. Un verde sin recibo es exactamente el falso
 verde que el recibo existe para nombrar.
 
 **El contrato se midió contra un tercero.** Una implementación independiente
@@ -127,12 +127,12 @@ refutar.
 
 ```
 python3 -B examples/emitir_censo.py           # observa, resta y sella la página
-python3 -B examples/emitir_censo.py --check   # REPRODUCE (RC 0) · DIVERGE (RC 1)
+python3 -B examples/emitir_censo.py --check   # REPRODUCE (RC 0) · REFUTA (RC 1) · RANCIO (RC 2) · NO_MEDIDO (RC 3)
 ```
 
 El lado declarado vive en `examples/censo-declarado.txt` y **lo escribe una
 persona**: el programa no puede declarar contra sí mismo. Cambiar `declarado=6`
-por `declarado=7` y volver a pasar `--check` da `DIVERGE` (RC 1); emitir de nuevo
+por `declarado=7` y volver a pasar `--check` da `REFUTA` (RC 1); emitir de nuevo
 publica `discrepancia=-1` y `veredicto=no_conforme`. Una declaración falsa no se
 discute: se resta, y el signo dice de qué lado se equivocó quien declaró.
 
@@ -158,7 +158,7 @@ internamente consistente y sin autoría.
 
 ```
 python3 -B examples/contrafirmar_censo.py           # adjudica y emite contrafirma-censo.json
-python3 -B examples/contrafirmar_censo.py --check   # REPRODUCE (RC 0) · DIVERGE (RC 1)
+python3 -B examples/contrafirmar_censo.py --check   # REPRODUCE (RC 0) · REFUTA (RC 1) · RANCIO (RC 2) · NO_MEDIDO (RC 3)
 ```
 
 La frontera es un solo archivo que **edita una persona**:
@@ -233,7 +233,7 @@ sellos con fecha cierta.
 ```
 python3 -B examples/verificar_sello.py                    # la fixture; escribe su página
 python3 -B examples/verificar_sello.py --manifiesto M --raiz D --universo disco
-python3 -B examples/verificar_sello.py --check            # REPRODUCE (RC 0) · DIVERGE (RC 1)
+python3 -B examples/verificar_sello.py --check            # REPRODUCE (RC 0) · REFUTA (RC 1) · RANCIO (RC 2) · NO_MEDIDO (RC 3)
 ```
 
 Cuatro estados por fila —`CONFORME`, `REUBICADO`, `DIVERGE`, `OPACO`— y seis

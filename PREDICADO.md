@@ -159,7 +159,7 @@ Dos consecuencias que se declaran porque un tercero las va a encontrar:
   imposible de fijar. Un guardián no puede guardarse a sí mismo.
 - **Toda edición del código verificado produce una página nueva y deja el ancla
   rancia.** No es un defecto: es la prueba de que la página ata los bytes. El
-  acto que la emite informa `RANCIO` y devuelve RC 1 hasta que se re-ancle; un
+  acto que la emite informa `RANCIO` y devuelve RC 2 hasta que se re-ancle; un
   acto que lo callara sería el falso verde que este formato existe para impedir.
 
 ## 5.quater El acto es su propio punto fijo: dos pasadas
@@ -198,8 +198,8 @@ ancha que el entorno del observador es un verde por la puerta de atrás.
 
 **Lo que se comitea es lo que `--check` reproduce.** Medido el 27-Nov-2026: la
 página publicada declaraba `Ran 271 tests / FAILED (failures=1)` mientras la
-suite salía verde, y `--check` lo acusó `DIVERGE` en un clon frío —nadie lo había
-corrido antes del commit—. La regla que queda es una: `--check` RC 0 antes de
+suite salía verde, y `--check` lo acusó `REFUTA` (RC 1) en un clon frío —nadie lo
+había corrido antes del commit—. La regla que queda es una: `--check` RC 0 antes de
 comitear. Una prueba en proceso no puede sustituirlo: si una prueba exigiera que
 el veredicto sellado diga `OK`, la corrida que la incluyera sellaría `FAILED` por
 su causa y el punto fijo quedaría envenenado para siempre. El falsador de este
@@ -316,8 +316,10 @@ es el falsador de que la proyección no pierde información.
    `REFUTA`, la contrafirma no cubre el acto de enfrente. Mezclarlas deja al
    auditor sin saber si re-ancorar o investigar. El vocabulario es
    `VeredictoDeAncla` = `VIGENTE` · `RANCIO` · `REFUTA` · `NO_MEDIDA` (falta el
-   ancla, la página o el commit al que apunta); los tres últimos comparten RC 1,
-   así que la diferencia tiene que viajar en texto, no en el código de salida.
+   ancla, la página o el commit al que apunta), y cada uno tiene su código de
+   salida —`0` · `2` · `1` · `3`— desde que la escalera vive en
+   `protocol.predicado.CodigoDeActo` (`UBICACION.md` §6.2): la diferencia viaja
+   en el número, no sólo en el texto.
 
 Un verificador que acepte cualquiera de (2) con un `warning` y siga no ha
 verificado: ha saludado.
