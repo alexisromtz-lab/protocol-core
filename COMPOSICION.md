@@ -184,6 +184,41 @@ conservación es la que se aplica aquí.
 El límite nuevo se imprime junto al viejo: la regla **ata** el tramo a un
 artefacto declarado fuera; no prueba que B aplicara esa regla.
 
+### La firma: de la continuidad de bytes a la autoría del documento
+
+El anillo 8 añade Ed25519 en biblioteca estándar, sin dependencias nuevas:
+
+```bash
+python3 examples/firmar_recibo.py --recibo recibo.json --semilla <archivo>   # emisor
+python3 examples/verificar_recibo_externo.py recibo.json --regla ab.md --regla bc.md \
+    --clave recibo.json.pub --firma recibo.json.firma                          # auditor
+```
+
+**Se firma al lado, nunca dentro.** Una firma incluida en el JSON que firma no
+puede cubrirse a sí misma; excluirla exigiría una segunda regla —«todo menos
+esta llave»— con su propio agujero. Separada, los bytes firmados son el recibo
+entero.
+
+**Los bytes firmados son `recibo-de-composicion/2\n` + canon.** El dominio lleva
+la versión, así que un `/3` no puede reutilizar los bytes de un `/2`. El canon
+—NFC, llaves ordenadas, sin espacios, sin `float`— es el que se firma, no una
+proyección del recibo: por eso la firma cubre **también las llaves que ningún
+verificador conoce**, que es exactamente el hueco que dejan los chequeos de
+campo (P-110d).
+
+**Sólo se firma `/2`.** Un `/1` no tiene regla externa que atar, así que
+firmarlo sería autenticar una cadena que el propio emisor pudo fabricar: se
+rechaza con RC ≠ 0 antes de producir firma (`FIRMA_NO_FIRMABLE`).
+
+El cotejo se **reescribe** dentro del verificador externo en vez de importarlo:
+P-84e prohíbe la mención de `protocol` en ese archivo. Dos copias divergen
+solas, así que P-110a las ata a los cinco vectores oficiales de RFC 8032 §7.1
+guardados en [`tests/fixtures/rfc8032.json`](tests/fixtures/rfc8032.json).
+
+La firma **no** entra en el canon ni en ningún digest del recibo: no cambia el
+veredicto de composición, sólo añade una línea que dice quién emitió esos
+bytes. Un recibo firmado y uno sin firmar componen igual.
+
 ## 7. Lo que este objeto no hace — lista cerrada
 
 1. **No certifica la transformación.** Que B leyera lo que A dejó no dice nada
@@ -195,8 +230,7 @@ artefacto declarado fuera; no prueba que B aplicara esa regla.
    publica en cada corrida (P-103). `sha256_regla` (§6) añade la pieza que
    faltaba para que la firma del anillo 8 cubra algo más que bytes arbitrarios:
    ata cada tramo a un artefacto declarado fuera del testigo. Sigue sin probar
-   que B aplicara esa regla.
-2. **No abarata la cadena larga.** Componer es barato; **verificar** un salto es
+   que B aplicara esa regla.2. **No abarata la cadena larga.** Componer es barato; **verificar** un salto es
    O(página). La cadena de `n` nodos no se vuelve O(1) por componerla: el coste
    sigue en los extremos que alguien tenga que rehashear, y quien afirme lo
    contrario está midiendo su caché, no el acto.
@@ -206,6 +240,12 @@ artefacto declarado fuera; no prueba que B aplicara esa regla.
    elección de cuál es la buena no es un problema de álgebra.
 4. **No sustituye al sello.** Un recibo compuesto sin sello que lo ancle al
    manifiesto publicado es una afirmación sobre afirmaciones.
+5. **No prueba que el emisor dijera la verdad.** La firma (§6) autentica
+   **quién emitió estos bytes** y que nadie los cambió después —incluidas las
+   llaves que ningún verificador conoce—; no autentica el trabajo que esos
+   bytes describen, ni que el nodo intermedio aplicara la regla que declaró. Y
+   no resuelve la custodia de la semilla: quien la tenga firma como el emisor,
+   y ningún algoritmo arregla eso.
 
 ## 8. Falsadores
 
@@ -231,3 +271,9 @@ artefacto declarado fuera; no prueba que B aplicara esa regla.
 | la regla declarada se coteja contra el artefacto aportado | P-84h |
 | un `/1` no se reconstruye como `/2` | P-84i |
 | `sha256_regla` sobrevive la ida y vuelta por JSON | P-84j |
+| las dos implementaciones de Ed25519 cotejan los vectores RFC 8032 §7.1 | P-110a |
+| dominio y canon del emisor y del auditor son el mismo | P-110b |
+| un recibo firmado cierra bajo `env -i` fuera del árbol | P-110c |
+| el canon firmado cubre la llave que ningún chequeo de campo mira | P-110d |
+| un byte en la firma o en la regla aportada no cierra | P-110d |
+| un `/1` no se firma ni se coteja como firmado | P-110e |
