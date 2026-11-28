@@ -39,6 +39,7 @@ from protocol.predicado import (  # noqa: E402
     VeredictoAdjudicado,
     VeredictoDeAncla,
     contrafirmar,
+    cotejar_pagina,
     desde_cuerpo,
     verificar_contrafirma,
 )
@@ -177,6 +178,23 @@ def _pagina(cuerpo):
     return _json.dumps(cuerpo, indent=2, ensure_ascii=False, sort_keys=True)
 
 
+def _cotejo(declarado, corriente):
+    """¿El archivo publicado es el acto de este árbol, o el de esta máquina?
+
+    El cotejo es el de `protocol.predicado`, el mismo que usan `emitir_censo` y
+    `verificar_sello`: normaliza `plataforma` y `runtime` antes de comparar, y
+    nada más. Hasta el 2026-11-27 este acto traía su propia copia —igualdad de
+    bytes—, así que una contrafirma emitida en `darwin` se declaraba `REFUTA` al
+    cotejarse en `linux`: el observador había entrado al acto y el ancla sólo
+    valía en la máquina que la firmó. Lo destapó la compuerta de CI, que es el
+    primer lector de este acto que corre fuera de aquí; aquí el defecto era
+    invisible porque firmante y cotejador eran la misma máquina.
+    """
+
+    entorno = _entorno()
+    return cotejar_pagina(declarado, corriente, (entorno["plataforma"], entorno["runtime"]))
+
+
 def _adjudicar(contrafirma, decl):
     """La verificación en frío: ¿la contrafirma cubre la página que tengo delante?"""
 
@@ -209,6 +227,13 @@ _RC_DEL_ANCLA = {
     VeredictoDeAncla.NO_MEDIDA: CodigoDeActo.NO_MEDIDO,
 }
 
+#: La inversa, para que un fallo tipado del cotejo salga como veredicto de ancla
+#: sin que este acto escriba un segundo `if` por código. Se deriva de la tabla de
+#: arriba: dos tablas escritas a mano divergen, y la que miente es la que nadie
+#: lee. `CONTRATO` no está: no es un veredicto sobre el ancla sino sobre la
+#: declaración, y sale por su propio número.
+_ANCLA_DEL_RC = {int(rc): ancla for ancla, rc in _RC_DEL_ANCLA.items()}
+
 
 def _cierre(veredicto, detalle):
     """Publica el veredicto de ancla y lo traduce a RC.
@@ -236,10 +261,17 @@ def main(argumentos):
         if not CONJUNTO.exists():
             print("FALTA | la contrafirma emitida no existe | %s" % CONJUNTO.name)
             return _cierre(VeredictoDeAncla.NO_MEDIDA, "no hay contrafirma emitida que comparar")
-        if CONJUNTO.read_text(encoding="utf-8") != pagina + "\n":
-            print("DIVERGE | la contrafirma emitida no es la de este acto | %s" % CONJUNTO.name)
-            return _cierre(VeredictoDeAncla.REFUTA, "el archivo emitido no declara este acto")
-        print("REPRODUCE | contrafirma-censo.json | %s" % contrafirma.digest_del_predicado.digest)
+        codigo, firmado, detalle = _cotejo(CONJUNTO.read_bytes(), pagina + "\n")
+        if codigo is not CodigoDeActo.REPRODUCE:
+            print("%s | %s" % (codigo.name, detalle))
+            ancla = _ANCLA_DEL_RC.get(int(codigo))
+            if ancla is None:
+                # `CONTRATO` (y cualquier código que no adjudique el ancla) sale
+                # por su número: envolverlo en un veredicto inventaría un juicio
+                # sobre el ancla que este acto no emitió.
+                return int(codigo)
+            return _cierre(ancla, "el archivo emitido no declara este acto (%s)" % detalle)
+        print("REPRODUCE | %s | %s" % (CONJUNTO.name, firmado))
     else:
         CONJUNTO.write_text(pagina + "\n", encoding="utf-8")
         print(

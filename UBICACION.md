@@ -367,8 +367,17 @@ nombre de quien reproduce daría dos identidades al mismo acto según la máquin
 Medido el 27-Nov-2026: la página sellada bajo `CPython 3.9.6` reproduce bajo
 `CPython 3.12.13` con RC 0; el nombre firmado es `80bee69d…` y el de la corrida
 `bfed7488…`, y el mismo archivo, sin reescribirse, sirve a los dos.
-Falsadores: P-32 (el entorno no condena) y P-27 (el separador del archivo no
-condena).
+
+**La excepción es una función, no una por acto.** `cotejar_pagina()` normaliza
+esos dos campos y compara el resto; un acto que traiga su propia copia reintroduce
+el defecto por su cuenta, y dos copias divergen. El 27-Nov-2026
+`contrafirmar_censo.py` comparaba **bytes**: su contrafirma, emitida en `darwin`,
+se declaraba `REFUTA` al cotejarse en `linux`, así que el ancla sólo valía en la
+máquina que la firmó. Aquí era invisible porque firmante y cotejador eran la
+misma máquina; lo destapó la compuerta de CI, que es el primer lector de ese acto
+que corre fuera de este árbol. Falsadores: P-32 (el entorno no condena), P-27 (el
+separador del archivo no condena), **P-29** (la contrafirma tampoco) y P-29b, que
+impide que la normalización absuelva un acto ajeno.
 
 ### 6.2 La escalera del código de salida, y por qué `RANCIO` no es `REFUTA`
 
